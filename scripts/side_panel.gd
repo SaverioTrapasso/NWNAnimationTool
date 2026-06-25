@@ -8,6 +8,7 @@ signal save_to_timeline_requested()
 signal duration_changed(value: float)
 signal undo_requested()
 signal focus_requested()
+signal play_toggled(playing: bool)
 
 @export var rig_root: Node3D
 
@@ -19,6 +20,7 @@ signal focus_requested()
 @onready var undo_button: Button = $Panel/VBoxContainer/UndoFocusRow/UndoButton
 @onready var focus_button: Button = $Panel/VBoxContainer/UndoFocusRow/FocusButton
 @onready var save_to_timeline_button: Button = $Panel/VBoxContainer/SaveToTimelineButton
+@onready var play_button: Button = $Panel/VBoxContainer/PlayButton
 @onready var status_label: Label = $Panel/VBoxContainer/StatusLabel
 @onready var save_dialog: FileDialog = $SaveDialog
 @onready var open_dialog: FileDialog = $OpenDialog
@@ -42,6 +44,7 @@ func _ready() -> void:
 	undo_button.pressed.connect(func(): undo_requested.emit())
 	focus_button.pressed.connect(func(): focus_requested.emit())
 	save_to_timeline_button.pressed.connect(_on_save_to_timeline_pressed)
+	play_button.toggled.connect(_on_play_toggled)
 	duration_edit.value_changed.connect(_on_duration_changed)
 	cloak_button.toggled.connect(_on_cloak_toggled)
 	right_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("rhand_g", Color(0.2, 0.9, 1.0)))
@@ -84,6 +87,17 @@ func _on_reset_pressed() -> void:
 
 func _on_save_to_timeline_pressed() -> void:
 	save_to_timeline_requested.emit()
+
+func _on_play_toggled(pressed: bool) -> void:
+	play_button.text = "Pause" if pressed else "Play"
+	play_toggled.emit(pressed)
+
+## Lets main.gd reset the button's visual state (e.g. when the user manually
+## scrubs the timeline mid-playback, which pauses it) without re-emitting
+## play_toggled and causing a feedback loop.
+func set_playing(playing: bool) -> void:
+	play_button.set_pressed_no_signal(playing)
+	play_button.text = "Pause" if playing else "Play"
 
 func _on_duration_changed(value: float) -> void:
 	timeline.set_length(value)

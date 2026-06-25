@@ -32,6 +32,9 @@ var _rest_transforms: Dictionary = {} # Node3D -> Transform3D
 var _keyframes: Array = []
 var _anim_length: float = 5.0
 
+var _playing: bool = false
+var _play_time: float = 0.0
+
 # Undo: a short stack of full-pose snapshots, pushed right before each drag
 # (gizmo/handle) starts, plus before Reset/Open. Ctrl+Z pops back one step.
 const UNDO_MAX_SIZE := 20
@@ -52,7 +55,8 @@ func _ready() -> void:
 	side_panel.open_file_requested.connect(_on_open_file_requested)
 	side_panel.save_to_timeline_requested.connect(_on_save_to_timeline_requested)
 	side_panel.duration_changed.connect(_on_duration_changed)
-	side_panel.timeline.time_changed.connect(_apply_pose_at_time)
+	side_panel.timeline.time_changed.connect(_on_timeline_scrubbed)
+	side_panel.play_toggled.connect(_on_play_toggled)
 	side_panel.set_duration(_anim_length)
 	side_panel.transform_panel.position_changed.connect(_on_panel_position_changed)
 	side_panel.transform_panel.rotation_changed.connect(_on_panel_rotation_changed)
@@ -247,7 +251,14 @@ func _apply_component_materials_recursive(node: Node, node_to_component: Diction
 	for child in node.get_children():
 		_apply_component_materials_recursive(child, node_to_component, ik_tip_names, fk_component_ids)
 
-func _process(_delta: float) -> void:
+func _process(delta: float) -> void:
+	if _playing and not _keyframes.is_empty():
+		_play_time += delta
+		if _anim_length > 0.0001:
+			_play_time = fmod(_play_time, _anim_length)
+		side_panel.timeline.set_current_time(_play_time)
+		_apply_pose_at_time(_play_time)
+
 	for component_id in _limb_targets.keys():
 		var chain: Array[Node3D] = rig_controller.get_chain_nodes(component_id)
 		if chain.size() != 3:
@@ -255,6 +266,23 @@ func _process(_delta: float) -> void:
 		var t: Dictionary = _limb_targets[component_id]
 		IKSolver.solve_two_bone(chain[0], chain[1], chain[2], t["target"], t["pole"])
 	_refresh_transform_panel()
+
+func _on_play_toggled(playing: bool) -> void:
+	if playing and _keyframes.is_empty():
+		side_panel.set_status("Add at least one keyframe to the timeline first.")
+		side_panel.set_playing(false)
+		return
+	_playing = playing
+	if playing:
+		_play_time = side_panel.timeline.current_time
+
+## Scrubbing the timeline by hand while it's playing pauses playback, so the
+## user's drag wins instead of being immediately overridden next frame.
+func _on_timeline_scrubbed(t: float) -> void:
+	if _playing:
+		_playing = false
+		side_panel.set_playing(false)
+	_apply_pose_at_time(t)
 
 func _on_component_selected(component_id: String) -> void:
 	_clear_handles()
