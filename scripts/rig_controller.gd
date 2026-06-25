@@ -66,6 +66,13 @@ func _find_descendant(node: Node, target_name: String) -> Node:
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.pressed and event.button_index == MOUSE_BUTTON_LEFT:
+		# Any left-click that reaches here landed in the 3D viewport (clicks on
+		# actual UI controls never reach _unhandled_input at all). Clicking in
+		# 3D space doesn't naturally clear focus from a text field the user was
+		# previously editing, which would otherwise permanently block the
+		# transform panel's live refresh (it skips updates while a field has
+		# focus, to avoid fighting the user's typing).
+		get_viewport().gui_release_focus()
 		_try_pick(event.position)
 
 func _try_pick(screen_pos: Vector2) -> void:

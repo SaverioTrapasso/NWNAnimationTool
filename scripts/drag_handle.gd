@@ -5,6 +5,7 @@ extends Node3D
 ## current position, so it tracks mouse movement in screen space.
 
 signal moved(new_position: Vector3)
+signal drag_started()
 
 const PICK_LAYER := 4
 const RADIUS := 0.035
@@ -50,6 +51,7 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _ray_hits_self(event.position):
 				_dragging = true
 				_drag_start_pos = global_position
+				drag_started.emit()
 				get_viewport().set_input_as_handled()
 		else:
 			_dragging = false

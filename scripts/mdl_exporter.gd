@@ -1,5 +1,7 @@
-## Serializes the current pose of the rig into a NWN MDL ASCII
-## newanim/doneanim block, as a single static keyframe at time 0.0.
+## Serializes the rig's pose(s) into a NWN MDL ASCII newanim/doneanim block.
+## Supports either a single static pose or a full multi-keyframe animation —
+## NWN's own engine interpolates between the keyframes at runtime, so we just
+## need to emit one time-tagged key per keyframe, in order, per node.
 class_name MdlExporter
 
 const PARENT_ANIM := "a_ba_non_combat"
@@ -41,48 +43,78 @@ const SKELETON_TREE := {
 	},
 }
 
+## Convenience for the no-timeline case: exports the rig's current live pose
+## as a single keyframe at time 0.0.
 static func export_pose(rig_root: Node3D, anim_name: String) -> String:
+	var transforms := {}
+	_capture_live_transforms(rig_root, "rootdummy", SKELETON_TREE["rootdummy"], transforms)
+	var keyframes: Array = [{"time": 0.0, "transforms": transforms}]
+	return export_animation(rig_root, anim_name, 1.0, keyframes)
+
+static func _capture_live_transforms(rig_root: Node3D, node_name: String, children: Dictionary, out_transforms: Dictionary) -> void:
+	var node := _find_descendant(rig_root, node_name)
+	if node == null:
+		return
+	out_transforms[node_name] = node.transform
+	for child_name in children.keys():
+		_capture_live_transforms(rig_root, child_name, children[child_name], out_transforms)
+
+## Recursively captures the current transform of every node in SKELETON_TREE,
+## starting from rootdummy. Used both for the no-timeline export and to seed
+## a fresh keyframe when the user presses "Save to timeline".
+static func capture_pose(rig_root: Node3D) -> Dictionary:
+	var transforms := {}
+	_capture_live_transforms(rig_root, "rootdummy", SKELETON_TREE["rootdummy"], transforms)
+	return transforms
+
+## keyframes: Array of {"time": float, "transforms": {node_name: Transform3D}},
+## sorted ascending by time. length is the animation's total duration in seconds.
+static func export_animation(rig_root: Node3D, anim_name: String, length: float, keyframes: Array) -> String:
 	var lines: PackedStringArray = []
 	lines.append("newanim %s %s" % [anim_name, PARENT_ANIM])
-	lines.append("  length 1.0")
+	lines.append("  length %s" % _fmt(length))
 	lines.append("  transtime 0.25")
 	lines.append("  animroot rootdummy")
 	lines.append("    node dummy %s" % PARENT_ANIM)
 	lines.append("        parent NULL")
 	lines.append("    endnode")
 
-	_emit_subtree(rig_root, "rootdummy", SKELETON_TREE["rootdummy"], PARENT_ANIM, lines, true)
+	_emit_subtree(rig_root, "rootdummy", SKELETON_TREE["rootdummy"], PARENT_ANIM, lines, true, keyframes)
 
 	lines.append("doneanim %s %s" % [anim_name, PARENT_ANIM])
 	return "\n".join(lines)
 
-static func _emit_subtree(rig_root: Node3D, node_name: String, children: Dictionary, parent_name: String, lines: PackedStringArray, is_root_dummy: bool) -> void:
-	var node: Node3D = _find_descendant(rig_root, node_name)
-	if node == null:
+static func _emit_subtree(rig_root: Node3D, node_name: String, children: Dictionary, parent_name: String, lines: PackedStringArray, is_root_dummy: bool, keyframes: Array) -> void:
+	var ref_node: Node3D = _find_descendant(rig_root, node_name)
+	if ref_node == null:
 		push_warning("MdlExporter: node '%s' not found in rig, skipping" % node_name)
 		return
 
-	var node_type := "trimesh" if node is MeshInstance3D else "dummy"
+	var node_type := "trimesh" if ref_node is MeshInstance3D else "dummy"
 	lines.append("    node %s %s" % [node_type, node_name])
 	lines.append("        parent %s" % parent_name)
 
 	if is_root_dummy:
-		var pos: Vector3 = _to_nwn_space(node.position)
 		lines.append("        positionkey")
-		lines.append("            0.0 %s %s %s" % [_fmt(pos.x), _fmt(pos.y), _fmt(pos.z)])
+		for kf in keyframes:
+			var transform: Transform3D = kf["transforms"].get(node_name, Transform3D.IDENTITY)
+			var pos := _to_nwn_space(transform.origin)
+			lines.append("            %s %s %s %s" % [_fmt(kf["time"]), _fmt(pos.x), _fmt(pos.y), _fmt(pos.z)])
 		lines.append("        endlist")
 
-	var axis_angle := _basis_to_axis_angle(node.basis)
-	var axis := _to_nwn_space(Vector3(axis_angle.x, axis_angle.y, axis_angle.z))
 	lines.append("        orientationkey")
-	lines.append("            0.0 %s %s %s %s" % [
-		_fmt(axis.x), _fmt(axis.y), _fmt(axis.z), _fmt(axis_angle.w)
-	])
+	for kf in keyframes:
+		var transform: Transform3D = kf["transforms"].get(node_name, Transform3D.IDENTITY)
+		var axis_angle := _basis_to_axis_angle(transform.basis)
+		var axis := _to_nwn_space(Vector3(axis_angle.x, axis_angle.y, axis_angle.z))
+		lines.append("            %s %s %s %s %s" % [
+			_fmt(kf["time"]), _fmt(axis.x), _fmt(axis.y), _fmt(axis.z), _fmt(axis_angle.w)
+		])
 	lines.append("        endlist")
 	lines.append("    endnode")
 
 	for child_name in children.keys():
-		_emit_subtree(rig_root, child_name, children[child_name], node_name, lines, false)
+		_emit_subtree(rig_root, child_name, children[child_name], node_name, lines, false, keyframes)
 
 ## Returns Vector4(axis.x, axis.y, axis.z, angle_radians).
 static func _basis_to_axis_angle(basis: Basis) -> Vector4:
@@ -98,6 +130,10 @@ static func _basis_to_axis_angle(basis: Basis) -> Vector4:
 ## NWN's coordinate space: nwn.x = godot.x, nwn.y = -godot.z, nwn.z = godot.y.
 static func _to_nwn_space(v: Vector3) -> Vector3:
 	return Vector3(v.x, -v.z, v.y)
+
+## Inverse of _to_nwn_space, used by MdlImporter.
+static func _from_nwn_space(v: Vector3) -> Vector3:
+	return Vector3(v.x, v.z, -v.y)
 
 static func _fmt(value: float) -> String:
 	return "%.6f" % value

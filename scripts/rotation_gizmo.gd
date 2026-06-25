@@ -4,57 +4,61 @@ extends Node3D
 ## current target node around that axis, in the target's local/parent space
 ## (matching how NWN orientationkeys are stored as parent-relative rotations).
 
-const RADIUS := 0.18
+signal drag_started()
+
+## Kept clearly outside TranslationGizmo's arrow reach (~0.13 with current
+## constants), so there's a real gap between the move arrows and the
+## rotation rings — no more misclicking one for the other.
+const RADIUS := 0.2
+const TUBE_THICKNESS := 0.014
 const RING_SEGMENTS := 48
-const PICK_TOLERANCE := 0.035
+const TUBE_SEGMENTS := 32
+const PICK_TOLERANCE := 0.03
 
 var target: Node3D = null
 var camera: Camera3D = null
 
-var _axis_meshes: Dictionary = {} # "x"/"y"/"z" -> MeshInstance3D
+# All ring meshes live under this node instead of directly under self. self's
+# own global_basis is the frozen reference frame used for angle measurement
+# while dragging (see _process); _visual_root is spun live by the drag delta
+# purely for visual feedback, without disturbing that measurement frame.
+var _visual_root: Node3D
+
 var _dragging_axis: String = ""
+var _dragging_local_axis: Vector3 = Vector3.UP
 var _drag_start_mouse_angle: float = 0.0
 var _drag_start_basis: Basis
 
 func _ready() -> void:
-	_axis_meshes["x"] = _make_ring(Color(1, 0.2, 0.2), Vector3.RIGHT)
-	_axis_meshes["y"] = _make_ring(Color(0.2, 1, 0.2), Vector3.UP)
-	_axis_meshes["z"] = _make_ring(Color(0.2, 0.4, 1), Vector3.FORWARD)
+	_visual_root = Node3D.new()
+	add_child(_visual_root)
+	_make_ring(Color(1, 0.2, 0.2), Vector3.RIGHT, Vector3(0, 0, 90), 12)
+	_make_ring(Color(0.2, 1, 0.2), Vector3.UP, Vector3(0, 0, 0), 11)
+	_make_ring(Color(0.2, 0.4, 1), Vector3.BACK, Vector3(90, 0, 0), 10)
 	visible = false
 
-func _make_ring(color: Color, normal: Vector3) -> MeshInstance3D:
-	var st := SurfaceTool.new()
-	st.begin(Mesh.PRIMITIVE_LINE_STRIP)
-	for i in range(RING_SEGMENTS + 1):
-		var angle := TAU * i / RING_SEGMENTS
-		var p := Vector3(cos(angle), 0, sin(angle)) * RADIUS
-		if normal == Vector3.RIGHT:
-			p = Vector3(0, p.x, p.z)
-		elif normal == Vector3.FORWARD:
-			p = Vector3(p.x, p.z, 0)
-		st.set_color(color)
-		st.add_vertex(p)
-	var mesh := st.commit()
+func _make_ring(color: Color, _normal: Vector3, rotation_deg: Vector3, priority: int) -> void:
+	var torus := TorusMesh.new()
+	torus.inner_radius = RADIUS - TUBE_THICKNESS * 0.5
+	torus.outer_radius = RADIUS + TUBE_THICKNESS * 0.5
+	torus.rings = TUBE_SEGMENTS
+	torus.ring_segments = RING_SEGMENTS
 
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
-	mat.vertex_color_use_as_albedo = true
+	mat.albedo_color = color
+	# no_depth_test keeps the rings visible through the body mesh, but with
+	# depth testing off the GPU has no stable order between the three rings
+	# where they cross each other — giving them distinct render priorities
+	# fixes that flicker (the renderer falls back to priority instead of depth).
 	mat.no_depth_test = true
-	mat.render_priority = 10
+	mat.render_priority = priority
 
 	var mi := MeshInstance3D.new()
-	mi.mesh = mesh
+	mi.mesh = torus
 	mi.material_override = mat
-	mi.set_meta("axis", _normal_to_axis_name(normal))
-	add_child(mi)
-	return mi
-
-func _normal_to_axis_name(normal: Vector3) -> String:
-	if normal == Vector3.RIGHT:
-		return "x"
-	if normal == Vector3.UP:
-		return "y"
-	return "z"
+	mi.rotation_degrees = rotation_deg
+	_visual_root.add_child(mi)
 
 func attach_to(node: Node3D) -> void:
 	target = node
@@ -62,6 +66,7 @@ func attach_to(node: Node3D) -> void:
 	if target != null:
 		global_position = target.global_position
 		global_basis = target.global_basis
+		_visual_root.basis = Basis()
 
 func detach() -> void:
 	target = null
@@ -88,20 +93,22 @@ func _unhandled_input(event: InputEvent) -> void:
 			var axis := _pick_axis(event.position)
 			if axis != "":
 				_dragging_axis = axis
+				_dragging_local_axis = Vector3.RIGHT if axis == "x" else (Vector3.UP if axis == "y" else Vector3.BACK)
 				_drag_start_mouse_angle = _mouse_angle_on_axis_plane(axis, event.position)
 				_drag_start_basis = target.basis
+				_visual_root.basis = Basis()
+				drag_started.emit()
 				get_viewport().set_input_as_handled()
 		else:
 			_dragging_axis = ""
+			_visual_root.basis = Basis()
 	elif event is InputEventMouseMotion and _dragging_axis != "":
 		var current_angle := _mouse_angle_on_axis_plane(_dragging_axis, event.position)
 		var delta_angle := current_angle - _drag_start_mouse_angle
-		var local_axis := Vector3.RIGHT
-		if _dragging_axis == "y":
-			local_axis = Vector3.UP
-		elif _dragging_axis == "z":
-			local_axis = Vector3.FORWARD
-		target.basis = _drag_start_basis * Basis(local_axis, delta_angle)
+		target.basis = _drag_start_basis * Basis(_dragging_local_axis, delta_angle)
+		# Spin the rings live by the same delta for immediate visual feedback;
+		# self.global_basis (the measurement frame above) stays untouched.
+		_visual_root.basis = Basis(_dragging_local_axis, delta_angle)
 		get_viewport().set_input_as_handled()
 
 ## Ray-plane intersection test against each ring's plane, returns the closest
@@ -112,7 +119,7 @@ func _pick_axis(screen_pos: Vector2) -> String:
 	var best_axis := ""
 	var best_dist := INF
 	for axis_name in ["x", "y", "z"]:
-		var local_normal := Vector3.RIGHT if axis_name == "x" else (Vector3.UP if axis_name == "y" else Vector3.FORWARD)
+		var local_normal := Vector3.RIGHT if axis_name == "x" else (Vector3.UP if axis_name == "y" else Vector3.BACK)
 		var world_normal := global_basis * local_normal
 		var plane := Plane(world_normal, global_position)
 		var hit: Variant = plane.intersects_ray(ray_origin, ray_dir)
@@ -126,7 +133,7 @@ func _pick_axis(screen_pos: Vector2) -> String:
 	return best_axis
 
 func _mouse_angle_on_axis_plane(axis_name: String, screen_pos: Vector2) -> float:
-	var local_normal := Vector3.RIGHT if axis_name == "x" else (Vector3.UP if axis_name == "y" else Vector3.FORWARD)
+	var local_normal := Vector3.RIGHT if axis_name == "x" else (Vector3.UP if axis_name == "y" else Vector3.BACK)
 	var world_normal := global_basis * local_normal
 	var plane := Plane(world_normal, global_position)
 	var ray_origin := camera.project_ray_origin(screen_pos)

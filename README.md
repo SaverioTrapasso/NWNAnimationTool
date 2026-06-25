@@ -1,8 +1,9 @@
 # NWNAnimationTool
 
 A Godot tool for posing the Neverwinter Nights IK dummy character and
-exporting the pose as an MDL ASCII animation block (`newanim ... doneanim`),
-ready to paste into an NWN `.mdl` file.
+exporting the pose — as a single static pose or a full multi-keyframe
+animation — to an MDL ASCII animation block (`newanim ... doneanim`), ready
+to paste into an NWN `.mdl` file.
 
 ## Getting started
 
@@ -14,17 +15,40 @@ No build step is needed: GDScript is interpreted directly by the engine.
 
 ## Quick usage guide
 
+### Posing
+
 - Click a body part to select it: **cyan** = FK parts (head, torso, pelvis,
-  rotated with the 3-axis gizmo), **yellow** = hands/feet (dragged in IK,
-  with pole vectors for elbows/knees).
-- Select the pelvis to also drag the green handle and raise/lower the
-  whole body.
+  rotated with the 3-axis rotation gizmo), **yellow** = hands/feet (moved
+  with the 3-axis translation gizmo, solved as IK with a pole vector for the
+  elbow/knee).
+- The rotation gizmo's rings and the translation gizmo's arrows are
+  deliberately separated (arrows inside, rings outside with a gap) so they
+  don't overlap or get misclicked.
+- The always-visible **transform panel** (top of the screen, when something
+  is selected) shows exact Position/Rotation X/Y/Z values you can type
+  directly — handy when the gizmo alone is too fiddly to nail an angle.
+- Select the pelvis to also drag the green handle and raise/lower/translate
+  the whole body — feet and hands stay anchored to their current targets as
+  the body moves.
 - "Show all pole vectors" shows every limb's pole vector at once, handy for
   reviewing the overall pose.
-- "Hide cloak/tabard" and "Show weapons" are convenience visual toggles.
+- "Hide cloak/tabard" and "Show right/left hand weapon" are convenience
+  visual toggles (the weapon is just a placeholder blade for posing a grip).
 - "Reset pose" restores the rig to the imported model's original pose.
-- Type an animation name and press **Save** to export a `.txt` file with
-  the MDL ASCII block.
+- **Undo** (button, or Ctrl+Z) steps back through the last edits.
+- **Focus** (button, or F) centers the camera on the current selection.
+
+### Timeline & export
+
+- Set a **Duration**, pose the rig, and press **Save to timeline** to drop a
+  keyframe at the current playhead time. Scrubbing the timeline previews the
+  interpolated pose between keyframes (the same way NWN interpolates at
+  runtime, so what you see matches what will play in-game).
+- **Save** exports a `.txt` file with the MDL ASCII block — a single pose if
+  you haven't used the timeline, or the full multi-keyframe animation
+  otherwise.
+- **Open** loads a previously exported `.txt` back onto the timeline so you
+  can keep editing it.
 
 ## Notes
 

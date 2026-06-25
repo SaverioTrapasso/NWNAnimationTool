@@ -1,4 +1,4 @@
-[gd_scene load_steps=9 format=3 uid="uid://b1q7x8f3wq8nk"]
+[gd_scene load_steps=11 format=3 uid="uid://b1q7x8f3wq8nk"]
 
 [ext_resource type="PackedScene" uid="uid://bk5top5rlti6i" path="res://assets/a_ba.glb" id="1"]
 [ext_resource type="Script" path="res://scripts/orbit_camera.gd" id="2"]
@@ -6,6 +6,8 @@
 [ext_resource type="Script" path="res://scripts/rig_controller.gd" id="4"]
 [ext_resource type="Script" path="res://scripts/rotation_gizmo.gd" id="5"]
 [ext_resource type="Script" path="res://scripts/side_panel.gd" id="6"]
+[ext_resource type="Script" path="res://scripts/timeline.gd" id="7"]
+[ext_resource type="Script" path="res://scripts/transform_panel.gd" id="8"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -92,43 +94,82 @@ text = "Animation name"
 layout_mode = 2
 placeholder_text = "e.g. fencing_stance"
 
+[node name="DurationLabel" type="Label" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Duration (s)"
+
+[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+min_value = 0.5
+max_value = 60.0
+step = 0.5
+value = 5.0
+
+[node name="SaveToTimelineButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Save to timeline"
+
+[node name="HSeparator" type="HSeparator" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+
 [node name="SaveButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
 layout_mode = 2
 text = "Save"
+
+[node name="OpenButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Open"
 
 [node name="ResetButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
 layout_mode = 2
 text = "Reset pose"
 
-[node name="StatusLabel" type="Label" parent="SidePanel/Panel/VBoxContainer"]
+[node name="UndoFocusRow" type="HBoxContainer" parent="SidePanel/Panel/VBoxContainer"]
 layout_mode = 2
-autowrap_mode = 3
-text = ""
 
-[node name="TopRightButtons" type="VBoxContainer" parent="SidePanel"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -190.0
-offset_top = 12.0
-offset_right = -12.0
-grow_horizontal = 0
+[node name="UndoButton" type="Button" parent="SidePanel/Panel/VBoxContainer/UndoFocusRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Undo the last move/rotation (Ctrl+Z)"
+text = "Undo"
 
-[node name="CloakToggleButton" type="Button" parent="SidePanel/TopRightButtons"]
+[node name="FocusButton" type="Button" parent="SidePanel/Panel/VBoxContainer/UndoFocusRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Center the camera on the current selection (F)"
+text = "Focus (F)"
+
+[node name="HSeparator2" type="HSeparator" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+
+[node name="DisplayLabel" type="Label" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+text = "Display"
+
+[node name="CloakToggleButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
 layout_mode = 2
 toggle_mode = true
 text = "Hide cloak/tabard"
 
-[node name="WeaponsToggleButton" type="Button" parent="SidePanel/TopRightButtons"]
+[node name="RightHandWeaponButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
 layout_mode = 2
 toggle_mode = true
-text = "Show weapons"
+text = "Show right hand weapon"
 
-[node name="PoleVectorsToggleButton" type="Button" parent="SidePanel/TopRightButtons"]
+[node name="LeftHandWeaponButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+toggle_mode = true
+text = "Show left hand weapon"
+
+[node name="PoleVectorsToggleButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
 layout_mode = 2
 toggle_mode = true
 text = "Show all pole vectors"
+
+[node name="StatusLabel" type="Label" parent="SidePanel/Panel/VBoxContainer"]
+layout_mode = 2
+autowrap_mode = 3
+text = ""
 
 [node name="SaveDialog" type="FileDialog" parent="SidePanel"]
 title = "Save MDL animation"
@@ -138,3 +179,139 @@ ok_button_text = "Save"
 file_mode = 4
 access = 2
 filters = PackedStringArray("*.txt ; Text Files")
+
+[node name="OpenDialog" type="FileDialog" parent="SidePanel"]
+title = "Open MDL animation"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Open"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.txt ; Text Files")
+
+[node name="TransformPanel" type="Panel" parent="SidePanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 232.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 80.0
+mouse_filter = 1
+script = ExtResource("8")
+
+[node name="HBox" type="HBoxContainer" parent="SidePanel/TransformPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+alignment = 1
+
+[node name="ComponentLabel" type="Label" parent="SidePanel/TransformPanel/HBox"]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "—"
+vertical_alignment = 1
+
+[node name="VSeparator" type="VSeparator" parent="SidePanel/TransformPanel/HBox"]
+layout_mode = 2
+
+[node name="PosBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox"]
+layout_mode = 2
+
+[node name="PosLabel" type="Label" parent="SidePanel/TransformPanel/HBox/PosBox"]
+layout_mode = 2
+text = "Position (m)"
+
+[node name="PosRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/PosBox"]
+layout_mode = 2
+
+[node name="PosX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "X"
+
+[node name="PosY" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "Y"
+
+[node name="PosZ" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "Z"
+
+[node name="VSeparator2" type="VSeparator" parent="SidePanel/TransformPanel/HBox"]
+layout_mode = 2
+
+[node name="RotBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox"]
+layout_mode = 2
+
+[node name="RotLabel" type="Label" parent="SidePanel/TransformPanel/HBox/RotBox"]
+layout_mode = 2
+text = "Rotation (deg)"
+
+[node name="RotRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/RotBox"]
+layout_mode = 2
+
+[node name="RotX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+step = 1.0
+allow_greater = true
+allow_lesser = true
+prefix = "X"
+
+[node name="RotY" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+step = 1.0
+allow_greater = true
+allow_lesser = true
+prefix = "Y"
+
+[node name="RotZ" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+step = 1.0
+allow_greater = true
+allow_lesser = true
+prefix = "Z"
+
+[node name="Timeline" type="Control" parent="SidePanel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 230.0
+offset_top = -64.0
+offset_right = -12.0
+offset_bottom = -12.0
+mouse_filter = 1
+script = ExtResource("7")

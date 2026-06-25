@@ -19,6 +19,12 @@ var _panning: bool = false
 func _ready() -> void:
 	_update_transform()
 
+## Re-centers the orbit around the given world position, keeping the current
+## distance/angle so it just recenters rather than also zooming.
+func focus_on(pos: Vector3) -> void:
+	target = pos
+	_update_transform()
+
 func _update_transform() -> void:
 	var rot_basis := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch)
 	var offset := rot_basis * Vector3(0, 0, distance)
