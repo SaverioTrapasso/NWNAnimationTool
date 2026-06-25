@@ -1,0 +1,10 @@
+# Godot 4+ specific ignores
+.godot/
+/android/
+
+# Godot editor/runtime executables (too large for GitHub, download separately)
+/SDK/
+
+# Local tooling/output, not part of the project source
+/.claude/
+/export/
