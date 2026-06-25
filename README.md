@@ -1,35 +1,35 @@
 # NWNAnimationTool
 
-Tool Godot per posare il dummy IK di Neverwinter Nights e esportare la posa
-come blocco di animazione MDL ASCII (`newanim ... doneanim`), pronto per
-essere incollato in un file `.mdl` di NWN.
+A Godot tool for posing the Neverwinter Nights IK dummy character and
+exporting the pose as an MDL ASCII animation block (`newanim ... doneanim`),
+ready to paste into an NWN `.mdl` file.
 
-## Come avviarlo
+## Getting started
 
-1. Scarica [Godot 4.7](https://godotengine.org/download) (versione standard, non serve .NET).
-2. Apri Godot, scegli "Import" e seleziona il file `project.godot` di questo repository.
-3. Premi **Play** (in alto a destra, oppure F5).
+1. Download [Godot 4.7](https://godotengine.org/download) (the standard build, no .NET needed).
+2. Open Godot, choose "Import" and select this repository's `project.godot` file.
+3. Press **Play** (top right, or F5).
 
-Non serve nessuna build: GDScript viene interpretato direttamente dal motore.
+No build step is needed: GDScript is interpreted directly by the engine.
 
-## Uso rapido
+## Quick usage guide
 
-- Clicca su un componente del corpo per selezionarlo: **azzurro** = parti FK
-  (testa, torso, bacino, ruotabili con il gizmo a 3 assi), **giallo** = mani/piedi
-  (trascinabili in IK, con pole vector per gomiti/ginocchia).
-- Seleziona il bacino per trascinare anche l'handle verde e alzare/abbassare
-  l'intero corpo.
-- "Show all pole vectors" mostra i pole vector di tutti gli arti insieme, utile
-  per revisionare la posa.
-- "Hide cloak/tabard" e "Show weapons" sono toggle visivi di comodo per la posa.
-- "Reset pose" riporta il rig alla posa originale del modello importato.
-- Inserisci un nome animazione e premi **Save** per esportare il file `.txt`
-  con il blocco MDL ASCII.
+- Click a body part to select it: **cyan** = FK parts (head, torso, pelvis,
+  rotated with the 3-axis gizmo), **yellow** = hands/feet (dragged in IK,
+  with pole vectors for elbows/knees).
+- Select the pelvis to also drag the green handle and raise/lower the
+  whole body.
+- "Show all pole vectors" shows every limb's pole vector at once, handy for
+  reviewing the overall pose.
+- "Hide cloak/tabard" and "Show weapons" are convenience visual toggles.
+- "Reset pose" restores the rig to the imported model's original pose.
+- Type an animation name and press **Save** to export a `.txt` file with
+  the MDL ASCII block.
 
-## Note
+## Notes
 
-- La cartella `SDK/` (eseguibili di Godot) non è inclusa nel repository per le
-  dimensioni: scarica Godot 4.7 separatamente come descritto sopra.
-- Il modello del dummy (`assets/a_ba.glb`) deve avere i nomi dei nodi NWN
-  esatti (`rootdummy`, `torso_g`, `pelvis_g`, ecc.) — vedi [CLAUDE.md](CLAUDE.md)
-  per i dettagli sul formato di export.
+- The `SDK/` folder (Godot executables) isn't included in this repository
+  due to its size: download Godot 4.7 separately as described above.
+- The dummy model (`assets/a_ba.glb`) must use the exact NWN node names
+  (`rootdummy`, `torso_g`, `pelvis_g`, etc.) — see [CLAUDE.md](CLAUDE.md)
+  for details on the export format.
