@@ -149,7 +149,7 @@ func _on_pole_vectors_toggled(show_all: bool) -> void:
 ## at once without selecting each limb individually.
 func _refresh_all_pole_handles() -> void:
 	for component_id in _all_pole_handles.keys():
-		_all_pole_handles[component_id].queue_free()
+		_retire_handle(_all_pole_handles[component_id])
 	_all_pole_handles.clear()
 
 	if not _show_all_poles:
@@ -380,16 +380,28 @@ func _on_root_height_moved(pos: Vector3) -> void:
 	if root_dummy != null:
 		root_dummy.global_position = pos
 
+## queue_free() only removes the node at the end of this frame — until then
+## it's still in the tree and would still react to the very same click that's
+## replacing it (e.g. the click that selects a new component), nudging
+## whatever's newly selected with a stray drag from the old, doomed handle.
+## Disabling its input processing immediately closes that window.
+func _retire_handle(handle: Node) -> void:
+	if handle == null:
+		return
+	if handle.has_method("set_process_unhandled_input"):
+		handle.set_process_unhandled_input(false)
+	handle.queue_free()
+
 func _clear_handles() -> void:
 	_active_ik_component = ""
 	if _target_handle != null:
-		_target_handle.queue_free()
+		_retire_handle(_target_handle)
 		_target_handle = null
 	if _pole_handle != null:
-		_pole_handle.queue_free()
+		_retire_handle(_pole_handle)
 		_pole_handle = null
 	if _root_height_handle != null:
-		_root_height_handle.queue_free()
+		_retire_handle(_root_height_handle)
 		_root_height_handle = null
 
 # ---------------------------------------------------------------------------
