@@ -7,8 +7,12 @@ extends Panel
 
 signal position_changed(v: Vector3)
 signal rotation_changed(v: Vector3) # degrees
+signal copy_selection_requested()
+signal paste_selection_requested()
 
 @onready var component_label: Label = $HBox/ComponentLabel
+@onready var copy_selection_button: Button = $HBox/CopySelectionButton
+@onready var paste_selection_button: Button = $HBox/PasteSelectionButton
 @onready var pos_x: SpinBox = $HBox/PosBox/PosRow/PosX
 @onready var pos_y: SpinBox = $HBox/PosBox/PosRow/PosY
 @onready var pos_z: SpinBox = $HBox/PosBox/PosRow/PosZ
@@ -24,6 +28,8 @@ func _ready() -> void:
 		sb.value_changed.connect(_on_position_field_changed)
 	for sb in [rot_x, rot_y, rot_z]:
 		sb.value_changed.connect(_on_rotation_field_changed)
+	copy_selection_button.pressed.connect(func(): copy_selection_requested.emit())
+	paste_selection_button.pressed.connect(func(): paste_selection_requested.emit())
 
 func _on_position_field_changed(_value: float) -> void:
 	if _updating:

@@ -44,6 +44,10 @@ var _undo_stack: Array = []
 # on the timeline and stamp it onto another keyframe, overwriting it.
 var _copied_pose: Dictionary = {}
 
+# Clipboard for "Copy sel." / "Paste sel.": the single currently-selected
+# component's pose, independent of the timeline.
+var _copied_component_pose: Dictionary = {}
+
 func _ready() -> void:
 	rig_controller.camera = $Camera3D
 	rig_controller.rig_root = $Rig
@@ -67,6 +71,8 @@ func _ready() -> void:
 	side_panel.set_duration(_anim_length)
 	side_panel.transform_panel.position_changed.connect(_on_panel_position_changed)
 	side_panel.transform_panel.rotation_changed.connect(_on_panel_rotation_changed)
+	side_panel.transform_panel.copy_selection_requested.connect(_on_copy_selection_requested)
+	side_panel.transform_panel.paste_selection_requested.connect(_on_paste_selection_requested)
 	side_panel.undo_requested.connect(_undo)
 	side_panel.focus_requested.connect(_on_focus_pressed)
 	gizmo.drag_started.connect(_push_undo_snapshot)
@@ -465,6 +471,73 @@ func _on_paste_key_requested() -> void:
 	_upsert_keyframe(t, _copied_pose.duplicate())
 	_apply_pose_at_time(t)
 	side_panel.set_status("Pose pasted at %.2fs." % t)
+
+func _is_ik_component(component_id: String) -> bool:
+	for comp in RigComponents.definitions():
+		if comp.id == component_id:
+			return comp.is_ik
+	return false
+
+## Copies only the currently selected component's pose (its IK target/pole/
+## hand-or-foot orientation, or its FK rotation — plus the body position for
+## the pelvis), as opposed to "Copy key" which grabs the entire rig.
+func _on_copy_selection_requested() -> void:
+	var component_id: String = rig_controller.selected_component
+	if component_id == "":
+		side_panel.set_status("Select something first.")
+		return
+
+	if _is_ik_component(component_id):
+		var t: Dictionary = _limb_targets[component_id]
+		_copied_component_pose = {
+			"type": "ik",
+			"target": t["target"],
+			"pole": t["pole"],
+			"end_basis": t["end_basis"],
+		}
+	else:
+		var node: Node3D = rig_controller.get_component_root_node(component_id)
+		_copied_component_pose = {"type": "fk", "basis": node.basis}
+		if component_id == "pelvis":
+			var root_dummy: Node3D = rig_controller.find_node("rootdummy")
+			if root_dummy != null:
+				_copied_component_pose["root_position"] = root_dummy.global_position
+
+	side_panel.set_status("Copied %s." % component_id)
+
+## Applies the copied component pose onto whatever's currently selected, as
+## long as it's the same kind (IK limb onto IK limb, FK part onto FK part) —
+## e.g. copy the right hand's grip and paste it onto the left hand.
+func _on_paste_selection_requested() -> void:
+	if _copied_component_pose.is_empty():
+		side_panel.set_status("Nothing copied yet — use \"Copy sel.\" first.")
+		return
+	var component_id: String = rig_controller.selected_component
+	if component_id == "":
+		side_panel.set_status("Select something to paste onto first.")
+		return
+
+	var is_ik := _is_ik_component(component_id)
+	var copy_type: String = _copied_component_pose["type"]
+	if (copy_type == "ik") != is_ik:
+		side_panel.set_status("Can't paste an IK limb's pose onto an FK part (or vice versa).")
+		return
+
+	_push_undo_snapshot()
+	if is_ik:
+		_limb_targets[component_id]["target"] = _copied_component_pose["target"]
+		_limb_targets[component_id]["pole"] = _copied_component_pose["pole"]
+		_limb_targets[component_id]["end_basis"] = _copied_component_pose["end_basis"]
+	else:
+		var node: Node3D = rig_controller.get_component_root_node(component_id)
+		if node != null:
+			node.basis = _copied_component_pose["basis"]
+		if component_id == "pelvis" and _copied_component_pose.has("root_position"):
+			var root_dummy: Node3D = rig_controller.find_node("rootdummy")
+			if root_dummy != null:
+				root_dummy.global_position = _copied_component_pose["root_position"]
+	_on_component_selected(component_id) # refresh handles/gizmo to the new pose
+	side_panel.set_status("Pasted onto %s." % component_id)
 
 ## Previews the rig at time t by interpolating between the two keyframes
 ## bracketing it (independent per-node lerp/slerp — the same way NWN's own
