@@ -9,25 +9,34 @@ signal duration_changed(value: float)
 signal undo_requested()
 signal focus_requested()
 signal play_toggled(playing: bool)
+signal copy_key_requested()
+signal paste_key_requested()
+signal remove_key_requested()
 
 @export var rig_root: Node3D
 
-@onready var name_edit: LineEdit = $Panel/VBoxContainer/AnimNameEdit
-@onready var duration_edit: SpinBox = $Panel/VBoxContainer/DurationSpinBox
-@onready var save_button: Button = $Panel/VBoxContainer/SaveButton
-@onready var open_button: Button = $Panel/VBoxContainer/OpenButton
-@onready var reset_button: Button = $Panel/VBoxContainer/ResetButton
-@onready var undo_button: Button = $Panel/VBoxContainer/UndoFocusRow/UndoButton
-@onready var focus_button: Button = $Panel/VBoxContainer/UndoFocusRow/FocusButton
-@onready var save_to_timeline_button: Button = $Panel/VBoxContainer/SaveToTimelineButton
-@onready var play_button: Button = $Panel/VBoxContainer/PlayButton
-@onready var status_label: Label = $Panel/VBoxContainer/StatusLabel
+@onready var _anim_section: Control = $Panel/Scroll/Margin/Sections/Animation
+@onready var _display_section: Control = $Panel/Scroll/Margin/Sections/Display
+
+@onready var name_edit: LineEdit = _anim_section.get_node("AnimNameEdit")
+@onready var duration_edit: SpinBox = _anim_section.get_node("DurationSpinBox")
+@onready var save_button: Button = _anim_section.get_node("SaveButton")
+@onready var open_button: Button = _anim_section.get_node("OpenButton")
+@onready var reset_button: Button = _anim_section.get_node("ResetButton")
+@onready var undo_button: Button = _anim_section.get_node("UndoFocusRow/UndoButton")
+@onready var focus_button: Button = _anim_section.get_node("UndoFocusRow/FocusButton")
+@onready var save_to_timeline_button: Button = _anim_section.get_node("SaveToTimelineButton")
+@onready var copy_key_button: Button = _anim_section.get_node("CopyPasteRow/CopyKeyButton")
+@onready var paste_key_button: Button = _anim_section.get_node("CopyPasteRow/PasteKeyButton")
+@onready var remove_key_button: Button = _anim_section.get_node("CopyPasteRow/RemoveKeyButton")
+@onready var play_button: Button = _anim_section.get_node("PlayButton")
+@onready var status_label: Label = $Panel/StatusLabel
 @onready var save_dialog: FileDialog = $SaveDialog
 @onready var open_dialog: FileDialog = $OpenDialog
-@onready var cloak_button: Button = $Panel/VBoxContainer/CloakToggleButton
-@onready var right_hand_weapon_button: Button = $Panel/VBoxContainer/RightHandWeaponButton
-@onready var left_hand_weapon_button: Button = $Panel/VBoxContainer/LeftHandWeaponButton
-@onready var pole_vectors_button: Button = $Panel/VBoxContainer/PoleVectorsToggleButton
+@onready var cloak_button: Button = _display_section.get_node("CloakToggleButton")
+@onready var right_hand_weapon_button: Button = _display_section.get_node("RightHandWeaponButton")
+@onready var left_hand_weapon_button: Button = _display_section.get_node("LeftHandWeaponButton")
+@onready var pole_vectors_button: Button = _display_section.get_node("PoleVectorsToggleButton")
 @onready var timeline: Control = $Timeline
 @onready var transform_panel: Panel = $TransformPanel
 
@@ -44,6 +53,9 @@ func _ready() -> void:
 	undo_button.pressed.connect(func(): undo_requested.emit())
 	focus_button.pressed.connect(func(): focus_requested.emit())
 	save_to_timeline_button.pressed.connect(_on_save_to_timeline_pressed)
+	copy_key_button.pressed.connect(func(): copy_key_requested.emit())
+	paste_key_button.pressed.connect(func(): paste_key_requested.emit())
+	remove_key_button.pressed.connect(func(): remove_key_requested.emit())
 	play_button.toggled.connect(_on_play_toggled)
 	duration_edit.value_changed.connect(_on_duration_changed)
 	cloak_button.toggled.connect(_on_cloak_toggled)

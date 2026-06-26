@@ -40,6 +40,10 @@ var _play_time: float = 0.0
 const UNDO_MAX_SIZE := 20
 var _undo_stack: Array = []
 
+# Clipboard for "Copy key" / "Paste key": lets you grab the pose at one point
+# on the timeline and stamp it onto another keyframe, overwriting it.
+var _copied_pose: Dictionary = {}
+
 func _ready() -> void:
 	rig_controller.camera = $Camera3D
 	rig_controller.rig_root = $Rig
@@ -57,6 +61,9 @@ func _ready() -> void:
 	side_panel.duration_changed.connect(_on_duration_changed)
 	side_panel.timeline.time_changed.connect(_on_timeline_scrubbed)
 	side_panel.play_toggled.connect(_on_play_toggled)
+	side_panel.copy_key_requested.connect(_on_copy_key_requested)
+	side_panel.paste_key_requested.connect(_on_paste_key_requested)
+	side_panel.remove_key_requested.connect(_on_remove_key_requested)
 	side_panel.set_duration(_anim_length)
 	side_panel.transform_panel.position_changed.connect(_on_panel_position_changed)
 	side_panel.transform_panel.rotation_changed.connect(_on_panel_rotation_changed)
@@ -197,6 +204,7 @@ func _init_default_limb_targets() -> void:
 		_limb_targets[comp.id] = {
 			"target": end_node.global_position,
 			"pole": mid_node.global_position + outward * 0.3,
+			"end_basis": end_node.global_basis,
 		}
 
 ## Recomputes every IK limb's target/pole from the rig's CURRENT pose, so the
@@ -215,6 +223,7 @@ func _resync_limb_targets_from_current_pose() -> void:
 		_limb_targets[comp.id] = {
 			"target": chain[2].global_position,
 			"pole": chain[1].global_position,
+			"end_basis": chain[2].global_basis,
 		}
 
 const COLOR_NEUTRAL := Color(0.85, 0.85, 0.83)
@@ -264,6 +273,16 @@ func _process(delta: float) -> void:
 		if chain.size() != 3:
 			continue
 		var t: Dictionary = _limb_targets[component_id]
+		if component_id == _active_ik_component:
+			# Being edited right now: capture whatever the rotation gizmo just
+			# set, so it becomes the new pinned orientation once deselected.
+			t["end_basis"] = chain[2].global_basis
+		else:
+			# Not selected: re-pin the hand/foot to its remembered world
+			# orientation. Without this it would silently inherit any
+			# rotation from an ancestor (e.g. rotating the pelvis) instead of
+			# staying put, since global_basis = parent_global_basis * local.
+			chain[2].basis = chain[1].global_basis.inverse() * t["end_basis"]
 		IKSolver.solve_two_bone(chain[0], chain[1], chain[2], t["target"], t["pole"])
 	_refresh_transform_panel()
 
@@ -396,11 +415,44 @@ func _upsert_keyframe(t: float, transforms: Dictionary) -> void:
 	_keyframes.sort_custom(func(a, b): return a["time"] < b["time"])
 	_refresh_timeline_markers()
 
+## Deletes the keyframe at the current timeline position, if any. Without
+## this there was no way to get rid of a bad keyframe short of starting the
+## whole animation over.
+func _on_remove_key_requested() -> void:
+	var t: float = side_panel.timeline.current_time
+	for i in range(_keyframes.size()):
+		if abs(_keyframes[i]["time"] - t) < 0.005:
+			_push_undo_snapshot()
+			_keyframes.remove_at(i)
+			_refresh_timeline_markers()
+			side_panel.set_status("Keyframe at %.2fs removed." % t)
+			return
+	side_panel.set_status("No keyframe exactly at %.2fs to remove." % t)
+
 func _refresh_timeline_markers() -> void:
 	var times: Array = []
 	for kf in _keyframes:
 		times.append(kf["time"])
 	side_panel.timeline.set_keyframe_times(times)
+
+## Copies the pose currently shown at the timeline's playhead (whether
+## that's an exact keyframe or an interpolated in-between moment) so it can
+## be stamped onto another point on the timeline with "Paste key".
+func _on_copy_key_requested() -> void:
+	_copied_pose = MdlExporter.capture_pose($Rig)
+	side_panel.set_status("Pose copied (t=%.2fs)." % side_panel.timeline.current_time)
+
+## Overwrites (or creates) the keyframe at the current playhead time with
+## the last copied pose, and applies it immediately so you see the result.
+func _on_paste_key_requested() -> void:
+	if _copied_pose.is_empty():
+		side_panel.set_status("Nothing copied yet — use \"Copy key\" first.")
+		return
+	_push_undo_snapshot()
+	var t: float = side_panel.timeline.current_time
+	_upsert_keyframe(t, _copied_pose.duplicate())
+	_apply_pose_at_time(t)
+	side_panel.set_status("Pose pasted at %.2fs." % t)
 
 ## Previews the rig at time t by interpolating between the two keyframes
 ## bracketing it (independent per-node lerp/slerp — the same way NWN's own

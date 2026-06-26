@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3 uid="uid://b1q7x8f3wq8nk"]
+[gd_scene load_steps=12 format=3 uid="uid://b1q7x8f3wq8nk"]
 
 [ext_resource type="PackedScene" uid="uid://bk5top5rlti6i" path="res://assets/a_ba.glb" id="1"]
 [ext_resource type="Script" path="res://scripts/orbit_camera.gd" id="2"]
@@ -8,6 +8,7 @@
 [ext_resource type="Script" path="res://scripts/side_panel.gd" id="6"]
 [ext_resource type="Script" path="res://scripts/timeline.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/transform_panel.gd" id="8"]
+[ext_resource type="Theme" path="res://scenes/ui_theme.tres" id="9"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -23,6 +24,64 @@ size = Vector2(10, 10)
 albedo_color = Color(0.906, 0.902, 0.875, 1)
 roughness = 0.85
 metallic = 0.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_remove_normal"]
+bg_color = Color(0.82, 0.27, 0.24, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+content_margin_left = 10
+content_margin_right = 10
+content_margin_top = 5
+content_margin_bottom = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_remove_hover"]
+bg_color = Color(0.89, 0.34, 0.31, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+content_margin_left = 10
+content_margin_right = 10
+content_margin_top = 5
+content_margin_bottom = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_normal"]
+bg_color = Color(0.31, 0.58, 0.78, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+content_margin_left = 10
+content_margin_right = 10
+content_margin_top = 5
+content_margin_bottom = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_hover"]
+bg_color = Color(0.4, 0.66, 0.86, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_left = 5
+corner_radius_bottom_right = 5
+content_margin_left = 10
+content_margin_right = 10
+content_margin_top = 5
+content_margin_bottom = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
+bg_color = Color(0.97, 0.965, 0.95, 0.92)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_left = 8
+corner_radius_bottom_right = 8
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.78, 0.77, 0.73, 1)
+shadow_size = 4
+shadow_color = Color(0, 0, 0, 0.08)
 
 [node name="Main" type="Node3D"]
 script = ExtResource("3")
@@ -65,6 +124,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
+theme = ExtResource("9")
 script = ExtResource("6")
 
 [node name="Panel" type="Panel" parent="SidePanel"]
@@ -73,106 +133,180 @@ anchors_preset = 9
 anchor_top = 0.0
 anchor_bottom = 1.0
 offset_left = 0.0
-offset_right = 220.0
+offset_right = 248.0
 mouse_filter = 1
 
-[node name="VBoxContainer" type="VBoxContainer" parent="SidePanel/Panel"]
+[node name="Scroll" type="ScrollContainer" parent="SidePanel/Panel"]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 12.0
-offset_top = 12.0
-offset_right = -12.0
-offset_bottom = -12.0
+offset_bottom = -38.0
+horizontal_scroll_mode = 0
 
-[node name="NameLabel" type="Label" parent="SidePanel/Panel/VBoxContainer"]
+[node name="Margin" type="MarginContainer" parent="SidePanel/Panel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="Sections" type="VBoxContainer" parent="SidePanel/Panel/Scroll/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 18
+
+[node name="Animation" type="VBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "ANIMATION"
+
+[node name="NameLabel" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
 text = "Animation name"
 
-[node name="AnimNameEdit" type="LineEdit" parent="SidePanel/Panel/VBoxContainer"]
+[node name="AnimNameEdit" type="LineEdit" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
 placeholder_text = "e.g. fencing_stance"
 
-[node name="DurationLabel" type="Label" parent="SidePanel/Panel/VBoxContainer"]
+[node name="DurationLabel" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
 text = "Duration (s)"
 
-[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Panel/VBoxContainer"]
+[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
 min_value = 0.5
 max_value = 60.0
 step = 0.5
 value = 5.0
 
-[node name="PlayButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="PlayButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
 toggle_mode = true
 text = "Play"
 
-[node name="SaveToTimelineButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="SaveToTimelineButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
 text = "Save to timeline"
 
-[node name="HSeparator" type="HSeparator" parent="SidePanel/Panel/VBoxContainer"]
+[node name="CopyPasteRow" type="HBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="CopyKeyButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/CopyPasteRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Copy the pose at the current timeline position"
+text = "Copy"
+
+[node name="PasteKeyButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/CopyPasteRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Overwrite the keyframe at the current timeline position with the copied pose"
+text = "Paste"
+
+[node name="RemoveKeyButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/CopyPasteRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_remove_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_remove_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_remove_hover")
+tooltip_text = "Delete the keyframe at the current timeline position"
+text = "Remove"
+
+[node name="HSeparator" type="HSeparator" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
 
-[node name="SaveButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="SaveButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 text = "Save"
 
-[node name="OpenButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="OpenButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 text = "Open"
 
-[node name="ResetButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="ResetButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
 text = "Reset pose"
 
-[node name="UndoFocusRow" type="HBoxContainer" parent="SidePanel/Panel/VBoxContainer"]
+[node name="UndoFocusRow" type="HBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
-[node name="UndoButton" type="Button" parent="SidePanel/Panel/VBoxContainer/UndoFocusRow"]
+[node name="UndoButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/UndoFocusRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Undo the last move/rotation (Ctrl+Z)"
 text = "Undo"
 
-[node name="FocusButton" type="Button" parent="SidePanel/Panel/VBoxContainer/UndoFocusRow"]
+[node name="FocusButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/UndoFocusRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Center the camera on the current selection (F)"
 text = "Focus (F)"
 
-[node name="HSeparator2" type="HSeparator" parent="SidePanel/Panel/VBoxContainer"]
+[node name="Display" type="VBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections"]
 layout_mode = 2
+theme_override_constants/separation = 6
 
-[node name="DisplayLabel" type="Label" parent="SidePanel/Panel/VBoxContainer"]
+[node name="Header" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
 layout_mode = 2
-text = "Display"
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "DISPLAY"
 
-[node name="CloakToggleButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="CloakToggleButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
 layout_mode = 2
 toggle_mode = true
 text = "Hide cloak/tabard"
 
-[node name="RightHandWeaponButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="RightHandWeaponButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
 layout_mode = 2
 toggle_mode = true
 text = "Show right hand weapon"
 
-[node name="LeftHandWeaponButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="LeftHandWeaponButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
 layout_mode = 2
 toggle_mode = true
 text = "Show left hand weapon"
 
-[node name="PoleVectorsToggleButton" type="Button" parent="SidePanel/Panel/VBoxContainer"]
+[node name="PoleVectorsToggleButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
 layout_mode = 2
 toggle_mode = true
 text = "Show all pole vectors"
 
-[node name="StatusLabel" type="Label" parent="SidePanel/Panel/VBoxContainer"]
-layout_mode = 2
+[node name="StatusLabel" type="Label" parent="SidePanel/Panel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -34.0
+offset_right = -14.0
+offset_bottom = -8.0
+theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
+theme_override_font_sizes/font_size = 11
 autowrap_mode = 3
 text = ""
 
@@ -198,11 +332,12 @@ filters = PackedStringArray("*.txt ; Text Files")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 232.0
+offset_left = 260.0
 offset_top = 12.0
 offset_right = -12.0
 offset_bottom = 80.0
 mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("8")
 
 [node name="HBox" type="HBoxContainer" parent="SidePanel/TransformPanel"]
@@ -214,11 +349,13 @@ offset_left = 10.0
 offset_top = 8.0
 offset_right = -10.0
 offset_bottom = -8.0
+theme_override_constants/separation = 10
 alignment = 1
 
 [node name="ComponentLabel" type="Label" parent="SidePanel/TransformPanel/HBox"]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
 text = "—"
 vertical_alignment = 1
 
@@ -227,13 +364,17 @@ layout_mode = 2
 
 [node name="PosBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
 [node name="PosLabel" type="Label" parent="SidePanel/TransformPanel/HBox/PosBox"]
 layout_mode = 2
-text = "Position (m)"
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "POSITION (M)"
 
 [node name="PosRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/PosBox"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="PosX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow"]
 custom_minimum_size = Vector2(80, 0)
@@ -270,13 +411,17 @@ layout_mode = 2
 
 [node name="RotBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox"]
 layout_mode = 2
+theme_override_constants/separation = 2
 
 [node name="RotLabel" type="Label" parent="SidePanel/TransformPanel/HBox/RotBox"]
 layout_mode = 2
-text = "Rotation (deg)"
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "ROTATION (DEG)"
 
 [node name="RotRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/RotBox"]
 layout_mode = 2
+theme_override_constants/separation = 4
 
 [node name="RotX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow"]
 custom_minimum_size = Vector2(80, 0)
@@ -308,15 +453,16 @@ allow_greater = true
 allow_lesser = true
 prefix = "Z"
 
-[node name="Timeline" type="Control" parent="SidePanel"]
+[node name="Timeline" type="Panel" parent="SidePanel"]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 230.0
+offset_left = 260.0
 offset_top = -64.0
 offset_right = -12.0
 offset_bottom = -12.0
 mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("7")

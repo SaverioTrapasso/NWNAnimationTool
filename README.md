@@ -28,8 +28,8 @@ No build step is needed: GDScript is interpreted directly by the engine.
   is selected) shows exact Position/Rotation X/Y/Z values you can type
   directly — handy when the gizmo alone is too fiddly to nail an angle.
 - Select the pelvis to also drag the green handle and raise/lower/translate
-  the whole body — feet and hands stay anchored to their current targets as
-  the body moves.
+  the whole body — feet and hands stay anchored to their current world
+  position *and* orientation as the body moves or rotates.
 - "Show all pole vectors" shows every limb's pole vector at once, handy for
   reviewing the overall pose.
 - "Hide cloak/tabard" and "Show right/left hand weapon" are convenience
@@ -49,6 +49,14 @@ No build step is needed: GDScript is interpreted directly by the engine.
   otherwise.
 - **Open** loads a previously exported `.txt` back onto the timeline so you
   can keep editing it.
+- **Copy / Paste**: copy the pose shown at the current playhead position,
+  then move the playhead and press Paste to overwrite that keyframe with it
+  (creating one if there wasn't already a keyframe there).
+- **Remove**: deletes the keyframe at the current playhead position. Click
+  near a yellow dot on the timeline to snap the playhead exactly onto it
+  first (it gets a white ring when selected).
+- **Play**: loops playback between 0 and the duration, interpolating poses
+  live. Dragging the timeline while playing pauses it.
 
 ## Notes
 

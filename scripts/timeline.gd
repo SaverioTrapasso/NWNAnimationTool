@@ -13,6 +13,7 @@ var keyframe_times: Array = []
 var _dragging: bool = false
 
 const MARGIN := 14.0
+const SNAP_PIXELS := 10.0
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(0, 56)
@@ -47,6 +48,19 @@ func _scrub_to(x: float) -> void:
 		return
 	var ratio: float = clamp((x - MARGIN) / w, 0.0, 1.0)
 	current_time = ratio * length
+
+	# Snap to a nearby keyframe marker so clicking a dot precisely selects
+	# it, instead of landing a fraction of a second off.
+	var best_dist := INF
+	var best_time := current_time
+	for t in keyframe_times:
+		var kx: float = MARGIN + (t / length) * w
+		var dist: float = abs(kx - x)
+		if dist < SNAP_PIXELS and dist < best_dist:
+			best_dist = dist
+			best_time = t
+	current_time = best_time
+
 	queue_redraw()
 	time_changed.emit(current_time)
 
@@ -59,6 +73,9 @@ func _draw() -> void:
 
 	for t in keyframe_times:
 		var x: float = MARGIN + (t / length) * w
+		var selected: bool = abs(t - current_time) < 0.005
+		if selected:
+			draw_circle(Vector2(x, track_y), 10.0, Color(1, 1, 1))
 		draw_circle(Vector2(x, track_y), 7.0, Color(0.95, 0.82, 0.15))
 		draw_arc(Vector2(x, track_y), 7.0, 0, TAU, 24, Color(0.4, 0.35, 0.05), 1.5)
 
