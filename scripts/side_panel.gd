@@ -12,12 +12,15 @@ signal play_toggled(playing: bool)
 signal copy_key_requested()
 signal paste_key_requested()
 signal remove_key_requested()
+signal new_requested()
 
 @export var rig_root: Node3D
 
 @onready var _anim_section: Control = $Panel/Scroll/Margin/Sections/Animation
 @onready var _display_section: Control = $Panel/Scroll/Margin/Sections/Display
 
+@onready var new_button: Button = _anim_section.get_node("NewButton")
+@onready var new_confirm_dialog: ConfirmationDialog = $NewConfirmDialog
 @onready var name_edit: LineEdit = _anim_section.get_node("AnimNameEdit")
 @onready var duration_edit: SpinBox = _anim_section.get_node("DurationSpinBox")
 @onready var save_button: Button = _anim_section.get_node("SaveButton")
@@ -37,14 +40,19 @@ signal remove_key_requested()
 @onready var right_hand_weapon_button: Button = _display_section.get_node("RightHandWeaponButton")
 @onready var left_hand_weapon_button: Button = _display_section.get_node("LeftHandWeaponButton")
 @onready var pole_vectors_button: Button = _display_section.get_node("PoleVectorsToggleButton")
+@onready var retarget_button: Button = _anim_section.get_node("RetargetButton")
 @onready var timeline: Control = $Timeline
 @onready var transform_panel: Panel = $TransformPanel
+@onready var retarget_panel: Panel = $RetargetPanel
+@onready var retarget_debug_panel: Panel = $RetargetDebugPanel
 
 const CLOAK_TABARD_NODES := ["cloak_g", "belt_g1"]
 
 var _weapon_meshes: Dictionary = {} # hand_node_name -> MeshInstance3D
 
 func _ready() -> void:
+	new_button.pressed.connect(func(): new_confirm_dialog.popup_centered())
+	new_confirm_dialog.confirmed.connect(func(): new_requested.emit())
 	save_button.pressed.connect(_on_save_pressed)
 	save_dialog.file_selected.connect(_on_save_file_selected)
 	open_button.pressed.connect(_on_open_pressed)
@@ -56,6 +64,7 @@ func _ready() -> void:
 	copy_key_button.pressed.connect(func(): copy_key_requested.emit())
 	paste_key_button.pressed.connect(func(): paste_key_requested.emit())
 	remove_key_button.pressed.connect(func(): remove_key_requested.emit())
+	retarget_button.pressed.connect(func(): retarget_panel.toggle_visible())
 	play_button.toggled.connect(_on_play_toggled)
 	duration_edit.value_changed.connect(_on_duration_changed)
 	cloak_button.toggled.connect(_on_cloak_toggled)
@@ -65,6 +74,14 @@ func _ready() -> void:
 
 func set_status(text: String) -> void:
 	status_label.text = text
+
+## Used by "New": untoggles any active display toggle, which naturally
+## triggers their existing handlers to undo the effect (show cloak again,
+## remove weapon meshes, hide pole vectors).
+func reset_display_toggles() -> void:
+	for button in [cloak_button, right_hand_weapon_button, left_hand_weapon_button, pole_vectors_button, play_button]:
+		if button.button_pressed:
+			button.button_pressed = false
 
 func get_anim_name() -> String:
 	return name_edit.text.strip_edges()

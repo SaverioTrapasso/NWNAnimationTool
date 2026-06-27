@@ -103,6 +103,9 @@ func select_component(component_id: String) -> void:
 	_apply_highlight(component_id)
 	component_selected.emit(component_id)
 
+func deselect() -> void:
+	_deselect()
+
 func _deselect() -> void:
 	if selected_component == "":
 		return

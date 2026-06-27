@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3 uid="uid://b1q7x8f3wq8nk"]
+[gd_scene load_steps=15 format=3 uid="uid://b1q7x8f3wq8nk"]
 
 [ext_resource type="PackedScene" uid="uid://bk5top5rlti6i" path="res://assets/nwn/a_ba.glb" id="1"]
 [ext_resource type="Script" path="res://scripts/orbit_camera.gd" id="2"]
@@ -9,6 +9,9 @@
 [ext_resource type="Script" path="res://scripts/timeline.gd" id="7"]
 [ext_resource type="Script" path="res://scripts/transform_panel.gd" id="8"]
 [ext_resource type="Theme" path="res://scenes/ui_theme.tres" id="9"]
+[ext_resource type="Script" path="res://scripts/retarget_panel.gd" id="10"]
+[ext_resource type="Script" path="res://scripts/retarget_debug_panel.gd" id="11"]
+[ext_resource type="Script" path="res://scripts/bone_visualizer.gd" id="12"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -118,6 +121,16 @@ script = ExtResource("4")
 [node name="RotationGizmo" type="Node3D" parent="."]
 script = ExtResource("5")
 
+[node name="BlueVisualizer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("12")
+color = Color(0.25, 0.5, 0.95, 1)
+
+[node name="RedVisualizer" type="Node3D" parent="."]
+visible = false
+script = ExtResource("12")
+color = Color(0.9, 0.2, 0.2, 1)
+
 [node name="SidePanel" type="Control" parent="."]
 layout_mode = 1
 anchors_preset = 15
@@ -165,6 +178,11 @@ layout_mode = 2
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 11
 text = "ANIMATION"
+
+[node name="NewButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+layout_mode = 2
+tooltip_text = "Discard everything and start fresh (pose, timeline, undo, retarget state)"
+text = "New"
 
 [node name="NameLabel" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
 layout_mode = 2
@@ -265,6 +283,11 @@ size_flags_horizontal = 3
 tooltip_text = "Center the camera on the current selection (F)"
 text = "Focus (F)"
 
+[node name="RetargetButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+layout_mode = 2
+tooltip_text = "Import and bake an animation from another rig (beta)"
+text = "Retarget..."
+
 [node name="Display" type="VBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections"]
 layout_mode = 2
 theme_override_constants/separation = 6
@@ -310,6 +333,13 @@ theme_override_font_sizes/font_size = 11
 autowrap_mode = 3
 text = ""
 
+[node name="NewConfirmDialog" type="ConfirmationDialog" parent="SidePanel"]
+title = "Start a new project?"
+initial_position = 1
+size = Vector2i(420, 130)
+dialog_text = "This discards the current pose, timeline, undo history, and retarget state. This can't be undone. Continue?"
+ok_button_text = "New"
+
 [node name="SaveDialog" type="FileDialog" parent="SidePanel"]
 title = "Save MDL animation"
 initial_position = 1
@@ -327,6 +357,287 @@ ok_button_text = "Open"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.txt ; Text Files")
+
+[node name="RetargetPanel" type="Panel" parent="SidePanel"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.05
+anchor_top = 0.08
+anchor_right = 0.32
+anchor_bottom = 0.55
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+script = ExtResource("10")
+
+[node name="VBox" type="VBoxContainer" parent="SidePanel/RetargetPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = -14.0
+theme_override_constants/separation = 10
+
+[node name="HeaderRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
+layout_mode = 2
+
+[node name="HeaderLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "RETARGET (BETA)"
+
+[node name="BoneMapButton" type="Button" parent="SidePanel/RetargetPanel/VBox/HeaderRow"]
+layout_mode = 2
+tooltip_text = "Open the bone-map table, with the visual rig compare available inside"
+text = "Configure rig"
+
+[node name="CloseButton" type="Button" parent="SidePanel/RetargetPanel/VBox/HeaderRow"]
+layout_mode = 2
+text = "X"
+
+[node name="CfgRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
+layout_mode = 2
+
+[node name="CfgButton" type="Button" parent="SidePanel/RetargetPanel/VBox/CfgRow"]
+layout_mode = 2
+tooltip_text = "Load a bone-map config (.cfg) — fully portable, no glb pinned to it"
+text = "Import cfg"
+
+[node name="CfgLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/CfgRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+text = "No config loaded"
+
+[node name="ImportRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
+layout_mode = 2
+
+[node name="ImportButton" type="Button" parent="SidePanel/RetargetPanel/VBox/ImportRow"]
+layout_mode = 2
+tooltip_text = "Import the model+animation glb to bake (also used as the rest-pose reference)"
+text = "Import model"
+
+[node name="SourceLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/ImportRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 11
+autowrap_mode = 3
+text = "No file loaded"
+
+[node name="RootScaleRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
+layout_mode = 2
+
+[node name="RootScaleLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/RootScaleRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(90, 0)
+text = "Root scale"
+
+[node name="RootScaleSpin" type="SpinBox" parent="SidePanel/RetargetPanel/VBox/RootScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.01
+max_value = 10.0
+step = 0.01
+value = 1.0
+
+[node name="BakeButton" type="Button" parent="SidePanel/RetargetPanel/VBox"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
+text = "Bake"
+
+[node name="StatusLabel" type="Label" parent="SidePanel/RetargetPanel/VBox"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
+autowrap_mode = 3
+text = ""
+
+[node name="ImportDialog" type="FileDialog" parent="SidePanel/RetargetPanel"]
+title = "Import animation glb"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Import"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.glb,*.gltf ; glTF Files")
+
+[node name="CfgDialog" type="FileDialog" parent="SidePanel/RetargetPanel"]
+title = "Import bone-map config"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Import"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.cfg ; Config Files")
+
+[node name="RetargetDebugPanel" type="Panel" parent="SidePanel"]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.52
+anchor_top = 0.08
+anchor_right = 0.95
+anchor_bottom = 0.92
+offset_left = 0.0
+offset_top = 0.0
+offset_right = 0.0
+offset_bottom = 0.0
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+script = ExtResource("11")
+
+[node name="HeaderRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 14.0
+offset_right = -14.0
+offset_bottom = 36.0
+theme_override_constants/separation = 4
+
+[node name="HeaderLabel" type="Label" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "CONFIGURE RIG"
+
+[node name="ImportButton" type="Button" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+layout_mode = 2
+tooltip_text = "Import a source rig glb to compare visually"
+text = "Import"
+
+[node name="ExitButton" type="Button" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+layout_mode = 2
+tooltip_text = "Stop the visual comparison (un-tints the dummy, removes the imported skeleton)"
+text = "Exit"
+
+[node name="SaveConfigButton" type="Button" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+layout_mode = 2
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
+theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
+text = "Save config"
+
+[node name="CloseButton" type="Button" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+layout_mode = 2
+text = "X"
+
+[node name="InstructionsLabel" type="Label" parent="SidePanel/RetargetDebugPanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 38.0
+offset_right = -14.0
+offset_bottom = 70.0
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
+autowrap_mode = 3
+text = "Edit the table directly, or click Import to see the source rig as a red skeleton next to the blue-tinted NWN dummy — click a blue joint then the matching red one to fill that row."
+
+[node name="ColumnHeaderRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 74.0
+offset_right = -14.0
+offset_bottom = 92.0
+theme_override_constants/separation = 4
+
+[node name="NwnHeader" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 0)
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "NWN node"
+
+[node name="Ff14Header" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(110, 0)
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Associate bone"
+
+[node name="RotHeader" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(180, 0)
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Rotation offset (X/Y/Z deg)"
+
+[node name="DeltaHeader" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 0)
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "Delta"
+
+[node name="Scroll" type="ScrollContainer" parent="SidePanel/RetargetDebugPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 96.0
+offset_right = -14.0
+offset_bottom = -32.0
+
+[node name="Rows" type="VBoxContainer" parent="SidePanel/RetargetDebugPanel/Scroll"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="StatusLabel" type="Label" parent="SidePanel/RetargetDebugPanel"]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -26.0
+offset_right = -14.0
+offset_bottom = -8.0
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
+autowrap_mode = 3
+text = ""
+
+[node name="ImportDialog" type="FileDialog" parent="SidePanel/RetargetDebugPanel"]
+title = "Import source rig glb"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Import"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.glb,*.gltf ; glTF Files")
+
+[node name="SaveAsDialog" type="FileDialog" parent="SidePanel/RetargetDebugPanel"]
+title = "Save bone-map config as"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Save"
+file_mode = 4
+access = 2
+filters = PackedStringArray("*.cfg ; Config Files")
 
 [node name="TransformPanel" type="Panel" parent="SidePanel"]
 layout_mode = 1

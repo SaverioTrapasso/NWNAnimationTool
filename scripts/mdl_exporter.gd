@@ -45,6 +45,19 @@ const SKELETON_TREE := {
 
 ## Convenience for the no-timeline case: exports the rig's current live pose
 ## as a single keyframe at time 0.0.
+## Flattens SKELETON_TREE into Array of {"name": String, "parent": String}
+## (parent is "" for rootdummy). Used by the visual rig-compare view to know
+## which NWN joints to draw and how they connect.
+static func flatten_skeleton_tree() -> Array:
+	var result: Array = []
+	_flatten_recursive("rootdummy", SKELETON_TREE["rootdummy"], "", result)
+	return result
+
+static func _flatten_recursive(name: String, children: Dictionary, parent: String, result: Array) -> void:
+	result.append({"name": name, "parent": parent})
+	for child_name in children.keys():
+		_flatten_recursive(child_name, children[child_name], name, result)
+
 static func export_pose(rig_root: Node3D, anim_name: String) -> String:
 	var transforms := {}
 	_capture_live_transforms(rig_root, "rootdummy", SKELETON_TREE["rootdummy"], transforms)

@@ -6,6 +6,8 @@ const TranslationGizmoScript = preload("res://scripts/translation_gizmo.gd")
 @onready var rig_controller: Node3D = $RigController
 @onready var gizmo: Node3D = $RotationGizmo
 @onready var side_panel: Control = $SidePanel
+@onready var blue_visualizer: Node3D = $BlueVisualizer
+@onready var red_visualizer: Node3D = $RedVisualizer
 
 # Per-limb world-space IK targets, kept even while that limb isn't the
 # active selection so arms/legs keep tracking their last pose as the body
@@ -77,6 +79,21 @@ func _ready() -> void:
 	side_panel.focus_requested.connect(_on_focus_pressed)
 	gizmo.drag_started.connect(_push_undo_snapshot)
 
+	side_panel.retarget_panel.cfg_import_requested.connect(_on_retarget_cfg_import_requested)
+	side_panel.retarget_panel.import_model_requested.connect(_on_retarget_import_model)
+	side_panel.retarget_panel.bake_requested.connect(_on_retarget_bake_requested)
+	side_panel.retarget_panel.bone_map_debug_requested.connect(_on_configure_rig_requested)
+	side_panel.retarget_debug_panel.save_requested.connect(_on_retarget_save_config_requested)
+	side_panel.retarget_debug_panel.save_as_chosen.connect(_on_retarget_save_as_chosen)
+	side_panel.retarget_debug_panel.import_source_requested.connect(_on_compare_import_requested)
+	side_panel.retarget_debug_panel.exit_requested.connect(_on_compare_exit_requested)
+	side_panel.new_requested.connect(_on_new_requested)
+
+	blue_visualizer.camera = $Camera3D
+	red_visualizer.camera = $Camera3D
+	blue_visualizer.bone_clicked.connect(_on_blue_bone_clicked)
+	red_visualizer.bone_clicked.connect(_on_red_bone_clicked)
+
 	_apply_component_materials($Rig)
 	_capture_rest_transforms($Rig)
 	_init_default_limb_targets()
@@ -144,6 +161,46 @@ func _on_reset_pressed() -> void:
 	if current_selection != "":
 		_on_component_selected(current_selection)
 	_refresh_all_pole_handles()
+
+## "New": a harder reset than "Reset pose" — wipes the timeline, undo
+## history, clipboards, retarget import state, and display toggles too,
+## not just the pose. Confirmed via a dialog in side_panel.gd since it
+## can't be undone (it clears the undo stack itself).
+func _on_new_requested() -> void:
+	for node in _rest_transforms.keys():
+		if is_instance_valid(node):
+			node.transform = _rest_transforms[node]
+	_init_default_limb_targets()
+	rig_controller.deselect()
+	_clear_handles()
+	gizmo.detach()
+	_show_all_poles = false
+	_refresh_all_pole_handles()
+
+	_keyframes.clear()
+	_anim_length = 5.0
+	_playing = false
+	_play_time = 0.0
+	side_panel.set_anim_name("")
+	side_panel.set_duration(_anim_length)
+	_refresh_timeline_markers()
+	side_panel.timeline.set_current_time(0.0)
+
+	_undo_stack.clear()
+	_copied_pose = {}
+	_copied_component_pose = {}
+
+	_retarget_model_path = ""
+	side_panel.retarget_panel.reset_import_state()
+	if side_panel.retarget_panel.visible:
+		side_panel.retarget_panel.toggle_visible()
+	if side_panel.retarget_debug_panel.visible:
+		side_panel.retarget_debug_panel.toggle_visible()
+	if not _retarget_config_path.is_empty():
+		_on_retarget_cfg_import_requested(_retarget_config_path) # reloads from disk, discarding unsaved edits
+
+	side_panel.reset_display_toggles()
+	side_panel.set_status("New project started.")
 
 func _on_pole_vectors_toggled(show_all: bool) -> void:
 	_show_all_poles = show_all
@@ -291,6 +348,7 @@ func _process(delta: float) -> void:
 			chain[2].basis = chain[1].global_basis.inverse() * t["end_basis"]
 		IKSolver.solve_two_bone(chain[0], chain[1], chain[2], t["target"], t["pole"])
 	_refresh_transform_panel()
+	_refresh_retarget_debug_panel()
 
 func _on_play_toggled(playing: bool) -> void:
 	if playing and _keyframes.is_empty():
@@ -699,3 +757,261 @@ func _on_open_file_requested(path: String) -> void:
 	side_panel.timeline.set_current_time(0.0)
 	_apply_pose_at_time(0.0)
 	side_panel.set_status("Opened: %s" % path)
+
+# ---------------------------------------------------------------------------
+# Retargeting
+# ---------------------------------------------------------------------------
+
+var _retarget_config: Dictionary = {}
+var _retarget_config_path: String = ""
+var _retarget_model_path: String = ""
+
+func _on_retarget_cfg_import_requested(config_path: String) -> void:
+	_retarget_config_path = config_path
+	_retarget_config = RetargetConfig.load_from_file(config_path)
+	if _retarget_config.is_empty():
+		side_panel.retarget_panel.set_status("Couldn't load config: %s" % config_path)
+	else:
+		side_panel.retarget_panel.set_status("Config '%s' loaded (%d bones mapped)." % [
+			_retarget_config.get("prefab_name", "?"), _retarget_config.get("bone_map", {}).size()
+		])
+
+func _on_retarget_import_model(path: String) -> void:
+	_retarget_model_path = path
+	side_panel.retarget_panel.set_status("Model ready: %s" % path.get_file())
+
+func _on_retarget_bake_requested(root_scale: float) -> void:
+	if _retarget_config.is_empty():
+		side_panel.retarget_panel.set_status("Import a bone-map config first.")
+		return
+	if _retarget_model_path == "":
+		side_panel.retarget_panel.set_status("Import a model file first.")
+		return
+
+	var rest_by_name: Dictionary = {}
+	for node in _rest_transforms.keys():
+		if is_instance_valid(node):
+			rest_by_name[node.name] = _rest_transforms[node]
+
+	var result: Dictionary = Retargeter.bake(
+		self,
+		_retarget_model_path,
+		_retarget_config["bone_map"],
+		rest_by_name,
+		_retarget_config["source_fps"],
+		root_scale,
+		_retarget_config.get("rotation_offsets", {})
+	)
+
+	if result.has("error"):
+		side_panel.retarget_panel.set_status("Bake failed: %s" % result["error"])
+		return
+
+	_push_undo_snapshot()
+	_keyframes = result["keyframes"]
+	_anim_length = result["length"]
+	side_panel.set_anim_name(result["anim_name"])
+	side_panel.set_duration(_anim_length)
+	_refresh_timeline_markers()
+	side_panel.timeline.set_current_time(0.0)
+	_apply_pose_at_time(0.0)
+	side_panel.retarget_panel.set_status("Baked %d keyframes (%.2fs)." % [_keyframes.size(), _anim_length])
+
+## Pulls whatever's currently in the bone-map panel's editable fields and
+## writes it to the .cfg file (preserving the file's leading comment block).
+## If nothing's been imported yet, prompts for where to save it first — the
+## config is no longer tied to any fixed path or bundled glb.
+func _on_retarget_save_config_requested() -> void:
+	if _retarget_config_path == "":
+		side_panel.retarget_debug_panel.prompt_save_as()
+		return
+	_save_retarget_config_to(_retarget_config_path)
+
+func _on_retarget_save_as_chosen(path: String) -> void:
+	_retarget_config_path = path
+	_save_retarget_config_to(path)
+
+func _save_retarget_config_to(path: String) -> void:
+	var bone_map: Dictionary = side_panel.retarget_debug_panel.get_bone_map()
+	var rotation_offsets: Dictionary = side_panel.retarget_debug_panel.get_rotation_offsets()
+	var err := RetargetConfig.save_to_file(
+		path,
+		_retarget_config.get("prefab_name", path.get_file().get_basename()),
+		_retarget_config.get("source_fps", 30.0),
+		bone_map,
+		rotation_offsets
+	)
+	if err != OK:
+		side_panel.retarget_panel.set_status("Failed to save config (error %d)." % err)
+		return
+	_retarget_config["bone_map"] = bone_map
+	_retarget_config["rotation_offsets"] = rotation_offsets
+	side_panel.retarget_panel.set_status("Config saved to %s" % path)
+	side_panel.retarget_debug_panel.set_status("Config saved to %s" % path)
+
+# ---------------------------------------------------------------------------
+# Visual rig compare/configure mode: click a joint on the blue NWN dummy and
+# the matching one on the red imported skeleton to build the bone map,
+# instead of typing names blind.
+# ---------------------------------------------------------------------------
+
+var _compare_mode: bool = false
+var _pending_blue_bone: String = ""
+var _pending_red_bone: String = ""
+var _compare_red_scene: Node3D = null
+
+const COMPARE_BLUE_TINT := Color(0.2, 0.45, 0.95)
+const COMPARE_RED_TINT := Color(0.9, 0.2, 0.2)
+
+## Single entry point for "Configure rig": shows the editable bone-map
+## table AND sets up the visual aid (NWN mesh tinted blue, with clickable
+## joint dots) in one go. Clicking Import inside that panel adds the red
+## comparison skeleton; clicking pairs of joints fills in the table.
+func _on_configure_rig_requested() -> void:
+	_compare_mode = true
+	rig_controller.deselect()
+	_clear_handles()
+	gizmo.detach()
+	rig_controller.set_process_unhandled_input(false)
+	side_panel.retarget_panel.visible = false
+	side_panel.transform_panel.visible = false
+	_pending_blue_bone = ""
+	_pending_red_bone = ""
+
+	# Real NWN mesh tinted blue (the silhouette itself is the reference),
+	# with small clickable dots at each joint but no stick-figure lines —
+	# the mesh already shows how everything connects.
+	_tint_meshes($Rig, COMPARE_BLUE_TINT)
+	_build_blue_visualizer()
+	blue_visualizer.visible = true
+
+	side_panel.retarget_debug_panel.set_bone_map(
+		RetargetConfig.NWN_NODES,
+		_retarget_config.get("bone_map", {}),
+		_retarget_config.get("rotation_offsets", {})
+	)
+	side_panel.retarget_debug_panel.show_panel()
+	side_panel.retarget_debug_panel.set_status("Edit the table, or click Import to compare visually.")
+
+func _build_blue_visualizer() -> void:
+	var flat: Array = MdlExporter.flatten_skeleton_tree()
+	var entries: Array = []
+	for entry in flat:
+		var node: Node3D = rig_controller.find_node(entry["name"])
+		if node == null:
+			continue
+		var parent_pos: Variant = null
+		if entry["parent"] != "":
+			var pnode: Node3D = rig_controller.find_node(entry["parent"])
+			if pnode != null:
+				parent_pos = pnode.global_position
+		entries.append({"name": entry["name"], "position": node.global_position, "parent_position": parent_pos})
+	blue_visualizer.build(entries, false)
+
+## Recursively tints every MeshInstance3D under node a flat color — used to
+## turn the real NWN mesh (or an imported source mesh, if it has one) into a
+## clear color-coded silhouette for the rig-compare view.
+func _tint_meshes(node: Node, color: Color) -> void:
+	if node is MeshInstance3D:
+		var mat := StandardMaterial3D.new()
+		mat.albedo_color = color
+		mat.roughness = 0.85
+		node.material_override = mat
+	for child in node.get_children():
+		_tint_meshes(child, color)
+
+func _on_compare_import_requested(path: String) -> void:
+	var scene: Node3D = Retargeter._load_glb(path)
+	if scene == null:
+		side_panel.retarget_debug_panel.set_status("Could not load file.")
+		return
+	var skeleton: Skeleton3D = Retargeter._find_skeleton(scene)
+	if skeleton == null:
+		scene.queue_free()
+		side_panel.retarget_debug_panel.set_status("No Skeleton3D found in that file.")
+		return
+
+	if _compare_red_scene != null:
+		_compare_red_scene.queue_free()
+	add_child(scene)
+	_compare_red_scene = scene
+	_tint_meshes(scene, COMPARE_RED_TINT) # no-op if the source has no mesh (most skeleton-only exports)
+
+	var entries: Array = []
+	for i in range(skeleton.get_bone_count()):
+		var bone_name: String = skeleton.get_bone_name(i)
+		var pos: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(i).origin
+		var parent_idx: int = skeleton.get_bone_parent(i)
+		var parent_pos: Variant = null
+		if parent_idx >= 0:
+			parent_pos = skeleton.global_transform * skeleton.get_bone_global_pose(parent_idx).origin
+		entries.append({"name": bone_name, "position": pos, "parent_position": parent_pos})
+	red_visualizer.build(entries) # draw_lines=true: usually the only way to see a mesh-less skeleton
+	red_visualizer.visible = true
+
+	var bone_names: Array = []
+	for i in range(skeleton.get_bone_count()):
+		bone_names.append(skeleton.get_bone_name(i))
+	side_panel.retarget_debug_panel.set_available_bones(bone_names)
+	side_panel.retarget_debug_panel.set_status("Loaded %s (%d bones). Click pairs of joints, or pick from the dropdowns." % [path.get_file(), skeleton.get_bone_count()])
+
+func _on_blue_bone_clicked(bone_name: String) -> void:
+	if not _compare_mode:
+		return
+	_pending_blue_bone = bone_name
+	blue_visualizer.set_highlight(bone_name)
+	_try_complete_compare_pair()
+
+func _on_red_bone_clicked(bone_name: String) -> void:
+	if not _compare_mode:
+		return
+	_pending_red_bone = bone_name
+	red_visualizer.set_highlight(bone_name)
+	_try_complete_compare_pair()
+
+func _try_complete_compare_pair() -> void:
+	if _pending_blue_bone == "" or _pending_red_bone == "":
+		return
+	side_panel.retarget_debug_panel.set_ff14_value(_pending_blue_bone, _pending_red_bone)
+	side_panel.retarget_debug_panel.set_status("%s → %s. Click more, or Save config in the table." % [_pending_blue_bone, _pending_red_bone])
+	blue_visualizer.set_highlight("")
+	red_visualizer.set_highlight("")
+	_pending_blue_bone = ""
+	_pending_red_bone = ""
+
+func _on_compare_exit_requested() -> void:
+	_compare_mode = false
+	blue_visualizer.clear()
+	blue_visualizer.visible = false
+	red_visualizer.clear()
+	red_visualizer.visible = false
+	if _compare_red_scene != null:
+		_compare_red_scene.queue_free()
+		_compare_red_scene = null
+	_apply_component_materials($Rig) # restore the normal IK/FK color scheme
+	rig_controller.set_process_unhandled_input(true)
+	side_panel.retarget_debug_panel.hide_panel()
+	side_panel.retarget_panel.visible = true
+
+## Live "delta from rest" readout per mapped NWN node, for the bone-map
+## debug window — a bone stuck at ~0 means it isn't actually being driven
+## (bad name / not found in the source); a wild value usually means the
+## source and NWN bone axes don't line up the way the retarget math assumes.
+func _refresh_retarget_debug_panel() -> void:
+	if not side_panel.retarget_debug_panel.visible or _retarget_config.is_empty():
+		return
+	var bone_map: Dictionary = _retarget_config.get("bone_map", {})
+	for nwn_node_name in bone_map.keys():
+		var node: Node3D = rig_controller.find_node(nwn_node_name)
+		var rest_transform: Variant = null
+		for rest_node in _rest_transforms.keys():
+			if is_instance_valid(rest_node) and rest_node.name == nwn_node_name:
+				rest_transform = _rest_transforms[rest_node]
+				break
+		if node == null or rest_transform == null:
+			side_panel.retarget_debug_panel.set_delta(nwn_node_name, INF)
+			continue
+		var rest_rot: Quaternion = rest_transform.basis.get_rotation_quaternion()
+		var current_rot: Quaternion = node.basis.get_rotation_quaternion()
+		var delta_angle: float = rad_to_deg((rest_rot.inverse() * current_rot).get_angle())
+		side_panel.retarget_debug_panel.set_delta(nwn_node_name, delta_angle)
