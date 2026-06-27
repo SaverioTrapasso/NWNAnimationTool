@@ -8,18 +8,23 @@ extends Panel
 ## back to the .cfg file. main.gd owns the actual 3D visualizers/rig tinting
 ## and the click-pairing logic; this panel is the UI shell.
 
+signal cfg_import_requested(path: String)
 signal import_source_requested(path: String)
+signal apply_requested()
 signal exit_requested()
 signal save_requested()
 signal save_as_chosen(path: String)
 
-@onready var import_button: Button = $HeaderRow/ImportButton
-@onready var exit_button: Button = $HeaderRow/ExitButton
-@onready var save_config_button: Button = $HeaderRow/SaveConfigButton
-@onready var close_button: Button = $HeaderRow/CloseButton
+@onready var cfg_button: Button = $ButtonRow/CfgButton
+@onready var import_button: Button = $ButtonRow/ImportButton
+@onready var apply_button: Button = $ButtonRow/ApplyButton
+@onready var exit_button: Button = $ButtonRow/ExitButton
+@onready var save_config_button: Button = $ButtonRow/SaveConfigButton
+@onready var close_button: Button = $TitleRow/CloseButton
+@onready var root_scale_spin: SpinBox = $ScaleRow/RootScaleSpin
+@onready var cfg_dialog: FileDialog = $CfgDialog
 @onready var import_dialog: FileDialog = $ImportDialog
 @onready var save_as_dialog: FileDialog = $SaveAsDialog
-@onready var instructions_label: Label = $InstructionsLabel
 @onready var rows_container: VBoxContainer = $Scroll/Rows
 @onready var status_label: Label = $StatusLabel
 
@@ -30,15 +35,31 @@ var _available_bones: Array = [] # source bone names, populated after Import
 
 func _ready() -> void:
 	visible = false
+	cfg_button.pressed.connect(func(): cfg_dialog.popup_centered_ratio(0.6))
+	cfg_dialog.file_selected.connect(func(path): cfg_import_requested.emit(path))
 	import_button.pressed.connect(func(): import_dialog.popup_centered_ratio(0.6))
 	import_dialog.file_selected.connect(func(path): import_source_requested.emit(path))
+	apply_button.pressed.connect(func(): apply_requested.emit())
 	exit_button.pressed.connect(func(): exit_requested.emit())
 	close_button.pressed.connect(func(): exit_requested.emit())
 	save_config_button.pressed.connect(func(): save_requested.emit())
 	save_as_dialog.file_selected.connect(func(path): save_as_chosen.emit(path))
 
-func prompt_save_as() -> void:
+## Always shown on "Save config" so the user explicitly picks the filename
+## and location every time, rather than silently overwriting whatever .cfg
+## happened to be loaded — pre-filled with the current path, if any, so
+## re-saving to the same place is still a single click away.
+func prompt_save_as(current_path: String = "") -> void:
+	if current_path != "":
+		save_as_dialog.current_dir = current_path.get_base_dir()
+		save_as_dialog.current_file = current_path.get_file()
 	save_as_dialog.popup_centered_ratio(0.6)
+
+func get_root_scale() -> float:
+	return root_scale_spin.value
+
+func set_root_scale(value: float) -> void:
+	root_scale_spin.value = value
 
 ## node_names: the fixed list of NWN nodes to show as rows (always the same,
 ## regardless of whether a config is loaded yet); bone_map/rotation_offsets

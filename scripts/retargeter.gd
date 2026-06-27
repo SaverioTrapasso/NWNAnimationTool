@@ -99,16 +99,24 @@ static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_
 			var rest_rot: Quaternion = rest_rotations.get(source_bone_name, Quaternion.IDENTITY)
 			var delta: Quaternion = rest_rot.inverse() * animated_rot
 
-			var nwn_rest_transform: Transform3D = nwn_rest_transforms_by_name[nwn_node_name]
-			var target_rot: Quaternion = nwn_rest_transform.basis.get_rotation_quaternion() * delta
-			var origin: Vector3 = nwn_rest_transform.origin
-
+			# The offset is calibrated once, against the source rig's OWN rest
+			# pose (delta == identity) lined up to NWN's rest pose — it's a
+			# coordinate-frame correction, not an extra rotation to add on
+			# every frame. So it must be applied as a similarity transform
+			# (conjugation) on the delta: at delta == identity this is a
+			# no-op (NWN stays exactly at its rest pose, as calibrated),
+			# while any other frame's relative motion gets correctly
+			# transported through that same axis correction.
 			var offset_deg: Vector3 = rotation_offsets.get(nwn_node_name, Vector3.ZERO)
 			if offset_deg != Vector3.ZERO:
 				var offset_quat := Quaternion.from_euler(Vector3(
 					deg_to_rad(offset_deg.x), deg_to_rad(offset_deg.y), deg_to_rad(offset_deg.z)
 				))
-				target_rot = target_rot * offset_quat # intrinsic: rotate around the bone's own local axes
+				delta = offset_quat.inverse() * delta * offset_quat
+
+			var nwn_rest_transform: Transform3D = nwn_rest_transforms_by_name[nwn_node_name]
+			var target_rot: Quaternion = nwn_rest_transform.basis.get_rotation_quaternion() * delta
+			var origin: Vector3 = nwn_rest_transform.origin
 
 			if nwn_node_name == "rootdummy":
 				var animated_pos: Vector3 = anim_skeleton.get_bone_pose_position(bone_idx)

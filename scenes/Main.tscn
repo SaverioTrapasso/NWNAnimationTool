@@ -403,51 +403,20 @@ text = "Configure rig"
 layout_mode = 2
 text = "X"
 
-[node name="CfgRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
+[node name="LoadAnimRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
 layout_mode = 2
 
-[node name="CfgButton" type="Button" parent="SidePanel/RetargetPanel/VBox/CfgRow"]
+[node name="LoadAnimButton" type="Button" parent="SidePanel/RetargetPanel/VBox/LoadAnimRow"]
 layout_mode = 2
-tooltip_text = "Load a bone-map config (.cfg) — fully portable, no glb pinned to it"
-text = "Import cfg"
+tooltip_text = "Pick the model+animation glb/gltf to bake onto the NWN dummy"
+text = "Carica animazione"
 
-[node name="CfgLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/CfgRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 11
-autowrap_mode = 3
-text = "No config loaded"
-
-[node name="ImportRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
-layout_mode = 2
-
-[node name="ImportButton" type="Button" parent="SidePanel/RetargetPanel/VBox/ImportRow"]
-layout_mode = 2
-tooltip_text = "Import the model+animation glb to bake (also used as the rest-pose reference)"
-text = "Import model"
-
-[node name="SourceLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/ImportRow"]
+[node name="AnimationLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/LoadAnimRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 11
 autowrap_mode = 3
 text = "No file loaded"
-
-[node name="RootScaleRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
-layout_mode = 2
-
-[node name="RootScaleLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/RootScaleRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(90, 0)
-text = "Root scale"
-
-[node name="RootScaleSpin" type="SpinBox" parent="SidePanel/RetargetPanel/VBox/RootScaleRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = 0.01
-max_value = 10.0
-step = 0.01
-value = 1.0
 
 [node name="BakeButton" type="Button" parent="SidePanel/RetargetPanel/VBox"]
 layout_mode = 2
@@ -466,23 +435,14 @@ theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
 autowrap_mode = 3
 text = ""
 
-[node name="ImportDialog" type="FileDialog" parent="SidePanel/RetargetPanel"]
-title = "Import animation glb"
+[node name="LoadAnimationDialog" type="FileDialog" parent="SidePanel/RetargetPanel"]
+title = "Load animation glb"
 initial_position = 1
 size = Vector2i(600, 400)
-ok_button_text = "Import"
+ok_button_text = "Load"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.glb,*.gltf ; glTF Files")
-
-[node name="CfgDialog" type="FileDialog" parent="SidePanel/RetargetPanel"]
-title = "Import bone-map config"
-initial_position = 1
-size = Vector2i(600, 400)
-ok_button_text = "Import"
-file_mode = 0
-access = 2
-filters = PackedStringArray("*.cfg ; Config Files")
 
 [node name="RetargetDebugPanel" type="Panel" parent="SidePanel"]
 layout_mode = 1
@@ -499,7 +459,7 @@ mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("11")
 
-[node name="HeaderRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
+[node name="TitleRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -509,25 +469,54 @@ offset_right = -14.0
 offset_bottom = 36.0
 theme_override_constants/separation = 4
 
-[node name="HeaderLabel" type="Label" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+[node name="HeaderLabel" type="Label" parent="SidePanel/RetargetDebugPanel/TitleRow"]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 13
 text = "CONFIGURE RIG"
 
-[node name="ImportButton" type="Button" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+[node name="CloseButton" type="Button" parent="SidePanel/RetargetDebugPanel/TitleRow"]
 layout_mode = 2
-tooltip_text = "Import a source rig glb to compare visually"
-text = "Import"
+text = "X"
 
-[node name="ExitButton" type="Button" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+[node name="ButtonRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 40.0
+offset_right = -14.0
+offset_bottom = 66.0
+theme_override_constants/separation = 4
+
+[node name="CfgButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
 layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Load a bone-map config (.cfg) — fully portable, no glb pinned to it"
+text = "Import cfg"
+
+[node name="ImportButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Import the model+animation glb to bake (also used visually and as the rest-pose reference)"
+text = "Import model"
+
+[node name="ApplyButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Re-pose the red preview skeleton with the rotation offsets currently in the table"
+text = "Applica"
+
+[node name="ExitButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
 tooltip_text = "Stop the visual comparison (un-tints the dummy, removes the imported skeleton)"
 text = "Exit"
 
-[node name="SaveConfigButton" type="Button" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
+[node name="SaveConfigButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
 layout_mode = 2
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
@@ -536,31 +525,37 @@ theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 text = "Save config"
 
-[node name="CloseButton" type="Button" parent="SidePanel/RetargetDebugPanel/HeaderRow"]
-layout_mode = 2
-text = "X"
-
-[node name="InstructionsLabel" type="Label" parent="SidePanel/RetargetDebugPanel"]
+[node name="ScaleRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 14.0
-offset_top = 38.0
+offset_top = 72.0
 offset_right = -14.0
-offset_bottom = 70.0
-theme_override_font_sizes/font_size = 11
-theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
-autowrap_mode = 3
-text = "Edit the table directly, or click Import to see the source rig as a red skeleton next to the blue-tinted NWN dummy — click a blue joint then the matching red one to fill that row."
+offset_bottom = 94.0
+theme_override_constants/separation = 4
+
+[node name="RootScaleLabel" type="Label" parent="SidePanel/RetargetDebugPanel/ScaleRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(90, 0)
+text = "Root scale"
+
+[node name="RootScaleSpin" type="SpinBox" parent="SidePanel/RetargetDebugPanel/ScaleRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = 0.01
+max_value = 10.0
+step = 0.01
+value = 1.0
 
 [node name="ColumnHeaderRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 14.0
-offset_top = 74.0
+offset_top = 98.0
 offset_right = -14.0
-offset_bottom = 92.0
+offset_bottom = 116.0
 theme_override_constants/separation = 4
 
 [node name="NwnHeader" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
@@ -597,7 +592,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = 96.0
+offset_top = 120.0
 offset_right = -14.0
 offset_bottom = -32.0
 
@@ -622,13 +617,22 @@ autowrap_mode = 3
 text = ""
 
 [node name="ImportDialog" type="FileDialog" parent="SidePanel/RetargetDebugPanel"]
-title = "Import source rig glb"
+title = "Import model+animation glb"
 initial_position = 1
 size = Vector2i(600, 400)
 ok_button_text = "Import"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.glb,*.gltf ; glTF Files")
+
+[node name="CfgDialog" type="FileDialog" parent="SidePanel/RetargetDebugPanel"]
+title = "Import bone-map config"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Import"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.cfg ; Config Files")
 
 [node name="SaveAsDialog" type="FileDialog" parent="SidePanel/RetargetDebugPanel"]
 title = "Save bone-map config as"

@@ -64,23 +64,28 @@ Bring in an animation from another rig (e.g. an FF14-style skeleton) and
 bake it onto the NWN dummy, bone-by-bone (FK rotation copy with a rest-pose
 delta — no IK involved).
 
-- **Import cfg**: loads a `.cfg` bone-map (NWN node → source bone name +
-  per-bone rotation offset). A config has no glb baked into it — see
-  [configs/ff14_retarget_map.cfg](configs/ff14_retarget_map.cfg) for a
-  starting point you can load and adjust.
-- **Import model**: the model+animation `.glb`/`.gltf` to bake. Its
-  Skeleton3D's own bind pose doubles as the rest-pose reference, so no
-  separate reference asset is needed — any file with that bone naming works.
 - **Configure rig**: opens the bone-map table (associate-bone dropdown +
   rotation offset per NWN node, with a live delta readout) alongside a
   visual aid — the NWN dummy tinted blue with clickable joints, and (after
   importing a source rig there too) a red stick-figure skeleton next to it.
   Click a blue joint then the matching red one to fill in that row instead
-  of hunting through the dropdown. **Save config** writes it back to the
-  `.cfg`, prompting for a location the first time.
-- **Bake**: samples the imported model's animation at the config's fps and
-  drops the result straight onto the timeline, ready to preview/play/export
-  like any hand-posed animation.
+  of hunting through the dropdown.
+  - **Import cfg**: loads a `.cfg` bone-map (NWN node → source bone name +
+    per-bone rotation offset). A config has no glb baked into it — see
+    [configs/ff14_retarget_map.cfg](configs/ff14_retarget_map.cfg) for a
+    starting point you can load and adjust.
+  - **Import model**: the model+animation `.glb`/`.gltf` to bake. Its
+    Skeleton3D's own bind pose doubles as the rest-pose reference, so no
+    separate reference asset is needed — any file with that bone naming works.
+  - **Applica**: re-poses the red preview skeleton with the rotation offsets
+    currently in the table, so you can check the effect before saving.
+  - **Save config** writes the table back to the `.cfg`, prompting for a
+    location the first time.
+  - **Root scale** lives here too, since it only matters once a model is
+    imported.
+- **Bake** (in the Retarget panel): samples the imported model's animation at
+  the config's fps and drops the result straight onto the timeline, ready to
+  preview/play/export like any hand-posed animation.
 
 ## Notes
 

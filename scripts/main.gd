@@ -79,10 +79,11 @@ func _ready() -> void:
 	side_panel.focus_requested.connect(_on_focus_pressed)
 	gizmo.drag_started.connect(_push_undo_snapshot)
 
-	side_panel.retarget_panel.cfg_import_requested.connect(_on_retarget_cfg_import_requested)
-	side_panel.retarget_panel.import_model_requested.connect(_on_retarget_import_model)
+	side_panel.retarget_panel.load_animation_requested.connect(_on_retarget_load_animation_requested)
 	side_panel.retarget_panel.bake_requested.connect(_on_retarget_bake_requested)
 	side_panel.retarget_panel.bone_map_debug_requested.connect(_on_configure_rig_requested)
+	side_panel.retarget_debug_panel.cfg_import_requested.connect(_on_retarget_cfg_import_requested)
+	side_panel.retarget_debug_panel.apply_requested.connect(_on_retarget_apply_requested)
 	side_panel.retarget_debug_panel.save_requested.connect(_on_retarget_save_config_requested)
 	side_panel.retarget_debug_panel.save_as_chosen.connect(_on_retarget_save_as_chosen)
 	side_panel.retarget_debug_panel.import_source_requested.connect(_on_compare_import_requested)
@@ -191,7 +192,7 @@ func _on_new_requested() -> void:
 	_copied_component_pose = {}
 
 	_retarget_model_path = ""
-	side_panel.retarget_panel.reset_import_state()
+	side_panel.retarget_panel.set_animation_label("No file loaded")
 	if side_panel.retarget_panel.visible:
 		side_panel.retarget_panel.toggle_visible()
 	if side_panel.retarget_debug_panel.visible:
@@ -770,17 +771,28 @@ func _on_retarget_cfg_import_requested(config_path: String) -> void:
 	_retarget_config_path = config_path
 	_retarget_config = RetargetConfig.load_from_file(config_path)
 	if _retarget_config.is_empty():
-		side_panel.retarget_panel.set_status("Couldn't load config: %s" % config_path)
+		side_panel.retarget_debug_panel.set_status("Couldn't load config: %s" % config_path)
 	else:
-		side_panel.retarget_panel.set_status("Config '%s' loaded (%d bones mapped)." % [
+		side_panel.retarget_debug_panel.set_status("Config '%s' loaded (%d bones mapped)." % [
 			_retarget_config.get("prefab_name", "?"), _retarget_config.get("bone_map", {}).size()
 		])
+		side_panel.retarget_debug_panel.set_bone_map(
+			RetargetConfig.NWN_NODES,
+			_retarget_config.get("bone_map", {}),
+			_retarget_config.get("rotation_offsets", {})
+		)
+		side_panel.retarget_debug_panel.set_root_scale(_retarget_config.get("root_scale", 1.0))
 
-func _on_retarget_import_model(path: String) -> void:
+## "Carica animazione" in the Retarget panel: the model+animation file that
+## Bake actually samples. Kept separate from "Import model" in Configure rig
+## (which only drives the visual red-skeleton comparison) since you may want
+## to bake a different file than the one used to build the bone map.
+func _on_retarget_load_animation_requested(path: String) -> void:
 	_retarget_model_path = path
-	side_panel.retarget_panel.set_status("Model ready: %s" % path.get_file())
+	side_panel.retarget_panel.set_animation_label(path.get_file())
+	side_panel.retarget_panel.set_status("Animation ready: %s" % path.get_file())
 
-func _on_retarget_bake_requested(root_scale: float) -> void:
+func _on_retarget_bake_requested() -> void:
 	if _retarget_config.is_empty():
 		side_panel.retarget_panel.set_status("Import a bone-map config first.")
 		return
@@ -793,14 +805,17 @@ func _on_retarget_bake_requested(root_scale: float) -> void:
 		if is_instance_valid(node):
 			rest_by_name[node.name] = _rest_transforms[node]
 
+	# Read the bone map/offsets straight from the table, not from
+	# _retarget_config, so edits made after import but not yet saved are
+	# still honored by Bake (saving to disk is a separate, optional step).
 	var result: Dictionary = Retargeter.bake(
 		self,
 		_retarget_model_path,
-		_retarget_config["bone_map"],
+		side_panel.retarget_debug_panel.get_bone_map(),
 		rest_by_name,
 		_retarget_config["source_fps"],
-		root_scale,
-		_retarget_config.get("rotation_offsets", {})
+		side_panel.retarget_debug_panel.get_root_scale(),
+		side_panel.retarget_debug_panel.get_rotation_offsets()
 	)
 
 	if result.has("error"):
@@ -818,14 +833,12 @@ func _on_retarget_bake_requested(root_scale: float) -> void:
 	side_panel.retarget_panel.set_status("Baked %d keyframes (%.2fs)." % [_keyframes.size(), _anim_length])
 
 ## Pulls whatever's currently in the bone-map panel's editable fields and
-## writes it to the .cfg file (preserving the file's leading comment block).
-## If nothing's been imported yet, prompts for where to save it first — the
-## config is no longer tied to any fixed path or bundled glb.
+## writes it to a .cfg file (preserving the file's leading comment block).
+## Always prompts for the filename/location (pre-filled with the currently
+## loaded path, if any) instead of silently overwriting it — configs are
+## meant to be shared/reused, so overwriting one without asking is risky.
 func _on_retarget_save_config_requested() -> void:
-	if _retarget_config_path == "":
-		side_panel.retarget_debug_panel.prompt_save_as()
-		return
-	_save_retarget_config_to(_retarget_config_path)
+	side_panel.retarget_debug_panel.prompt_save_as(_retarget_config_path)
 
 func _on_retarget_save_as_chosen(path: String) -> void:
 	_retarget_config_path = path
@@ -834,10 +847,12 @@ func _on_retarget_save_as_chosen(path: String) -> void:
 func _save_retarget_config_to(path: String) -> void:
 	var bone_map: Dictionary = side_panel.retarget_debug_panel.get_bone_map()
 	var rotation_offsets: Dictionary = side_panel.retarget_debug_panel.get_rotation_offsets()
+	var root_scale: float = side_panel.retarget_debug_panel.get_root_scale()
 	var err := RetargetConfig.save_to_file(
 		path,
 		_retarget_config.get("prefab_name", path.get_file().get_basename()),
 		_retarget_config.get("source_fps", 30.0),
+		root_scale,
 		bone_map,
 		rotation_offsets
 	)
@@ -846,6 +861,7 @@ func _save_retarget_config_to(path: String) -> void:
 		return
 	_retarget_config["bone_map"] = bone_map
 	_retarget_config["rotation_offsets"] = rotation_offsets
+	_retarget_config["root_scale"] = root_scale
 	side_panel.retarget_panel.set_status("Config saved to %s" % path)
 	side_panel.retarget_debug_panel.set_status("Config saved to %s" % path)
 
@@ -931,12 +947,37 @@ func _on_compare_import_requested(path: String) -> void:
 		side_panel.retarget_debug_panel.set_status("No Skeleton3D found in that file.")
 		return
 
+	_retarget_model_path = path
+
 	if _compare_red_scene != null:
 		_compare_red_scene.queue_free()
 	add_child(scene)
 	_compare_red_scene = scene
 	_tint_meshes(scene, COMPARE_RED_TINT) # no-op if the source has no mesh (most skeleton-only exports)
 
+	# Pose at the animation's frame 0 (not the bind/rest pose) — calibrating
+	# the bone map only makes sense against the actual first frame of the
+	# file you're about to bake, same as what Bake itself starts from.
+	var anim_player := Retargeter._find_animation_player(scene)
+	if anim_player != null:
+		var anim_names := anim_player.get_animation_list()
+		if not anim_names.is_empty():
+			anim_player.play(anim_names[0])
+			anim_player.seek(0.0, true)
+			anim_player.pause()
+
+	_refresh_red_visualizer(skeleton)
+
+	var bone_names: Array = []
+	for i in range(skeleton.get_bone_count()):
+		bone_names.append(skeleton.get_bone_name(i))
+	side_panel.retarget_debug_panel.set_available_bones(bone_names)
+	side_panel.retarget_debug_panel.set_status("Loaded %s (%d bones). Click pairs of joints, or pick from the dropdowns." % [path.get_file(), skeleton.get_bone_count()])
+
+## Rebuilds the red stick-figure from the source skeleton's CURRENT bone
+## poses (rest pose by default; _on_retarget_apply_requested temporarily
+## poses it with the rotation offsets first so they can be checked visually).
+func _refresh_red_visualizer(skeleton: Skeleton3D) -> void:
 	var entries: Array = []
 	for i in range(skeleton.get_bone_count()):
 		var bone_name: String = skeleton.get_bone_name(i)
@@ -949,11 +990,35 @@ func _on_compare_import_requested(path: String) -> void:
 	red_visualizer.build(entries) # draw_lines=true: usually the only way to see a mesh-less skeleton
 	red_visualizer.visible = true
 
-	var bone_names: Array = []
-	for i in range(skeleton.get_bone_count()):
-		bone_names.append(skeleton.get_bone_name(i))
-	side_panel.retarget_debug_panel.set_available_bones(bone_names)
-	side_panel.retarget_debug_panel.set_status("Loaded %s (%d bones). Click pairs of joints, or pick from the dropdowns." % [path.get_file(), skeleton.get_bone_count()])
+## "Applica" button: poses the imported source skeleton's mapped bones with
+## the rotation offsets currently typed into the table, and scales the whole
+## preview by the current root scale, so the red skeleton visually reflects
+## both tweaks instead of only showing its rest pose at scale 1.
+func _on_retarget_apply_requested() -> void:
+	if _compare_red_scene == null:
+		side_panel.retarget_debug_panel.set_status("Import a model first.")
+		return
+	var skeleton: Skeleton3D = Retargeter._find_skeleton(_compare_red_scene)
+	if skeleton == null:
+		return
+	_compare_red_scene.scale = Vector3.ONE * side_panel.retarget_debug_panel.get_root_scale()
+	var bone_map: Dictionary = side_panel.retarget_debug_panel.get_bone_map()
+	var rotation_offsets: Dictionary = side_panel.retarget_debug_panel.get_rotation_offsets()
+	for nwn_node in bone_map.keys():
+		var source_bone: String = bone_map[nwn_node]
+		if source_bone == "":
+			continue
+		var idx := skeleton.find_bone(source_bone)
+		if idx == -1:
+			continue
+		var rest_rot: Quaternion = skeleton.get_bone_rest(idx).basis.get_rotation_quaternion()
+		var offset_deg: Vector3 = rotation_offsets.get(nwn_node, Vector3.ZERO)
+		var offset_quat := Quaternion.from_euler(Vector3(
+			deg_to_rad(offset_deg.x), deg_to_rad(offset_deg.y), deg_to_rad(offset_deg.z)
+		))
+		skeleton.set_bone_pose_rotation(idx, rest_rot * offset_quat)
+	_refresh_red_visualizer(skeleton)
+	side_panel.retarget_debug_panel.set_status("Applied offsets to the preview skeleton.")
 
 func _on_blue_bone_clicked(bone_name: String) -> void:
 	if not _compare_mode:

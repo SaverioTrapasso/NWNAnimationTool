@@ -45,6 +45,7 @@ static func load_from_file(path: String) -> Dictionary:
 	return {
 		"prefab_name": String(cf.get_value("meta", "prefab_name", "")),
 		"source_fps": float(cf.get_value("meta", "source_fps", 30.0)),
+		"root_scale": float(cf.get_value("meta", "root_scale", 1.0)),
 		"bone_map": bone_map,
 		"rotation_offsets": rotation_offsets,
 	}
@@ -52,7 +53,7 @@ static func load_from_file(path: String) -> Dictionary:
 ## Rewrites the config file with the given bone_map/rotation_offsets, while
 ## preserving any leading "; ..." comment block from the existing file (the
 ## explanatory notes about the rig) so live edits from the UI don't wipe them.
-static func save_to_file(path: String, prefab_name: String, source_fps: float, bone_map: Dictionary, rotation_offsets: Dictionary) -> Error:
+static func save_to_file(path: String, prefab_name: String, source_fps: float, root_scale: float, bone_map: Dictionary, rotation_offsets: Dictionary) -> Error:
 	var header := ""
 	if FileAccess.file_exists(path):
 		var existing := FileAccess.open(path, FileAccess.READ)
@@ -72,6 +73,7 @@ static func save_to_file(path: String, prefab_name: String, source_fps: float, b
 	lines.append("[meta]")
 	lines.append("prefab_name = \"%s\"" % prefab_name)
 	lines.append("source_fps = %s" % str(source_fps))
+	lines.append("root_scale = %s" % str(root_scale))
 	lines.append("")
 	lines.append("[bone_map]")
 	for key in bone_map.keys():
