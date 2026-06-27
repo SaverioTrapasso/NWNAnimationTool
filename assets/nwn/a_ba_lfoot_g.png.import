@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://odk6s26lbuko"
-path.s3tc="res://.godot/imported/a_ba_rforearm_g.png-4ff61a0c78d1c5d7f63d5ebfaa58498e.s3tc.ctex"
+uid="uid://be0wc2lkbnwch"
+path.s3tc="res://.godot/imported/a_ba_lfoot_g.png-10fe01fd82c1f566868da2dfcf0529a9.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_rforearm_g.png"
-dest_files=["res://.godot/imported/a_ba_rforearm_g.png-4ff61a0c78d1c5d7f63d5ebfaa58498e.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_lfoot_g.png"
+dest_files=["res://.godot/imported/a_ba_lfoot_g.png-10fe01fd82c1f566868da2dfcf0529a9.s3tc.ctex"]
 
 [params]
 

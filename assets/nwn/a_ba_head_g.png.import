@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://b5twrtgxaiu68"
-path.s3tc="res://.godot/imported/a_ba_head_g.png-c3f5dcdea6c2aaa0c471fe2ad47295a9.s3tc.ctex"
+path.s3tc="res://.godot/imported/a_ba_head_g.png-0ae1b44ef3b3aef5906cf708db907c72.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_head_g.png"
-dest_files=["res://.godot/imported/a_ba_head_g.png-c3f5dcdea6c2aaa0c471fe2ad47295a9.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_head_g.png"
+dest_files=["res://.godot/imported/a_ba_head_g.png-0ae1b44ef3b3aef5906cf708db907c72.s3tc.ctex"]
 
 [params]
 

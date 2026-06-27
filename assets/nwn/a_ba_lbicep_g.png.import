@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://be0wc2lkbnwch"
-path.s3tc="res://.godot/imported/a_ba_lfoot_g.png-67e65d7a809699346d158a07bf447fb8.s3tc.ctex"
+uid="uid://b21wdabfxcbq6"
+path.s3tc="res://.godot/imported/a_ba_lbicep_g.png-aadd4c613f1a6999e5cdb512b96b8b3c.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_lfoot_g.png"
-dest_files=["res://.godot/imported/a_ba_lfoot_g.png-67e65d7a809699346d158a07bf447fb8.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_lbicep_g.png"
+dest_files=["res://.godot/imported/a_ba_lbicep_g.png-aadd4c613f1a6999e5cdb512b96b8b3c.s3tc.ctex"]
 
 [params]
 

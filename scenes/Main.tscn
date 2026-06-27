@@ -1,6 +1,6 @@
 [gd_scene load_steps=12 format=3 uid="uid://b1q7x8f3wq8nk"]
 
-[ext_resource type="PackedScene" uid="uid://bk5top5rlti6i" path="res://assets/a_ba.glb" id="1"]
+[ext_resource type="PackedScene" uid="uid://bk5top5rlti6i" path="res://assets/nwn/a_ba.glb" id="1"]
 [ext_resource type="Script" path="res://scripts/orbit_camera.gd" id="2"]
 [ext_resource type="Script" path="res://scripts/main.gd" id="3"]
 [ext_resource type="Script" path="res://scripts/rig_controller.gd" id="4"]

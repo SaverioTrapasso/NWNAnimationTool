@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dbvswscjitnga"
-path.s3tc="res://.godot/imported/a_ba_rshin_g.png-75c770698a42e4b0412ef1850c85556c.s3tc.ctex"
+uid="uid://csn4pnx787xjc"
+path.s3tc="res://.godot/imported/a_ba_belt_g.png-81fe7a7779d7c7edba24e004e241dff2.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_rshin_g.png"
-dest_files=["res://.godot/imported/a_ba_rshin_g.png-75c770698a42e4b0412ef1850c85556c.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_belt_g.png"
+dest_files=["res://.godot/imported/a_ba_belt_g.png-81fe7a7779d7c7edba24e004e241dff2.s3tc.ctex"]
 
 [params]
 

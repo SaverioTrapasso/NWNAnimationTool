@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://dr40hcxach6uq"
-path.s3tc="res://.godot/imported/a_ba_rfoot_g.png-badfc7f6c8c4c690b358df363cf935ae.s3tc.ctex"
+uid="uid://ba0b7ejkggob2"
+path.s3tc="res://.godot/imported/a_ba_rshoulder_g.png-b28f80904482d5dbb6775531a31f7e86.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_rfoot_g.png"
-dest_files=["res://.godot/imported/a_ba_rfoot_g.png-badfc7f6c8c4c690b358df363cf935ae.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_rshoulder_g.png"
+dest_files=["res://.godot/imported/a_ba_rshoulder_g.png-b28f80904482d5dbb6775531a31f7e86.s3tc.ctex"]
 
 [params]
 

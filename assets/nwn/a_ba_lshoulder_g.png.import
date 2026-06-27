@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bp53d1fbase1l"
-path.s3tc="res://.godot/imported/a_ba_torso_g.png-7b5d05d33db5733f9130bfb60571762c.s3tc.ctex"
+uid="uid://b1orv67ewn41y"
+path.s3tc="res://.godot/imported/a_ba_lshoulder_g.png-c8fcd7d68609f26ab227022a2aa924d1.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_torso_g.png"
-dest_files=["res://.godot/imported/a_ba_torso_g.png-7b5d05d33db5733f9130bfb60571762c.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_lshoulder_g.png"
+dest_files=["res://.godot/imported/a_ba_lshoulder_g.png-c8fcd7d68609f26ab227022a2aa924d1.s3tc.ctex"]
 
 [params]
 

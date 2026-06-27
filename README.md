@@ -62,6 +62,9 @@ No build step is needed: GDScript is interpreted directly by the engine.
 
 - The `SDK/` folder (Godot executables) isn't included in this repository
   due to its size: download Godot 4.7 separately as described above.
-- The dummy model (`assets/a_ba.glb`) must use the exact NWN node names
+- The dummy model (`assets/nwn/a_ba.glb`) must use the exact NWN node names
   (`rootdummy`, `torso_g`, `pelvis_g`, etc.) — see [CLAUDE.md](CLAUDE.md)
   for details on the export format.
+- `assets/` is organized one folder per source rig (`nwn/` for the NWN
+  dummy, one folder per future retarget source — e.g. `ff/` for the FF14
+  skeleton), each holding that source's reference T/A-pose asset.

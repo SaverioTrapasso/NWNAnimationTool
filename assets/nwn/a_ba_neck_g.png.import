@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://b21wdabfxcbq6"
-path.s3tc="res://.godot/imported/a_ba_lbicep_g.png-e217326868fed61850d56bedba973701.s3tc.ctex"
+uid="uid://2l3i7uq0qne"
+path.s3tc="res://.godot/imported/a_ba_neck_g.png-75d7b827d84fa2fbbcd978052a34b146.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_lbicep_g.png"
-dest_files=["res://.godot/imported/a_ba_lbicep_g.png-e217326868fed61850d56bedba973701.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_neck_g.png"
+dest_files=["res://.godot/imported/a_ba_neck_g.png-75d7b827d84fa2fbbcd978052a34b146.s3tc.ctex"]
 
 [params]
 

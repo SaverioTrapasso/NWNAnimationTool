@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://c3sj1yitw8ucy"
-path.s3tc="res://.godot/imported/a_ba_lthigh_g.png-616d034d560c897cf4e76d3320fe9996.s3tc.ctex"
+path.s3tc="res://.godot/imported/a_ba_lthigh_g.png-06ba4502ab2519be992ea7d565243a7f.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_lthigh_g.png"
-dest_files=["res://.godot/imported/a_ba_lthigh_g.png-616d034d560c897cf4e76d3320fe9996.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_lthigh_g.png"
+dest_files=["res://.godot/imported/a_ba_lthigh_g.png-06ba4502ab2519be992ea7d565243a7f.s3tc.ctex"]
 
 [params]
 

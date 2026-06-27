@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ip4hplrm15vm"
-path.s3tc="res://.godot/imported/a_ba_rbicep_g.png-460acca63e8c5dd329460e4f97e12664.s3tc.ctex"
+uid="uid://c0pbcf4kdal20"
+path.s3tc="res://.godot/imported/a_ba_rhand_g.png-b3a9e0b329df37dc3b57eb31191f76e2.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_rbicep_g.png"
-dest_files=["res://.godot/imported/a_ba_rbicep_g.png-460acca63e8c5dd329460e4f97e12664.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_rhand_g.png"
+dest_files=["res://.godot/imported/a_ba_rhand_g.png-b3a9e0b329df37dc3b57eb31191f76e2.s3tc.ctex"]
 
 [params]
 

@@ -3,7 +3,7 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://dosubcuqc7s2b"
-path.s3tc="res://.godot/imported/a_ba_pmh0_robe030.png-de52b02129e4ccdebf43b36d4d929d3a.s3tc.ctex"
+path.s3tc="res://.godot/imported/a_ba_pmh0_robe030.png-b161339342899a0c05deef5bd52a3610.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_pmh0_robe030.png"
-dest_files=["res://.godot/imported/a_ba_pmh0_robe030.png-de52b02129e4ccdebf43b36d4d929d3a.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_pmh0_robe030.png"
+dest_files=["res://.godot/imported/a_ba_pmh0_robe030.png-b161339342899a0c05deef5bd52a3610.s3tc.ctex"]
 
 [params]
 

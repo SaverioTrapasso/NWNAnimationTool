@@ -2,8 +2,8 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ba0b7ejkggob2"
-path.s3tc="res://.godot/imported/a_ba_rshoulder_g.png-4b75b23487362219a6f3470306dc9fb7.s3tc.ctex"
+uid="uid://wvkkintojrts"
+path.s3tc="res://.godot/imported/a_ba_lshin_g.png-f1c5226afea85af85e298b80785fdf98.s3tc.ctex"
 metadata={
 "imported_formats": ["s3tc_bptc"],
 "vram_texture": true
@@ -14,8 +14,8 @@ generator_parameters={
 
 [deps]
 
-source_file="res://assets/a_ba_rshoulder_g.png"
-dest_files=["res://.godot/imported/a_ba_rshoulder_g.png-4b75b23487362219a6f3470306dc9fb7.s3tc.ctex"]
+source_file="res://assets/nwn/a_ba_lshin_g.png"
+dest_files=["res://.godot/imported/a_ba_lshin_g.png-f1c5226afea85af85e298b80785fdf98.s3tc.ctex"]
 
 [params]
 
