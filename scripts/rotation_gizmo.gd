@@ -30,6 +30,8 @@ var _drag_start_mouse_angle: float = 0.0
 var _drag_start_basis: Basis
 
 func _ready() -> void:
+	# See the click-priority note in translation_gizmo.gd's _ready().
+	process_priority = -10
 	_visual_root = Node3D.new()
 	add_child(_visual_root)
 	_make_ring(Color(1, 0.2, 0.2), Vector3.RIGHT, Vector3(0, 0, 90), 12)

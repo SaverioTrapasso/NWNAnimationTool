@@ -14,7 +14,6 @@ signal paste_key_requested()
 signal remove_key_requested()
 signal new_requested()
 signal retarget_load_animation_requested(path: String)
-signal retarget_lock_requested()
 signal retarget_bake_requested()
 signal retarget_overlay_toggled(enabled: bool)
 
@@ -33,7 +32,6 @@ signal retarget_overlay_toggled(enabled: bool)
 
 @onready var load_animation_button: Button = _sidebar.get_node("Retarget/LoadAnimationButton")
 @onready var bone_config_button: Button = _sidebar.get_node("Retarget/BoneConfigButton")
-@onready var lock_button: Button = _sidebar.get_node("Retarget/LockButton")
 @onready var bake_button: Button = _sidebar.get_node("Retarget/BakeButton")
 @onready var load_animation_dialog: FileDialog = $LoadAnimationDialog
 @onready var bone_config_panel: Panel = $BoneConfigPanel
@@ -90,7 +88,6 @@ func _ready() -> void:
 	load_animation_button.pressed.connect(func(): load_animation_dialog.popup_centered_ratio(0.6))
 	load_animation_dialog.file_selected.connect(func(path): retarget_load_animation_requested.emit(path))
 	bone_config_button.pressed.connect(func(): bone_config_panel.toggle_visible())
-	lock_button.pressed.connect(func(): retarget_lock_requested.emit())
 	bake_button.pressed.connect(func(): retarget_bake_requested.emit())
 
 func set_status(text: String) -> void:

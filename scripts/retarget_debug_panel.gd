@@ -11,9 +11,11 @@ signal cfg_import_requested(path: String)
 signal save_requested()
 signal save_as_chosen(path: String)
 signal root_scale_changed(value: float)
+signal flip_180_toggled(enabled: bool)
 
 @onready var close_button: Button = $TitleRow/CloseButton
 @onready var root_scale_spin: SpinBox = $ScaleRow/RootScaleSpin
+@onready var flip_180_button: Button = $ScaleRow/Flip180Button
 @onready var cfg_button: Button = $ConfigRow/CfgButton
 @onready var save_config_button: Button = $ConfigRow/SaveConfigButton
 @onready var cfg_dialog: FileDialog = $CfgDialog
@@ -32,6 +34,7 @@ func _ready() -> void:
 	save_config_button.pressed.connect(func(): save_requested.emit())
 	save_as_dialog.file_selected.connect(func(path): save_as_chosen.emit(path))
 	root_scale_spin.value_changed.connect(func(v): root_scale_changed.emit(v))
+	flip_180_button.toggled.connect(func(v): flip_180_toggled.emit(v))
 
 ## Always shown on "Save config" so the user explicitly picks the filename
 ## and location every time, rather than silently overwriting whatever .cfg

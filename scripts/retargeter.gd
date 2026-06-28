@@ -49,6 +49,18 @@ static func _find_animation_player(node: Node) -> AnimationPlayer:
 			return found
 	return null
 
+## A bone's world rotation/position, including the Skeleton3D node's OWN
+## external transform (e.g. a "Flip 180°" rotation applied to the loaded
+## scene). get_bone_global_pose() alone is relative to the Skeleton3D node
+## itself and completely ignores how that node is placed in the scene, so a
+## root-level flip would otherwise have zero effect on the retargeting math
+## — multiplying by skeleton.global_transform is what makes it real.
+static func _source_world_rot(anim_skeleton: Skeleton3D, bone_idx: int) -> Quaternion:
+	return (anim_skeleton.global_transform.basis * anim_skeleton.get_bone_global_pose(bone_idx).basis).get_rotation_quaternion()
+
+static func _source_world_pos(anim_skeleton: Skeleton3D, bone_idx: int) -> Vector3:
+	return anim_skeleton.global_transform * anim_skeleton.get_bone_global_pose(bone_idx).origin
+
 ## "Lock": call once, right after seeking the source skeleton to the frame
 ## you hand-posed the rig against. Captures, for every mapped NWN node, the
 ## fixed world-space offset between the source bone's current world
@@ -67,19 +79,22 @@ static func lock_offsets(anim_skeleton: Skeleton3D, bone_map: Dictionary, nwn_wo
 		var bone_idx: int = anim_skeleton.find_bone(source_bone_name)
 		if bone_idx < 0:
 			continue
-		var source_world_rot: Quaternion = anim_skeleton.get_bone_global_pose(bone_idx).basis.get_rotation_quaternion()
+		var source_world_rot: Quaternion = _source_world_rot(anim_skeleton, bone_idx)
 		var nwn_world_rot: Quaternion = nwn_world_rotations_by_name[nwn_node_name]
 		offsets[nwn_node_name] = source_world_rot.inverse() * nwn_world_rot
 
 	var root_match := {}
-	var root_source_bone: String = bone_map.get("rootdummy", "")
-	if root_source_bone != "" and nwn_world_positions_by_name.has("rootdummy"):
-		var root_idx: int = anim_skeleton.find_bone(root_source_bone)
-		if root_idx >= 0:
-			root_match = {
-				"source_pos": anim_skeleton.get_bone_global_pose(root_idx).origin,
-				"target_pos": nwn_world_positions_by_name["rootdummy"],
-			}
+	if nwn_world_positions_by_name.has("rootdummy"):
+		# Always remember where rootdummy was at lock time, even if it isn't
+		# mapped (or its source bone can't be found) -- that way bake() can
+		# freeze it there instead of silently reverting to the import-time
+		# rest pose, which previously produced an unexplained height jump.
+		root_match["target_pos"] = nwn_world_positions_by_name["rootdummy"]
+		var root_source_bone: String = bone_map.get("rootdummy", "")
+		if root_source_bone != "":
+			var root_idx: int = anim_skeleton.find_bone(root_source_bone)
+			if root_idx >= 0:
+				root_match["source_pos"] = _source_world_pos(anim_skeleton, root_idx)
 
 	return {"offsets": offsets, "root_match": root_match}
 
@@ -112,16 +127,28 @@ static func sample_pose(anim_skeleton: Skeleton3D, hierarchy: Array, bone_map: D
 		var bone_idx: int = anim_skeleton.find_bone(source_bone_name) if source_bone_name != "" else -1
 
 		if bone_idx >= 0 and offsets.has(name):
-			var source_world_rot: Quaternion = anim_skeleton.get_bone_global_pose(bone_idx).basis.get_rotation_quaternion()
+			var source_world_rot: Quaternion = _source_world_rot(anim_skeleton, bone_idx)
 			world_rot = source_world_rot * offsets[name]
 			local_rot = parent_world_rot.inverse() * world_rot
 
-			if name == "rootdummy" and not root_match.is_empty():
-				var source_world_pos: Vector3 = anim_skeleton.get_bone_global_pose(bone_idx).origin
-				origin = root_match["target_pos"] + (source_world_pos - root_match["source_pos"]) * root_scale
+			if name == "rootdummy" and root_match.has("target_pos"):
+				if root_match.has("source_pos"):
+					# anim_skeleton's own transform already carries root_scale
+					# (bake() applies it to match the overlay lock_offsets()
+					# read from), so this delta is already in scaled space --
+					# multiplying by root_scale again here would double it.
+					var source_world_pos: Vector3 = _source_world_pos(anim_skeleton, bone_idx)
+					origin = root_match["target_pos"] + (source_world_pos - root_match["source_pos"])
+				else:
+					origin = root_match["target_pos"]
 		else:
 			local_rot = rest_transform.basis.get_rotation_quaternion()
 			world_rot = parent_world_rot * local_rot
+			# rootdummy isn't mapped (or its source bone can't be resolved):
+			# freeze it at the locked, hand-posed position instead of
+			# reverting to the import-time rest pose.
+			if name == "rootdummy" and root_match.has("target_pos"):
+				origin = root_match["target_pos"]
 
 		world_rotations[name] = world_rot
 		transforms[name] = Transform3D(Basis(local_rot), origin)
@@ -133,11 +160,22 @@ static func sample_pose(anim_skeleton: Skeleton3D, hierarchy: Array, bone_map: D
 ## running scene tree — the imported AnimationPlayer needs that to resolve
 ## its track NodePaths down to the Skeleton3D. `lock_data` comes from
 ## lock_offsets(), captured at whatever frame you hand-posed the rig against.
-static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_rest_transforms_by_name: Dictionary, source_fps: float, root_scale: float, lock_data: Dictionary) -> Dictionary:
+## `flip_180` must match whatever the source overlay had set when Lock was
+## pressed — bake() reloads the glb fresh, so it has to re-apply the exact
+## same external rotation for the world-space math to stay consistent with
+## what was captured at Lock time.
+static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_rest_transforms_by_name: Dictionary, source_fps: float, root_scale: float, lock_data: Dictionary, flip_180: bool = false) -> Dictionary:
 	var anim_scene := _load_glb(anim_glb_path)
 	if anim_scene == null:
 		return {"error": "Could not load animation source: %s" % anim_glb_path}
 	parent.add_child(anim_scene)
+	if flip_180:
+		anim_scene.rotation.y = PI
+	# Match the live overlay's scale (set via the Root Scale slider) so this
+	# freshly-reloaded copy reads the exact same world-space positions that
+	# lock_offsets() captured from the overlay -- otherwise the locked frame
+	# itself wouldn't line up and root_scale != 1.0 would break continuity.
+	anim_scene.scale = Vector3.ONE * root_scale
 
 	var anim_skeleton := _find_skeleton(anim_scene)
 	var anim_player := _find_animation_player(anim_scene)

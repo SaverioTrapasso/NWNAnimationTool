@@ -79,13 +79,13 @@ func _ready() -> void:
 	gizmo.drag_started.connect(_push_undo_snapshot)
 
 	side_panel.retarget_load_animation_requested.connect(_on_retarget_load_animation_requested)
-	side_panel.retarget_lock_requested.connect(_on_retarget_lock_requested)
 	side_panel.retarget_bake_requested.connect(_on_retarget_bake_requested)
 	side_panel.retarget_overlay_toggled.connect(_on_retarget_overlay_toggled)
 	side_panel.bone_config_panel.cfg_import_requested.connect(_on_retarget_cfg_import_requested)
 	side_panel.bone_config_panel.save_requested.connect(_on_retarget_save_config_requested)
 	side_panel.bone_config_panel.save_as_chosen.connect(_on_retarget_save_as_chosen)
 	side_panel.bone_config_panel.root_scale_changed.connect(_on_retarget_root_scale_changed)
+	side_panel.bone_config_panel.flip_180_toggled.connect(_on_retarget_flip_180_toggled)
 	side_panel.new_requested.connect(_on_new_requested)
 
 	red_visualizer.camera = $Camera3D
@@ -193,6 +193,7 @@ func _on_new_requested() -> void:
 		_retarget_anim_scene = null
 	_show_retarget_overlay = false
 	_retarget_lock = {}
+	_retarget_flip_180 = false
 	red_visualizer.visible = false
 	if side_panel.bone_config_panel.visible:
 		side_panel.bone_config_panel.toggle_visible()
@@ -780,6 +781,7 @@ var _retarget_anim_scene: Node3D = null
 var _show_retarget_overlay: bool = false
 var _retarget_lock: Dictionary = {} # from Retargeter.lock_offsets(), empty until "Lock" is pressed
 var _retarget_lock_time: float = 0.0
+var _retarget_flip_180: bool = false
 
 func _on_retarget_cfg_import_requested(config_path: String) -> void:
 	_retarget_config_path = config_path
@@ -875,6 +877,19 @@ func _on_retarget_root_scale_changed(value: float) -> void:
 		_retarget_anim_scene.scale = Vector3.ONE * value
 	_sync_retarget_overlay(side_panel.timeline.current_time)
 
+## Rotates the loaded SOURCE glb 180° — and unlike the very first version of
+## this toggle, it's no longer just cosmetic: Retargeter now reads each
+## source bone's world rotation/position through the Skeleton3D node's own
+## global_transform, so this root-level flip propagates into both Lock
+## (captured immediately, since the overlay's skeleton already has it) and
+## Bake (passed through explicitly, since bake() reloads the glb fresh and
+## has to re-apply the same rotation for the math to stay consistent).
+func _on_retarget_flip_180_toggled(enabled: bool) -> void:
+	_retarget_flip_180 = enabled
+	if _retarget_anim_scene != null:
+		_retarget_anim_scene.rotation.y = PI if enabled else 0.0
+	_sync_retarget_overlay(side_panel.timeline.current_time)
+
 ## Draws the red overlay. Once the Bone configuration table has at least one
 ## mapped bone, only those are shown (skipping up past unmapped ancestors so
 ## lines still connect to the nearest joint that's actually shown — fingers/
@@ -906,13 +921,14 @@ func _refresh_red_visualizer(skeleton: Skeleton3D) -> void:
 	red_visualizer.build(entries)
 	red_visualizer.visible = true
 
-## "Lock": call after you've hand-posed the rig (normal gizmos) to match the
-## overlay at the current timeline frame. Records, for every mapped node, a
-## fixed WORLD-SPACE offset between the source bone's current orientation
-## and the rig's current (hand-posed) orientation — exactly a Maya "orient
-## constraint with maintain offset". Bake then just replays the source
-## animation maintaining that same offset, frame by frame.
-func _on_retarget_lock_requested() -> void:
+## Bake: first "locks" the current hand-posed match (records, for every
+## mapped node, a fixed WORLD-SPACE offset between the source bone's current
+## orientation and the rig's current orientation — exactly a Maya "orient
+## constraint with maintain offset"), then immediately replays the whole
+## source animation maintaining that same offset, frame by frame. Used to be
+## two separate buttons; pressing Bake without first pressing Lock makes no
+## sense on its own, so Bake just does both in one step now.
+func _on_retarget_bake_requested() -> void:
 	if _retarget_config.is_empty():
 		side_panel.set_status("Load a bone configuration first.")
 		return
@@ -929,7 +945,15 @@ func _on_retarget_lock_requested() -> void:
 
 	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()
 	var length: float = anim_player.get_animation(anim_names[0]).length
-	_retarget_lock_time = clamp(side_panel.timeline.current_time, 0.0, length)
+	var source_fps: float = _retarget_config.get("source_fps", 30.0)
+	# Snap to the same fixed-fps grid bake()'s loop samples (t = frame_i /
+	# source_fps) — otherwise the timeline's continuous, mouse-dragged time
+	# almost never lands exactly on a baked keyframe, so the pose shown
+	# right after Bake is a SLERP/LERP interpolation between two nearby
+	# keyframes instead of the exact match you just locked in, which can
+	# visibly differ from it and look like an unexplained snap.
+	var raw_time: float = clamp(side_panel.timeline.current_time, 0.0, length)
+	_retarget_lock_time = clamp(round(raw_time * source_fps) / source_fps, 0.0, length)
 	anim_player.seek(_retarget_lock_time, true)
 
 	var world_rotations := {}
@@ -942,19 +966,7 @@ func _on_retarget_lock_requested() -> void:
 
 	_retarget_config["bone_map"] = bone_map
 	_retarget_lock = Retargeter.lock_offsets(skeleton, bone_map, world_rotations, world_positions)
-	side_panel.set_status("Locked at t=%.2fs. Ready to Bake." % _retarget_lock_time)
 
-## Bake: replays the source animation, maintaining the exact world-space
-## offset per node captured by "Lock". Must Lock first.
-func _on_retarget_bake_requested() -> void:
-	if _retarget_lock.is_empty():
-		side_panel.set_status("Press Lock first (match the pose, then lock it in).")
-		return
-	if _retarget_anim_scene == null:
-		side_panel.set_status("Load an animation first.")
-		return
-
-	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()
 	var rest_by_name: Dictionary = {}
 	for node in _rest_transforms.keys():
 		if is_instance_valid(node):
@@ -967,7 +979,8 @@ func _on_retarget_bake_requested() -> void:
 		rest_by_name,
 		_retarget_config.get("source_fps", 30.0),
 		side_panel.bone_config_panel.get_root_scale(),
-		_retarget_lock
+		_retarget_lock,
+		_retarget_flip_180
 	)
 	if result.has("error"):
 		side_panel.set_status("Bake failed: %s" % result["error"])
@@ -979,8 +992,13 @@ func _on_retarget_bake_requested() -> void:
 	side_panel.set_anim_name(result["anim_name"])
 	side_panel.set_duration(_anim_length)
 	_refresh_timeline_markers()
-	side_panel.timeline.set_current_time(0.0)
-	_apply_pose_at_time(0.0)
+	# Stay on the locked frame instead of snapping to t=0: the pose shown
+	# right before Bake (your hand-posed match) and right after should be
+	# the SAME pose, continuously — jumping to frame 0 instead would show a
+	# different, unrelated pose from elsewhere in the clip and look like a
+	# glitch even though the bake itself is correct.
+	side_panel.timeline.set_current_time(_retarget_lock_time)
+	_apply_pose_at_time(_retarget_lock_time)
 	side_panel.set_status("Baked %d keyframes (locked at t=%.2fs)." % [_keyframes.size(), _retarget_lock_time])
 
 func _on_retarget_save_config_requested() -> void:

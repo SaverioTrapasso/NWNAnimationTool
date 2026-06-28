@@ -18,8 +18,14 @@ var camera: Camera3D = null
 var _body: StaticBody3D
 var _dragging: bool = false
 var _drag_start_pos: Vector3
+## See translation_gizmo.gd's _drag_start_hit for why this is needed: the
+## click point on the handle's sphere isn't its exact center, so motion has
+## to be measured relative to where the ray first hit the drag plane.
+var _drag_start_hit: Vector3
 
 func _ready() -> void:
+	# See the click-priority note in translation_gizmo.gd's _ready().
+	process_priority = -10
 	var mesh := SphereMesh.new()
 	mesh.radius = RADIUS
 	mesh.height = RADIUS * 2.0
@@ -51,22 +57,28 @@ func _unhandled_input(event: InputEvent) -> void:
 			if _ray_hits_self(event.position):
 				_dragging = true
 				_drag_start_pos = global_position
+				var ray_origin := camera.project_ray_origin(event.position)
+				var ray_dir := camera.project_ray_normal(event.position)
+				var plane := Plane(-camera.global_transform.basis.z, _drag_start_pos)
+				var hit: Variant = plane.intersects_ray(ray_origin, ray_dir)
+				_drag_start_hit = hit if hit != null else _drag_start_pos
 				drag_started.emit()
 				get_viewport().set_input_as_handled()
 		else:
 			_dragging = false
 	elif event is InputEventMouseMotion and _dragging:
-		var plane := Plane(-camera.global_transform.basis.z, global_position)
+		var plane := Plane(-camera.global_transform.basis.z, _drag_start_pos)
 		var ray_origin := camera.project_ray_origin(event.position)
 		var ray_dir := camera.project_ray_normal(event.position)
 		var hit: Variant = plane.intersects_ray(ray_origin, ray_dir)
 		if hit != null:
+			var moved_by: Vector3 = hit - _drag_start_hit
 			if constraint_axis != Vector3.ZERO:
 				var axis := constraint_axis.normalized()
-				var t: float = (hit - _drag_start_pos).dot(axis)
+				var t: float = moved_by.dot(axis)
 				global_position = _drag_start_pos + axis * t
 			else:
-				global_position = hit
+				global_position = _drag_start_pos + moved_by
 			moved.emit(global_position)
 		get_viewport().set_input_as_handled()
 

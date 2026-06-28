@@ -314,14 +314,9 @@ layout_mode = 2
 tooltip_text = "Map NWN nodes to the loaded animation's bone names"
 text = "Bone configuration"
 
-[node name="LockButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=2138954671]
-layout_mode = 2
-tooltip_text = "Lock in the rig's current hand-posed match against the overlay at this timeline frame — Bake will replay the animation maintaining this exact offset"
-text = "Lock"
-
 [node name="BakeButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=2138954672]
 layout_mode = 2
-tooltip_text = "Bake the whole source animation, maintaining the offset captured by Lock"
+tooltip_text = "Match the rig's current hand-posed match to the overlay at this timeline frame, then bake the whole source animation maintaining that exact offset"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
@@ -515,6 +510,12 @@ min_value = 0.01
 max_value = 10.0
 step = 0.01
 value = 1.0
+
+[node name="Flip180Button" type="Button" parent="SidePanel/BoneConfigPanel/ScaleRow" unique_id=1855271995]
+layout_mode = 2
+toggle_mode = true
+tooltip_text = "Rotate the loaded source glb 180° before you start posing — feeds directly into Lock and Bake, so it compensates left/right-handed source animations in one step instead of re-posing every limb"
+text = "Flip source 180°"
 
 [node name="ColumnHeaderRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=839992420]
 layout_mode = 1

@@ -24,8 +24,20 @@ var camera: Camera3D = null
 
 var _dragging_mode: String = "" # "", "x", "y", "z", "free"
 var _drag_start_pos: Vector3
+## Where the click ray actually hit the drag plane at press time — usually
+## NOT the same point as _drag_start_pos, since you click somewhere along
+## the arrow's shaft/head, not exactly on its pivot. Motion is measured
+## relative to this point so the cursor-to-gizmo offset stays constant
+## through the drag instead of the gizmo snapping to track the cursor.
+var _drag_start_hit: Vector3
 
 func _ready() -> void:
+	# Must see clicks before RigController's own selection raycast does —
+	# otherwise a click on the arrow tip (outside the body mesh's pick
+	# collider) makes RigController's ray miss and deselect/reselect before
+	# the gizmo gets a chance to claim the same click, snapping the pose for
+	# a frame as the IK re-pins to its last remembered orientation.
+	process_priority = -10
 	_make_arrow(Color(1, 0.2, 0.2), Vector3.RIGHT, Vector3(0, 0, -90))
 	_make_arrow(Color(0.2, 1, 0.2), Vector3.UP, Vector3(0, 0, 0))
 	_make_arrow(Color(0.2, 0.4, 1), Vector3.FORWARD, Vector3(-90, 0, 0))
@@ -85,6 +97,11 @@ func _unhandled_input(event: InputEvent) -> void:
 				_dragging_mode = mode
 				drag_started.emit()
 				_drag_start_pos = global_position
+				var ray_origin := camera.project_ray_origin(event.position)
+				var ray_dir := camera.project_ray_normal(event.position)
+				var plane := Plane(-camera.global_transform.basis.z, _drag_start_pos)
+				var hit: Variant = plane.intersects_ray(ray_origin, ray_dir)
+				_drag_start_hit = hit if hit != null else _drag_start_pos
 				get_viewport().set_input_as_handled()
 		else:
 			_dragging_mode = ""
@@ -94,11 +111,12 @@ func _unhandled_input(event: InputEvent) -> void:
 		var plane := Plane(-camera.global_transform.basis.z, _drag_start_pos)
 		var hit: Variant = plane.intersects_ray(ray_origin, ray_dir)
 		if hit != null:
+			var moved_by: Vector3 = hit - _drag_start_hit
 			if _dragging_mode == "free":
-				global_position = hit
+				global_position = _drag_start_pos + moved_by
 			else:
 				var axis := Vector3.RIGHT if _dragging_mode == "x" else (Vector3.UP if _dragging_mode == "y" else Vector3.FORWARD)
-				var t: float = (hit - _drag_start_pos).dot(axis)
+				var t: float = moved_by.dot(axis)
 				global_position = _drag_start_pos + axis * t
 			moved.emit(global_position)
 		get_viewport().set_input_as_handled()
