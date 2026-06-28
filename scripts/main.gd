@@ -8,6 +8,8 @@ const TranslationGizmoScript = preload("res://scripts/translation_gizmo.gd")
 @onready var side_panel: Control = $SidePanel
 @onready var red_visualizer: Node3D = $RedVisualizer
 
+var _current_model_path: String = "res://assets/nwn/a_ba.glb"
+
 # Per-limb world-space IK targets, kept even while that limb isn't the
 # active selection so arms/legs keep tracking their last pose as the body
 # (e.g. the pelvis height) moves underneath them.
@@ -87,10 +89,13 @@ func _ready() -> void:
 	side_panel.bone_config_panel.root_scale_changed.connect(_on_retarget_root_scale_changed)
 	side_panel.bone_config_panel.flip_180_toggled.connect(_on_retarget_flip_180_toggled)
 	side_panel.new_requested.connect(_on_new_requested)
+	side_panel.gender_selected.connect(_on_gender_selected)
 
 	red_visualizer.camera = $Camera3D
 	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
 
+	side_panel.apply_initial_cloak_state()
+	side_panel.set_active_gender(_current_model_path)
 	_apply_component_materials($Rig)
 	_capture_rest_transforms($Rig)
 	_init_default_limb_targets()
@@ -158,6 +163,56 @@ func _on_reset_pressed() -> void:
 	if current_selection != "":
 		_on_component_selected(current_selection)
 	_refresh_all_pole_handles()
+
+## Swaps the loaded NWN dummy for the other gender's model. Both share the
+## same node names/hierarchy (rootdummy, pelvis_g, torso_g, ...), so every
+## downstream system that reads $Rig by node name -- timeline keyframes,
+## MdlExporter/MdlImporter, the retarget overlay -- keeps working unchanged
+## once the new instance is named "Rig" and dropped in at the same spot.
+func _on_gender_selected(model_path: String) -> void:
+	if model_path == _current_model_path:
+		return
+	var new_scene: Resource = load(model_path)
+	if new_scene == null or not (new_scene is PackedScene):
+		side_panel.set_status("Could not load model: %s" % model_path)
+		return
+	var new_rig: Node3D = new_scene.instantiate()
+	new_rig.name = "Rig"
+
+	# Drop anything that points at the OLD $Rig's nodes before freeing it.
+	rig_controller.deselect()
+	_clear_handles()
+	gizmo.detach()
+	_all_pole_handles.clear()
+	_limb_targets.clear()
+	_rest_transforms.clear()
+
+	var old_rig: Node3D = $Rig
+	var idx: int = old_rig.get_index()
+	var parent: Node = old_rig.get_parent()
+	parent.remove_child(old_rig)
+	old_rig.queue_free()
+	parent.add_child(new_rig)
+	parent.move_child(new_rig, idx)
+
+	rig_controller.rebuild(new_rig)
+	side_panel.rig_root = new_rig
+
+	_apply_component_materials(new_rig)
+	_capture_rest_transforms(new_rig)
+	_init_default_limb_targets()
+	side_panel.apply_initial_cloak_state()
+	_refresh_all_pole_handles()
+
+	# Existing keyframes/timeline pose are keyed by NODE NAME, not by Node3D
+	# reference, so they apply cleanly to the new rig as-is -- just need to
+	# actually re-apply the current frame against the new nodes.
+	if not _keyframes.is_empty():
+		_apply_pose_at_time(side_panel.timeline.current_time)
+
+	_current_model_path = model_path
+	side_panel.set_active_gender(model_path)
+	side_panel.set_status("Model switched to %s" % model_path.get_file())
 
 ## "New": a harder reset than "Reset pose" — wipes the timeline, undo
 ## history, clipboards, retarget import state, and display toggles too,

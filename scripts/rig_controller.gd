@@ -24,6 +24,18 @@ func _ready() -> void:
 func setup() -> void:
 	_build_pick_colliders()
 
+## Re-points this controller at an entirely new rig (e.g. switching between
+## the male/female model): drops every stale reference to the old rig's
+## mesh/pick-body nodes (which the caller is responsible for freeing) and
+## rebuilds pick colliders against the new one.
+func rebuild(new_rig_root: Node3D) -> void:
+	_deselect()
+	_highlight_materials.clear()
+	_component_meshes.clear()
+	_component_bodies.clear()
+	rig_root = new_rig_root
+	_build_pick_colliders()
+
 func _build_pick_colliders() -> void:
 	for component_id in _node_to_component.values():
 		if not _component_meshes.has(component_id):

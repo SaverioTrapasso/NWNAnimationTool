@@ -16,6 +16,7 @@ signal new_requested()
 signal retarget_load_animation_requested(path: String)
 signal retarget_bake_requested()
 signal retarget_overlay_toggled(enabled: bool)
+signal gender_selected(model_path: String)
 
 @export var rig_root: Node3D
 
@@ -24,6 +25,8 @@ signal retarget_overlay_toggled(enabled: bool)
 @onready var new_button: Button = $TopBar/Margin/Row/NewButton
 @onready var open_button: Button = $TopBar/Margin/Row/OpenButton
 @onready var save_button: Button = $TopBar/Margin/Row/SaveButton
+@onready var male_button: Button = $TopBar/GenderRow/MarginRight/Row/MaleButton
+@onready var female_button: Button = $TopBar/GenderRow/MarginRight/Row/FemaleButton
 @onready var new_confirm_dialog: ConfirmationDialog = $NewConfirmDialog
 @onready var save_dialog: FileDialog = $SaveDialog
 @onready var open_dialog: FileDialog = $OpenDialog
@@ -59,7 +62,12 @@ signal retarget_overlay_toggled(enabled: bool)
 @onready var timeline: Control = $TimelineRow/Timeline
 @onready var transform_panel: Panel = $TransformPanel
 
-const CLOAK_TABARD_NODES := ["cloak_g", "belt_g1"]
+## The female model (a_fa.glb) names its cloak mesh "Cloak_g" (capital C)
+## instead of the male model's "cloak_g" -- both are listed so the hide
+## toggle works regardless of which model is currently loaded.
+const CLOAK_TABARD_NODES := ["cloak_g", "Cloak_g", "belt_g1"]
+const MALE_MODEL_PATH := "res://assets/nwn/a_ba.glb"
+const FEMALE_MODEL_PATH := "res://assets/nwn/a_fa.glb"
 
 var _weapon_meshes: Dictionary = {} # hand_node_name -> MeshInstance3D
 
@@ -80,6 +88,8 @@ func _ready() -> void:
 	play_button.toggled.connect(_on_play_toggled)
 	duration_edit.value_changed.connect(_on_duration_changed)
 	cloak_button.toggled.connect(_on_cloak_toggled)
+	male_button.pressed.connect(func(): _on_gender_button_pressed(MALE_MODEL_PATH))
+	female_button.pressed.connect(func(): _on_gender_button_pressed(FEMALE_MODEL_PATH))
 	right_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("rhand_g", Color(0.2, 0.9, 1.0)))
 	left_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("lhand_g", Color(1.0, 0.2, 0.2)))
 	pole_vectors_button.toggled.connect(_on_pole_vectors_toggled)
@@ -94,12 +104,16 @@ func set_status(text: String) -> void:
 	status_label.text = text
 
 ## Used by "New": untoggles any active display toggle, which naturally
-## triggers their existing handlers to undo the effect (show cloak again,
-## remove weapon meshes, hide pole vectors, hide the retarget overlay).
+## triggers their existing handlers to undo the effect (remove weapon
+## meshes, hide pole vectors, hide the retarget overlay). The cloak toggle
+## is the odd one out: its neutral/default state is HIDDEN, not shown, so
+## it's reset to pressed=true instead of being lumped in with the others.
 func reset_display_toggles() -> void:
-	for button in [cloak_button, right_hand_weapon_button, left_hand_weapon_button, pole_vectors_button, skeleton_overlay_button, play_button]:
+	for button in [right_hand_weapon_button, left_hand_weapon_button, pole_vectors_button, skeleton_overlay_button, play_button]:
 		if button.button_pressed:
 			button.button_pressed = false
+	if not cloak_button.button_pressed:
+		cloak_button.button_pressed = true
 
 func get_anim_name() -> String:
 	return name_edit.text.strip_edges()
@@ -159,6 +173,24 @@ func _on_cloak_toggled(pressed: bool) -> void:
 		var node := _find(rig_root, node_name)
 		if node != null:
 			node.visible = not pressed
+
+## rig_root is only assigned by main.gd after this panel's own _ready() has
+## already run, so the scene's button_pressed=true default can't apply the
+## actual hide-on-load effect by itself -- main.gd calls this once rig_root
+## is set, to make "hidden by default" real (most poses don't touch the
+## cloak, so starting with it shown just gets in the way).
+func apply_initial_cloak_state() -> void:
+	_on_cloak_toggled(cloak_button.button_pressed)
+
+func _on_gender_button_pressed(model_path: String) -> void:
+	gender_selected.emit(model_path)
+
+## Lets main.gd reflect which model is actually loaded (e.g. after a swap
+## succeeds) by disabling that side's button -- a simple, dependency-free
+## way to show which one is active without wiring up a ButtonGroup resource.
+func set_active_gender(model_path: String) -> void:
+	male_button.disabled = (model_path == MALE_MODEL_PATH)
+	female_button.disabled = (model_path == FEMALE_MODEL_PATH)
 
 func _on_weapon_toggled(pressed: bool, hand_node_name: String, color: Color) -> void:
 	if pressed:
