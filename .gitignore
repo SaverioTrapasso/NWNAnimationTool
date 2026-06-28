@@ -8,3 +8,6 @@
 # Local tooling/output, not part of the project source
 /.claude/
 /export/
+/build/
+/anim_GLB/
+/anim_ASCII/

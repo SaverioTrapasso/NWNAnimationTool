@@ -1,54 +1,41 @@
 extends Panel
 
-## The single panel for configuring a prefab's bone map: an editable table
-## (NWN node | associated bone, picked from a dropdown | rotation offset |
-## live delta), PLUS the visual aid — Import a source glb to see it as a red
-## stick-figure next to the blue-tinted NWN mesh, and click matching joints
-## to fill in a row instead of hunting through the dropdown. Saves straight
-## back to the .cfg file. main.gd owns the actual 3D visualizers/rig tinting
-## and the click-pairing logic; this panel is the UI shell.
+## Bone configuration panel: maps each NWN node to a source bone name from
+## the currently loaded retarget animation. Opened/closed by the sidebar's
+## "Bone configuration" button (side_panel.gd owns that button and the
+## show/hide toggle); this panel is just the table + load/save config UI.
+## Rotation offsets are no longer typed here — Bake derives them
+## automatically from how you've posed the rig to match the overlay.
 
 signal cfg_import_requested(path: String)
-signal import_source_requested(path: String)
-signal apply_requested()
-signal exit_requested()
 signal save_requested()
 signal save_as_chosen(path: String)
+signal root_scale_changed(value: float)
 
-@onready var cfg_button: Button = $ButtonRow/CfgButton
-@onready var import_button: Button = $ButtonRow/ImportButton
-@onready var apply_button: Button = $ButtonRow/ApplyButton
-@onready var exit_button: Button = $ButtonRow/ExitButton
-@onready var save_config_button: Button = $ButtonRow/SaveConfigButton
 @onready var close_button: Button = $TitleRow/CloseButton
 @onready var root_scale_spin: SpinBox = $ScaleRow/RootScaleSpin
+@onready var cfg_button: Button = $ConfigRow/CfgButton
+@onready var save_config_button: Button = $ConfigRow/SaveConfigButton
 @onready var cfg_dialog: FileDialog = $CfgDialog
-@onready var import_dialog: FileDialog = $ImportDialog
 @onready var save_as_dialog: FileDialog = $SaveAsDialog
 @onready var rows_container: VBoxContainer = $Scroll/Rows
 @onready var status_label: Label = $StatusLabel
 
 var _bone_options: Dictionary = {} # nwn_node_name -> OptionButton
-var _rot_offset_spins: Dictionary = {} # nwn_node_name -> [SpinBox x, y, z]
-var _delta_labels: Dictionary = {} # nwn_node_name -> Label
-var _available_bones: Array = [] # source bone names, populated after Import
+var _available_bones: Array = [] # source bone names, populated after Load animation
 
 func _ready() -> void:
 	visible = false
+	close_button.pressed.connect(func(): hide_panel())
 	cfg_button.pressed.connect(func(): cfg_dialog.popup_centered_ratio(0.6))
 	cfg_dialog.file_selected.connect(func(path): cfg_import_requested.emit(path))
-	import_button.pressed.connect(func(): import_dialog.popup_centered_ratio(0.6))
-	import_dialog.file_selected.connect(func(path): import_source_requested.emit(path))
-	apply_button.pressed.connect(func(): apply_requested.emit())
-	exit_button.pressed.connect(func(): exit_requested.emit())
-	close_button.pressed.connect(func(): exit_requested.emit())
 	save_config_button.pressed.connect(func(): save_requested.emit())
 	save_as_dialog.file_selected.connect(func(path): save_as_chosen.emit(path))
+	root_scale_spin.value_changed.connect(func(v): root_scale_changed.emit(v))
 
 ## Always shown on "Save config" so the user explicitly picks the filename
 ## and location every time, rather than silently overwriting whatever .cfg
-## happened to be loaded — pre-filled with the current path, if any, so
-## re-saving to the same place is still a single click away.
+## happened to be loaded — pre-filled with the current path, if any.
 func prompt_save_as(current_path: String = "") -> void:
 	if current_path != "":
 		save_as_dialog.current_dir = current_path.get_base_dir()
@@ -62,14 +49,12 @@ func set_root_scale(value: float) -> void:
 	root_scale_spin.value = value
 
 ## node_names: the fixed list of NWN nodes to show as rows (always the same,
-## regardless of whether a config is loaded yet); bone_map/rotation_offsets
-## supply each row's current value, if any.
-func set_bone_map(node_names: Array, bone_map: Dictionary, rotation_offsets: Dictionary) -> void:
+## regardless of whether a config is loaded yet); bone_map supplies each
+## row's current value, if any.
+func set_bone_map(node_names: Array, bone_map: Dictionary) -> void:
 	for child in rows_container.get_children():
 		child.queue_free()
 	_bone_options.clear()
-	_rot_offset_spins.clear()
-	_delta_labels.clear()
 
 	for nwn_name in node_names:
 		var row := HBoxContainer.new()
@@ -77,44 +62,18 @@ func set_bone_map(node_names: Array, bone_map: Dictionary, rotation_offsets: Dic
 
 		var nwn_label := Label.new()
 		nwn_label.text = nwn_name
-		nwn_label.custom_minimum_size = Vector2(110, 0)
+		nwn_label.custom_minimum_size = Vector2(100, 0)
 		row.add_child(nwn_label)
 
 		var option := OptionButton.new()
-		option.custom_minimum_size = Vector2(130, 0)
+		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(option)
 		_bone_options[nwn_name] = option
 		_set_option_items(option, _available_bones, String(bone_map.get(nwn_name, "")))
 
-		var rot_row := HBoxContainer.new()
-		rot_row.custom_minimum_size = Vector2(180, 0)
-		rot_row.add_theme_constant_override("separation", 2)
-		var offset: Vector3 = rotation_offsets.get(nwn_name, Vector3.ZERO)
-		var spins: Array = []
-		for axis_i in range(3):
-			var spin := SpinBox.new()
-			spin.custom_minimum_size = Vector2(58, 0)
-			spin.min_value = -360.0
-			spin.max_value = 360.0
-			spin.step = 1.0
-			spin.allow_greater = true
-			spin.allow_lesser = true
-			spin.prefix = ["X", "Y", "Z"][axis_i]
-			spin.value = offset[axis_i]
-			rot_row.add_child(spin)
-			spins.append(spin)
-		row.add_child(rot_row)
-		_rot_offset_spins[nwn_name] = spins
-
-		var delta_label := Label.new()
-		delta_label.text = "—"
-		delta_label.custom_minimum_size = Vector2(60, 0)
-		row.add_child(delta_label)
-		_delta_labels[nwn_name] = delta_label
-
 		rows_container.add_child(row)
 
-## Called once a source rig is imported: fills every row's dropdown with the
+## Called once a source rig is loaded: fills every row's dropdown with the
 ## actual bone names from that file, keeping each row's current value
 ## selected if present (or appended, if it came from the .cfg but isn't in
 ## this particular source — e.g. configured against a different file before).
@@ -152,29 +111,6 @@ func get_bone_map() -> Dictionary:
 	for nwn_name in _bone_options.keys():
 		result[nwn_name] = _selected_text(_bone_options[nwn_name])
 	return result
-
-## Reads the per-bone rotation offset fields as currently edited (degrees).
-func get_rotation_offsets() -> Dictionary:
-	var result := {}
-	for nwn_name in _rot_offset_spins.keys():
-		var spins: Array = _rot_offset_spins[nwn_name]
-		result[nwn_name] = Vector3(spins[0].value, spins[1].value, spins[2].value)
-	return result
-
-## Selects this value in that row's dropdown — used by the visual
-## click-to-pick flow, so clicking a pair of joints fills the same table you
-## can also edit by hand.
-func set_ff14_value(nwn_name: String, value: String) -> void:
-	if _bone_options.has(nwn_name):
-		_set_option_items(_bone_options[nwn_name], _available_bones, value)
-
-## degrees = INF means "not found" (bone missing in source, or NWN node not
-## found in the rig) — shown as "n/a" instead of a number.
-func set_delta(nwn_node_name: String, degrees: float) -> void:
-	if not _delta_labels.has(nwn_node_name):
-		return
-	var label: Label = _delta_labels[nwn_node_name]
-	label.text = "n/a" if is_inf(degrees) else "%.1f°" % degrees
 
 func set_status(text: String) -> void:
 	status_label.text = text

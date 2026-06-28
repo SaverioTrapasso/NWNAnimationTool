@@ -15,6 +15,11 @@ No build step is needed: GDScript is interpreted directly by the engine.
 
 ## Quick usage guide
 
+The window is laid out in three zones: a **top bar** (New/Open/Save), a
+**left sidebar** (Tools, Retarget, Animation, Keyframe), and small **icon
+buttons centered above the 3D viewport** (Undo, Focus, and the display
+toggles). The timeline runs along the bottom.
+
 ### Posing
 
 - Click a body part to select it: **cyan** = FK parts (head, torso, pelvis,
@@ -30,28 +35,29 @@ No build step is needed: GDScript is interpreted directly by the engine.
 - Select the pelvis to also drag the green handle and raise/lower/translate
   the whole body — feet and hands stay anchored to their current world
   position *and* orientation as the body moves or rotates.
-- "Show all pole vectors" shows every limb's pole vector at once, handy for
-  reviewing the overall pose.
-- "Hide cloak/tabard" and "Show right/left hand weapon" are convenience
-  visual toggles (the weapon is just a placeholder blade for posing a grip).
-- "Reset pose" restores the rig to the imported model's original pose.
-- **Undo** (button, or Ctrl+Z) steps back through the last edits.
-- **Focus** (button, or F) centers the camera on the current selection.
+- The icon row above the viewport has **Undo**, **Focus** (also Ctrl+Z / F),
+  then the display toggles: **Cloak**, **R.Wpn**/**L.Wpn** (placeholder
+  blades for posing a grip), **Poles** (show every limb's pole vector at
+  once), and **Skel** (the retargeting overlay — see below).
+- **Reset pose** (sidebar, under Tools) restores the rig to the imported
+  model's original pose.
 
 ### Timeline & export
 
-- Set a **Duration**, pose the rig, and press **Save to timeline** to drop a
-  keyframe at the current playhead time. Scrubbing the timeline previews the
-  interpolated pose between keyframes (the same way NWN interpolates at
-  runtime, so what you see matches what will play in-game).
-- **Save** exports a `.txt` file with the MDL ASCII block — a single pose if
-  you haven't used the timeline, or the full multi-keyframe animation
-  otherwise.
-- **Open** loads a previously exported `.txt` back onto the timeline so you
-  can keep editing it.
-- **Copy / Paste**: copy the pose shown at the current playhead position,
-  then move the playhead and press Paste to overwrite that keyframe with it
-  (creating one if there wasn't already a keyframe there).
+- Set a **Duration** (sidebar, under Animation), pose the rig, and press
+  **Set** (under Keyframe) to drop a keyframe at the current playhead time.
+  Scrubbing the timeline previews the interpolated pose between keyframes
+  (the same way NWN interpolates at runtime, so what you see matches what
+  will play in-game).
+- **Save** (top bar) exports a `.txt` file with the MDL ASCII block — a
+  single pose if you haven't used the timeline, or the full multi-keyframe
+  animation otherwise.
+- **Open** (top bar) loads a previously exported `.txt` back onto the
+  timeline so you can keep editing it.
+- **Copy / Paste** (under Keyframe): copy the pose shown at the current
+  playhead position, then move the playhead and press Paste to overwrite
+  that keyframe with it (creating one if there wasn't already a keyframe
+  there).
 - **Remove**: deletes the keyframe at the current playhead position. Click
   near a yellow dot on the timeline to snap the playhead exactly onto it
   first (it gets a white ring when selected).
@@ -61,31 +67,39 @@ No build step is needed: GDScript is interpreted directly by the engine.
 ### Retargeting
 
 Bring in an animation from another rig (e.g. an FF14-style skeleton) and
-bake it onto the NWN dummy, bone-by-bone (FK rotation copy with a rest-pose
-delta — no IK involved).
+clone it onto the NWN dummy, bone-by-bone — using the exact same posing
+tools as above, not a separate mini-editor.
 
-- **Configure rig**: opens the bone-map table (associate-bone dropdown +
-  rotation offset per NWN node, with a live delta readout) alongside a
-  visual aid — the NWN dummy tinted blue with clickable joints, and (after
-  importing a source rig there too) a red stick-figure skeleton next to it.
-  Click a blue joint then the matching red one to fill in that row instead
-  of hunting through the dropdown.
-  - **Import cfg**: loads a `.cfg` bone-map (NWN node → source bone name +
-    per-bone rotation offset). A config has no glb baked into it — see
-    [configs/ff14_retarget_map.cfg](configs/ff14_retarget_map.cfg) for a
-    starting point you can load and adjust.
-  - **Import model**: the model+animation `.glb`/`.gltf` to bake. Its
-    Skeleton3D's own bind pose doubles as the rest-pose reference, so no
-    separate reference asset is needed — any file with that bone naming works.
-  - **Applica**: re-poses the red preview skeleton with the rotation offsets
-    currently in the table, so you can check the effect before saving.
-  - **Save config** writes the table back to the `.cfg`, prompting for a
-    location the first time.
-  - **Root scale** lives here too, since it only matters once a model is
-    imported.
-- **Bake** (in the Retarget panel): samples the imported model's animation at
-  the config's fps and drops the result straight onto the timeline, ready to
-  preview/play/export like any hand-posed animation.
+1. **Load animation** (sidebar, under Retarget): pick the model+animation
+   `.glb`/`.gltf` to clone. As soon as it loads, the **Skel** toggle above
+   the viewport turns on automatically, showing the source skeleton as a
+   red overlay — synced to wherever the main timeline's playhead is, so
+   scrubbing the timeline scrubs the overlay too.
+2. **Bone configuration** (sidebar): opens a panel mapping each NWN node to
+   a source bone name (dropdown per row — rows are always visible, even
+   before anything's mapped, so you can use them as a checklist). Also
+   holds **Root scale** (how far rootdummy travels relative to the source's
+   own root motion — changing it live-rescales the overlay) and **Load
+   config** / **Save config** for portable `.cfg` bone-maps (see
+   [configs/ff14_retarget_map.cfg](configs/ff14_retarget_map.cfg) for a
+   starting point). Before anything is mapped, the overlay shows the
+   *entire* source skeleton (fingers, tail, everything) so you have
+   something to reference while filling in the table; once at least one row
+   is mapped, it narrows down to just the mapped joints.
+3. Scrub the timeline to a frame where the overlay is clearly visible, then
+   **hand-pose the real rig** (same gizmos as normal posing) to match it.
+4. **Lock** (sidebar): records the exact offset between the source bone's
+   orientation and your hand-posed orientation, for every mapped node — the
+   same idea as a Maya "orient constraint with maintain offset". This is
+   what makes the bake numerically robust even when a bone needs a huge
+   correction (e.g. a hip bound almost upside-down in the source rig): the
+   offset is captured in world space, so it can't introduce mirroring no
+   matter how large it is.
+5. **Bake**: replays the source animation, maintaining the locked offset
+   frame by frame, and drops the result straight onto the timeline — ready
+   to preview/play/export like any hand-posed animation. You can load a
+   *different* animation that uses the same source rig and press Bake again
+   without re-locking, as long as the bone mapping still applies.
 
 ## Notes
 
@@ -96,4 +110,4 @@ delta — no IK involved).
   for details on the export format.
 - `assets/` only holds the NWN dummy itself (`nwn/`) — retargeting sources
   are imported live at runtime, not bundled in the repo. `configs/` holds
-  portable bone-map `.cfg` files you can load via "Import cfg".
+  portable bone-map `.cfg` files you can load via "Load config".

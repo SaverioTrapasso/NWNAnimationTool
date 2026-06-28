@@ -1,17 +1,16 @@
-[gd_scene load_steps=15 format=3 uid="uid://b1q7x8f3wq8nk"]
+[gd_scene format=3 uid="uid://b1q7x8f3wq8nk"]
 
 [ext_resource type="PackedScene" uid="uid://bk5top5rlti6i" path="res://assets/nwn/a_ba.glb" id="1"]
-[ext_resource type="Script" path="res://scripts/orbit_camera.gd" id="2"]
-[ext_resource type="Script" path="res://scripts/main.gd" id="3"]
-[ext_resource type="Script" path="res://scripts/rig_controller.gd" id="4"]
-[ext_resource type="Script" path="res://scripts/rotation_gizmo.gd" id="5"]
-[ext_resource type="Script" path="res://scripts/side_panel.gd" id="6"]
-[ext_resource type="Script" path="res://scripts/timeline.gd" id="7"]
-[ext_resource type="Script" path="res://scripts/transform_panel.gd" id="8"]
-[ext_resource type="Theme" path="res://scenes/ui_theme.tres" id="9"]
-[ext_resource type="Script" path="res://scripts/retarget_panel.gd" id="10"]
-[ext_resource type="Script" path="res://scripts/retarget_debug_panel.gd" id="11"]
-[ext_resource type="Script" path="res://scripts/bone_visualizer.gd" id="12"]
+[ext_resource type="Script" uid="uid://daq1neut88g00" path="res://scripts/orbit_camera.gd" id="2"]
+[ext_resource type="Script" uid="uid://cjgv36xuexqjn" path="res://scripts/main.gd" id="3"]
+[ext_resource type="Script" uid="uid://c8bqop8pjpu6k" path="res://scripts/rig_controller.gd" id="4"]
+[ext_resource type="Script" uid="uid://djjdmj8xpw531" path="res://scripts/rotation_gizmo.gd" id="5"]
+[ext_resource type="Script" uid="uid://dja5vhyfvfs6d" path="res://scripts/side_panel.gd" id="6"]
+[ext_resource type="Script" uid="uid://d2i6m4itbn2oi" path="res://scripts/timeline.gd" id="7"]
+[ext_resource type="Script" uid="uid://53y0015lfndd" path="res://scripts/transform_panel.gd" id="8"]
+[ext_resource type="Theme" uid="uid://c1ui0theme001" path="res://scenes/ui_theme.tres" id="9"]
+[ext_resource type="Script" uid="uid://c2oqn8p4qy15" path="res://scripts/retarget_debug_panel.gd" id="11"]
+[ext_resource type="Script" uid="uid://dl4kdn6ewjrkq" path="res://scripts/bone_visualizer.gd" id="12"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -26,138 +25,250 @@ size = Vector2(10, 10)
 [sub_resource type="StandardMaterial3D" id="Material_floor"]
 albedo_color = Color(0.906, 0.902, 0.875, 1)
 roughness = 0.85
-metallic = 0.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_orange_normal"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.85, 0.45, 0.13, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_orange_hover"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.93, 0.54, 0.2, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_remove_normal"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
 bg_color = Color(0.82, 0.27, 0.24, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
-corner_radius_bottom_left = 5
 corner_radius_bottom_right = 5
-content_margin_left = 10
-content_margin_right = 10
-content_margin_top = 5
-content_margin_bottom = 5
+corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_remove_hover"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
 bg_color = Color(0.89, 0.34, 0.31, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
-corner_radius_bottom_left = 5
 corner_radius_bottom_right = 5
-content_margin_left = 10
-content_margin_right = 10
-content_margin_top = 5
-content_margin_bottom = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_normal"]
-bg_color = Color(0.31, 0.58, 0.78, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
 corner_radius_bottom_left = 5
-corner_radius_bottom_right = 5
-content_margin_left = 10
-content_margin_right = 10
-content_margin_top = 5
-content_margin_bottom = 5
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_hover"]
-bg_color = Color(0.4, 0.66, 0.86, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_left = 5
-corner_radius_bottom_right = 5
-content_margin_left = 10
-content_margin_right = 10
-content_margin_top = 5
-content_margin_bottom = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
 bg_color = Color(0.97, 0.965, 0.95, 0.92)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_left = 8
-corner_radius_bottom_right = 8
 border_width_left = 1
 border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.78, 0.77, 0.73, 1)
-shadow_size = 4
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
 shadow_color = Color(0, 0, 0, 0.08)
+shadow_size = 4
 
-[node name="Main" type="Node3D"]
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_normal"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.31, 0.58, 0.78, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_hover"]
+content_margin_left = 10.0
+content_margin_top = 5.0
+content_margin_right = 10.0
+content_margin_bottom = 5.0
+bg_color = Color(0.4, 0.66, 0.86, 1)
+corner_radius_top_left = 5
+corner_radius_top_right = 5
+corner_radius_bottom_right = 5
+corner_radius_bottom_left = 5
+
+[node name="Main" type="Node3D" unique_id=1626622027]
 script = ExtResource("3")
 
-[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+[node name="WorldEnvironment" type="WorldEnvironment" parent="." unique_id=1035234433]
 environment = SubResource("Environment_1")
 
-[node name="DirectionalLight3D" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
-rotation_degrees = Vector3(-40, -50, 0)
+[node name="DirectionalLight3D" type="DirectionalLight3D" parent="." unique_id=450086086]
+transform = Transform3D(0.64278764, 0.49240384, -0.58682406, 0, 0.76604444, 0.6427876, 0.76604444, -0.4131759, 0.4924039, 0, 2, 0)
 light_energy = 0.75
 shadow_enabled = true
 
-[node name="FillLight" type="DirectionalLight3D" parent="."]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 2, 0)
-rotation_degrees = Vector3(-25, 130, 0)
+[node name="FillLight" type="DirectionalLight3D" parent="." unique_id=974543324]
+transform = Transform3D(-0.64278764, -0.3237444, 0.69427204, 0, 0.90630776, 0.42261827, -0.76604444, 0.2716538, -0.5825634, 0, 2, 0)
 light_energy = 0.2
-shadow_enabled = false
 
-[node name="Camera3D" type="Camera3D" parent="." node_paths=PackedStringArray()]
+[node name="Camera3D" type="Camera3D" parent="." unique_id=867635493]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 3)
-script = ExtResource("2")
 current = true
+script = ExtResource("2")
 
-[node name="Floor" type="MeshInstance3D" parent="."]
+[node name="Floor" type="MeshInstance3D" parent="." unique_id=1570344627]
 mesh = SubResource("PlaneMesh_floor")
 surface_material_override/0 = SubResource("Material_floor")
 
-[node name="Rig" parent="." instance=ExtResource("1")]
+[node name="Rig" parent="." unique_id=1946327235 instance=ExtResource("1")]
 
-[node name="RigController" type="Node3D" parent="."]
+[node name="RigController" type="Node3D" parent="." unique_id=1043096698]
 script = ExtResource("4")
 
-[node name="RotationGizmo" type="Node3D" parent="."]
+[node name="RotationGizmo" type="Node3D" parent="." unique_id=1233034931]
 script = ExtResource("5")
 
-[node name="BlueVisualizer" type="Node3D" parent="."]
-visible = false
-script = ExtResource("12")
-color = Color(0.25, 0.5, 0.95, 1)
-
-[node name="RedVisualizer" type="Node3D" parent="."]
+[node name="RedVisualizer" type="Node3D" parent="." unique_id=785546807]
 visible = false
 script = ExtResource("12")
 color = Color(0.9, 0.2, 0.2, 1)
 
-[node name="SidePanel" type="Control" parent="."]
-layout_mode = 1
+[node name="SidePanel" type="Control" parent="." unique_id=2106817703]
+layout_mode = 3
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
 mouse_filter = 2
 theme = ExtResource("9")
 script = ExtResource("6")
 
-[node name="Panel" type="Panel" parent="SidePanel"]
+[node name="TopBar" type="HBoxContainer" parent="SidePanel" unique_id=1928533811]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 34.0
+grow_horizontal = 2
+theme_override_constants/separation = 6
+
+[node name="Margin" type="MarginContainer" parent="SidePanel/TopBar" unique_id=1613073795]
+layout_mode = 2
+theme_override_constants/margin_left = 8
+theme_override_constants/margin_top = 4
+theme_override_constants/margin_right = 8
+theme_override_constants/margin_bottom = 4
+
+[node name="Row" type="HBoxContainer" parent="SidePanel/TopBar/Margin" unique_id=1001484438]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="NewButton" type="Button" parent="SidePanel/TopBar/Margin/Row" unique_id=941924397]
+layout_mode = 2
+tooltip_text = "Discard everything and start fresh (pose, timeline, undo, retarget state)"
+text = "New"
+
+[node name="OpenButton" type="Button" parent="SidePanel/TopBar/Margin/Row" unique_id=1579522496]
+layout_mode = 2
+text = "Open"
+
+[node name="SaveButton" type="Button" parent="SidePanel/TopBar/Margin/Row" unique_id=842579717]
+layout_mode = 2
+text = "Save"
+
+[node name="ViewportToolbar" type="HBoxContainer" parent="SidePanel" unique_id=1386701003]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 248.0
+offset_top = 38.0
+offset_right = -12.0
+offset_bottom = 64.0
+grow_horizontal = 2
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="UndoButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1305928715]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Undo the last move/rotation (Ctrl+Z)"
+text = "Undo"
+
+[node name="FocusButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1440917769]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Center the camera on the current selection (F)"
+text = "Focus"
+
+[node name="VSeparator" type="VSeparator" parent="SidePanel/ViewportToolbar" unique_id=814166042]
+layout_mode = 2
+
+[node name="CloakToggleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=358442810]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Hide cloak/tabard"
+toggle_mode = true
+text = "Cloak"
+
+[node name="RightHandWeaponButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1957365070]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Show right hand weapon"
+toggle_mode = true
+text = "R.Wpn"
+
+[node name="LeftHandWeaponButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1883838297]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Show left hand weapon"
+toggle_mode = true
+text = "L.Wpn"
+
+[node name="PoleVectorsToggleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=128322772]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Show all pole vectors"
+toggle_mode = true
+text = "Poles"
+
+[node name="SkeletonOverlayButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=926298020]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Show the loaded retarget animation as a red skeleton overlay, synced to the timeline below"
+theme_override_colors/font_pressed_color = Color(0.85, 0.45, 0.13, 1)
+toggle_mode = true
+text = "Skel"
+
+[node name="Sidebar" type="Panel" parent="SidePanel" unique_id=674632175]
 layout_mode = 1
 anchors_preset = 9
-anchor_top = 0.0
 anchor_bottom = 1.0
-offset_left = 0.0
+offset_top = 34.0
 offset_right = 248.0
+grow_vertical = 2
 mouse_filter = 1
 
-[node name="Scroll" type="ScrollContainer" parent="SidePanel/Panel"]
+[node name="Scroll" type="ScrollContainer" parent="SidePanel/Sidebar" unique_id=237005695]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_bottom = -38.0
+grow_horizontal = 2
+grow_vertical = 2
 horizontal_scroll_mode = 0
 
-[node name="Margin" type="MarginContainer" parent="SidePanel/Panel/Scroll"]
+[node name="Margin" type="MarginContainer" parent="SidePanel/Sidebar/Scroll" unique_id=1948779755]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/margin_left = 14
@@ -165,160 +276,141 @@ theme_override_constants/margin_top = 14
 theme_override_constants/margin_right = 14
 theme_override_constants/margin_bottom = 10
 
-[node name="Sections" type="VBoxContainer" parent="SidePanel/Panel/Scroll/Margin"]
+[node name="Sections" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin" unique_id=959555677]
 layout_mode = 2
 theme_override_constants/separation = 18
 
-[node name="Animation" type="VBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections"]
+[node name="Tools" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1297613824]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="Header" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Tools" unique_id=1491375162]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "TOOLS"
+
+[node name="ResetButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Tools" unique_id=1506300410]
+layout_mode = 2
+text = "Reset pose"
+
+[node name="Retarget" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=2046610014]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=94540799]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.85, 0.45, 0.13, 1)
+theme_override_font_sizes/font_size = 11
+text = "RETARGET"
+
+[node name="LoadAnimationButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=788902617]
+layout_mode = 2
+tooltip_text = "Load the model+animation glb/gltf to clone onto the NWN dummy"
+text = "Load animation"
+
+[node name="BoneConfigButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=1305397705]
+layout_mode = 2
+tooltip_text = "Map NWN nodes to the loaded animation's bone names"
+text = "Bone configuration"
+
+[node name="LockButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=2138954671]
+layout_mode = 2
+tooltip_text = "Lock in the rig's current hand-posed match against the overlay at this timeline frame — Bake will replay the animation maintaining this exact offset"
+text = "Lock"
+
+[node name="BakeButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=2138954672]
+layout_mode = 2
+tooltip_text = "Bake the whole source animation, maintaining the offset captured by Lock"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_orange_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_orange_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_orange_hover")
+text = "Bake"
+
+[node name="AnimationInfo" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1674928077]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=318005209]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 11
 text = "ANIMATION"
 
-[node name="NewButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
-layout_mode = 2
-tooltip_text = "Discard everything and start fresh (pose, timeline, undo, retarget state)"
-text = "New"
-
-[node name="NameLabel" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+[node name="NameLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1957801417]
 layout_mode = 2
 text = "Animation name"
 
-[node name="AnimNameEdit" type="LineEdit" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+[node name="AnimNameEdit" type="LineEdit" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1051052711]
 layout_mode = 2
 placeholder_text = "e.g. fencing_stance"
 
-[node name="DurationLabel" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+[node name="DurationLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=536189110]
 layout_mode = 2
 text = "Duration (s)"
 
-[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=2017674164]
 layout_mode = 2
 min_value = 0.5
 max_value = 60.0
 step = 0.5
 value = 5.0
 
-[node name="PlayButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+[node name="Keyframe" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1932247017]
 layout_mode = 2
-toggle_mode = true
-text = "Play"
+theme_override_constants/separation = 6
 
-[node name="SaveToTimelineButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=2006408810]
 layout_mode = 2
-text = "Save to timeline"
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "KEYFRAME"
 
-[node name="CopyPasteRow" type="HBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
+[node name="KeyframeGrid" type="GridContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=837893384]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/h_separation = 4
+theme_override_constants/v_separation = 4
+columns = 2
 
-[node name="CopyKeyButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/CopyPasteRow"]
+[node name="SetButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1792782017]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Drop a keyframe at the current timeline position with the rig's current pose"
+text = "Set"
+
+[node name="CopyKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1217643090]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Copy the pose at the current timeline position"
 text = "Copy"
 
-[node name="PasteKeyButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/CopyPasteRow"]
+[node name="PasteKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1756766582]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Overwrite the keyframe at the current timeline position with the copied pose"
 text = "Paste"
 
-[node name="RemoveKeyButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/CopyPasteRow"]
+[node name="RemoveKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=382243868]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_remove_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_remove_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_remove_hover")
 tooltip_text = "Delete the keyframe at the current timeline position"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_remove_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_remove_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_remove_hover")
 text = "Remove"
 
-[node name="HSeparator" type="HSeparator" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
-layout_mode = 2
-
-[node name="SaveButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
-text = "Save"
-
-[node name="OpenButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
-text = "Open"
-
-[node name="ResetButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
-layout_mode = 2
-text = "Reset pose"
-
-[node name="UndoFocusRow" type="HBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="UndoButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/UndoFocusRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Undo the last move/rotation (Ctrl+Z)"
-text = "Undo"
-
-[node name="FocusButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation/UndoFocusRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Center the camera on the current selection (F)"
-text = "Focus (F)"
-
-[node name="RetargetButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Animation"]
-layout_mode = 2
-tooltip_text = "Import and bake an animation from another rig (beta)"
-text = "Retarget..."
-
-[node name="Display" type="VBoxContainer" parent="SidePanel/Panel/Scroll/Margin/Sections"]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Header" type="Label" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "DISPLAY"
-
-[node name="CloakToggleButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
+[node name="PlayButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=740570703]
 layout_mode = 2
 toggle_mode = true
-text = "Hide cloak/tabard"
+text = "Play"
 
-[node name="RightHandWeaponButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
-layout_mode = 2
-toggle_mode = true
-text = "Show right hand weapon"
-
-[node name="LeftHandWeaponButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
-layout_mode = 2
-toggle_mode = true
-text = "Show left hand weapon"
-
-[node name="PoleVectorsToggleButton" type="Button" parent="SidePanel/Panel/Scroll/Margin/Sections/Display"]
-layout_mode = 2
-toggle_mode = true
-text = "Show all pole vectors"
-
-[node name="StatusLabel" type="Label" parent="SidePanel/Panel"]
+[node name="StatusLabel" type="Label" parent="SidePanel/Sidebar" unique_id=1251374347]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -328,29 +420,29 @@ offset_left = 14.0
 offset_top = -34.0
 offset_right = -14.0
 offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 0
 theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
 theme_override_font_sizes/font_size = 11
 autowrap_mode = 3
-text = ""
 
-[node name="NewConfirmDialog" type="ConfirmationDialog" parent="SidePanel"]
+[node name="NewConfirmDialog" type="ConfirmationDialog" parent="SidePanel" unique_id=1517607539]
 title = "Start a new project?"
 initial_position = 1
 size = Vector2i(420, 130)
-dialog_text = "This discards the current pose, timeline, undo history, and retarget state. This can't be undone. Continue?"
 ok_button_text = "New"
+dialog_text = "This discards the current pose, timeline, undo history, and retarget state. This can't be undone. Continue?"
 
-[node name="SaveDialog" type="FileDialog" parent="SidePanel"]
+[node name="SaveDialog" type="FileDialog" parent="SidePanel" unique_id=932833161]
 title = "Save MDL animation"
 initial_position = 1
 size = Vector2i(600, 400)
 ok_button_text = "Save"
-file_mode = 4
 access = 2
 filters = PackedStringArray("*.txt ; Text Files")
 
-[node name="OpenDialog" type="FileDialog" parent="SidePanel"]
-title = "Open MDL animation"
+[node name="OpenDialog" type="FileDialog" parent="SidePanel" unique_id=1485209523]
+title = "Open a File"
 initial_position = 1
 size = Vector2i(600, 400)
 ok_button_text = "Open"
@@ -358,85 +450,8 @@ file_mode = 0
 access = 2
 filters = PackedStringArray("*.txt ; Text Files")
 
-[node name="RetargetPanel" type="Panel" parent="SidePanel"]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 0.05
-anchor_top = 0.08
-anchor_right = 0.32
-anchor_bottom = 0.55
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
-mouse_filter = 1
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-script = ExtResource("10")
-
-[node name="VBox" type="VBoxContainer" parent="SidePanel/RetargetPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 14.0
-offset_top = 14.0
-offset_right = -14.0
-offset_bottom = -14.0
-theme_override_constants/separation = 10
-
-[node name="HeaderRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
-layout_mode = 2
-
-[node name="HeaderLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/HeaderRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 13
-text = "RETARGET (BETA)"
-
-[node name="BoneMapButton" type="Button" parent="SidePanel/RetargetPanel/VBox/HeaderRow"]
-layout_mode = 2
-tooltip_text = "Open the bone-map table, with the visual rig compare available inside"
-text = "Configure rig"
-
-[node name="CloseButton" type="Button" parent="SidePanel/RetargetPanel/VBox/HeaderRow"]
-layout_mode = 2
-text = "X"
-
-[node name="LoadAnimRow" type="HBoxContainer" parent="SidePanel/RetargetPanel/VBox"]
-layout_mode = 2
-
-[node name="LoadAnimButton" type="Button" parent="SidePanel/RetargetPanel/VBox/LoadAnimRow"]
-layout_mode = 2
-tooltip_text = "Pick the model+animation glb/gltf to bake onto the NWN dummy"
-text = "Carica animazione"
-
-[node name="AnimationLabel" type="Label" parent="SidePanel/RetargetPanel/VBox/LoadAnimRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 11
-autowrap_mode = 3
-text = "No file loaded"
-
-[node name="BakeButton" type="Button" parent="SidePanel/RetargetPanel/VBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
-text = "Bake"
-
-[node name="StatusLabel" type="Label" parent="SidePanel/RetargetPanel/VBox"]
-layout_mode = 2
-theme_override_font_sizes/font_size = 11
-theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
-autowrap_mode = 3
-text = ""
-
-[node name="LoadAnimationDialog" type="FileDialog" parent="SidePanel/RetargetPanel"]
-title = "Load animation glb"
+[node name="LoadAnimationDialog" type="FileDialog" parent="SidePanel" unique_id=815214300]
+title = "Open a File"
 initial_position = 1
 size = Vector2i(600, 400)
 ok_button_text = "Load"
@@ -444,22 +459,18 @@ file_mode = 0
 access = 2
 filters = PackedStringArray("*.glb,*.gltf ; glTF Files")
 
-[node name="RetargetDebugPanel" type="Panel" parent="SidePanel"]
+[node name="BoneConfigPanel" type="Panel" parent="SidePanel" unique_id=886102673]
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.52
+anchor_left = 0.66
 anchor_top = 0.08
-anchor_right = 0.95
-anchor_bottom = 0.92
-offset_left = 0.0
-offset_top = 0.0
-offset_right = 0.0
-offset_bottom = 0.0
+anchor_right = 0.98
+anchor_bottom = 0.6
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("11")
 
-[node name="TitleRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
+[node name="TitleRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=973069721]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
@@ -467,80 +478,37 @@ offset_left = 14.0
 offset_top = 14.0
 offset_right = -14.0
 offset_bottom = 36.0
+grow_horizontal = 2
 theme_override_constants/separation = 4
 
-[node name="HeaderLabel" type="Label" parent="SidePanel/RetargetDebugPanel/TitleRow"]
+[node name="HeaderLabel" type="Label" parent="SidePanel/BoneConfigPanel/TitleRow" unique_id=1991983960]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_colors/font_color = Color(0.85, 0.45, 0.13, 1)
 theme_override_font_sizes/font_size = 13
-text = "CONFIGURE RIG"
+text = "Bone configuration"
 
-[node name="CloseButton" type="Button" parent="SidePanel/RetargetDebugPanel/TitleRow"]
+[node name="CloseButton" type="Button" parent="SidePanel/BoneConfigPanel/TitleRow" unique_id=1436865762]
 layout_mode = 2
 text = "X"
 
-[node name="ButtonRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
+[node name="ScaleRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=1855271991]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 14.0
 offset_top = 40.0
 offset_right = -14.0
-offset_bottom = 66.0
+offset_bottom = 62.0
+grow_horizontal = 2
 theme_override_constants/separation = 4
 
-[node name="CfgButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Load a bone-map config (.cfg) — fully portable, no glb pinned to it"
-text = "Import cfg"
-
-[node name="ImportButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Import the model+animation glb to bake (also used visually and as the rest-pose reference)"
-text = "Import model"
-
-[node name="ApplyButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Re-pose the red preview skeleton with the rotation offsets currently in the table"
-text = "Applica"
-
-[node name="ExitButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Stop the visual comparison (un-tints the dummy, removes the imported skeleton)"
-text = "Exit"
-
-[node name="SaveConfigButton" type="Button" parent="SidePanel/RetargetDebugPanel/ButtonRow"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
-theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
-text = "Save config"
-
-[node name="ScaleRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 14.0
-offset_top = 72.0
-offset_right = -14.0
-offset_bottom = 94.0
-theme_override_constants/separation = 4
-
-[node name="RootScaleLabel" type="Label" parent="SidePanel/RetargetDebugPanel/ScaleRow"]
+[node name="RootScaleLabel" type="Label" parent="SidePanel/BoneConfigPanel/ScaleRow" unique_id=1855271993]
 layout_mode = 2
 custom_minimum_size = Vector2(90, 0)
 text = "Root scale"
 
-[node name="RootScaleSpin" type="SpinBox" parent="SidePanel/RetargetDebugPanel/ScaleRow"]
+[node name="RootScaleSpin" type="SpinBox" parent="SidePanel/BoneConfigPanel/ScaleRow" unique_id=1855271994]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = 0.01
@@ -548,60 +516,80 @@ max_value = 10.0
 step = 0.01
 value = 1.0
 
-[node name="ColumnHeaderRow" type="HBoxContainer" parent="SidePanel/RetargetDebugPanel"]
+[node name="ColumnHeaderRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=839992420]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 14.0
-offset_top = 98.0
+offset_top = 66.0
 offset_right = -14.0
-offset_bottom = 116.0
+offset_bottom = 84.0
+grow_horizontal = 2
 theme_override_constants/separation = 4
 
-[node name="NwnHeader" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
+[node name="NwnHeader" type="Label" parent="SidePanel/BoneConfigPanel/ColumnHeaderRow" unique_id=712436455]
+custom_minimum_size = Vector2(100, 0)
 layout_mode = 2
-custom_minimum_size = Vector2(110, 0)
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 11
 text = "NWN node"
 
-[node name="Ff14Header" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
+[node name="SourceHeader" type="Label" parent="SidePanel/BoneConfigPanel/ColumnHeaderRow" unique_id=1751539160]
 layout_mode = 2
-custom_minimum_size = Vector2(110, 0)
+size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 11
-text = "Associate bone"
+text = "Source bone"
 
-[node name="RotHeader" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(180, 0)
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "Rotation offset (X/Y/Z deg)"
-
-[node name="DeltaHeader" type="Label" parent="SidePanel/RetargetDebugPanel/ColumnHeaderRow"]
-layout_mode = 2
-custom_minimum_size = Vector2(60, 0)
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "Delta"
-
-[node name="Scroll" type="ScrollContainer" parent="SidePanel/RetargetDebugPanel"]
+[node name="Scroll" type="ScrollContainer" parent="SidePanel/BoneConfigPanel" unique_id=931938790]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = 120.0
+offset_top = 88.0
 offset_right = -14.0
-offset_bottom = -32.0
+offset_bottom = -64.0
+grow_horizontal = 2
+grow_vertical = 2
 
-[node name="Rows" type="VBoxContainer" parent="SidePanel/RetargetDebugPanel/Scroll"]
+[node name="Rows" type="VBoxContainer" parent="SidePanel/BoneConfigPanel/Scroll" unique_id=200231731]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="StatusLabel" type="Label" parent="SidePanel/RetargetDebugPanel"]
+[node name="ConfigRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=1855271992]
+layout_mode = 1
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = -58.0
+offset_right = -14.0
+offset_bottom = -32.0
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 4
+
+[node name="CfgButton" type="Button" parent="SidePanel/BoneConfigPanel/ConfigRow" unique_id=577259376]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Load a bone-map config (.cfg) — fully portable, no glb pinned to it"
+text = "Load config"
+
+[node name="SaveConfigButton" type="Button" parent="SidePanel/BoneConfigPanel/ConfigRow" unique_id=20712060]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
+text = "Save config"
+
+[node name="StatusLabel" type="Label" parent="SidePanel/BoneConfigPanel" unique_id=217525663]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -611,174 +599,30 @@ offset_left = 14.0
 offset_top = -26.0
 offset_right = -14.0
 offset_bottom = -8.0
-theme_override_font_sizes/font_size = 11
+grow_horizontal = 2
+grow_vertical = 0
 theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
+theme_override_font_sizes/font_size = 11
 autowrap_mode = 3
-text = ""
 
-[node name="ImportDialog" type="FileDialog" parent="SidePanel/RetargetDebugPanel"]
-title = "Import model+animation glb"
+[node name="CfgDialog" type="FileDialog" parent="SidePanel/BoneConfigPanel" unique_id=1318667487]
+title = "Open a File"
 initial_position = 1
 size = Vector2i(600, 400)
-ok_button_text = "Import"
-file_mode = 0
-access = 2
-filters = PackedStringArray("*.glb,*.gltf ; glTF Files")
-
-[node name="CfgDialog" type="FileDialog" parent="SidePanel/RetargetDebugPanel"]
-title = "Import bone-map config"
-initial_position = 1
-size = Vector2i(600, 400)
-ok_button_text = "Import"
+ok_button_text = "Load"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.cfg ; Config Files")
 
-[node name="SaveAsDialog" type="FileDialog" parent="SidePanel/RetargetDebugPanel"]
+[node name="SaveAsDialog" type="FileDialog" parent="SidePanel/BoneConfigPanel" unique_id=1667002643]
 title = "Save bone-map config as"
 initial_position = 1
 size = Vector2i(600, 400)
 ok_button_text = "Save"
-file_mode = 4
 access = 2
 filters = PackedStringArray("*.cfg ; Config Files")
 
-[node name="TransformPanel" type="Panel" parent="SidePanel"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 260.0
-offset_top = 12.0
-offset_right = -12.0
-offset_bottom = 80.0
-mouse_filter = 1
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-script = ExtResource("8")
-
-[node name="HBox" type="HBoxContainer" parent="SidePanel/TransformPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 8.0
-offset_right = -10.0
-offset_bottom = -8.0
-theme_override_constants/separation = 10
-alignment = 1
-
-[node name="ComponentLabel" type="Label" parent="SidePanel/TransformPanel/HBox"]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
-text = "—"
-vertical_alignment = 1
-
-[node name="CopySelectionButton" type="Button" parent="SidePanel/TransformPanel/HBox"]
-layout_mode = 2
-tooltip_text = "Copy the current selection's pose"
-text = "Copy sel."
-
-[node name="PasteSelectionButton" type="Button" parent="SidePanel/TransformPanel/HBox"]
-layout_mode = 2
-tooltip_text = "Paste the copied pose onto the current selection"
-text = "Paste sel."
-
-[node name="VSeparator" type="VSeparator" parent="SidePanel/TransformPanel/HBox"]
-layout_mode = 2
-
-[node name="PosBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox"]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-[node name="PosLabel" type="Label" parent="SidePanel/TransformPanel/HBox/PosBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "POSITION (M)"
-
-[node name="PosRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/PosBox"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="PosX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow"]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -10.0
-max_value = 10.0
-step = 0.01
-allow_greater = true
-allow_lesser = true
-prefix = "X"
-
-[node name="PosY" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow"]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -10.0
-max_value = 10.0
-step = 0.01
-allow_greater = true
-allow_lesser = true
-prefix = "Y"
-
-[node name="PosZ" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow"]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -10.0
-max_value = 10.0
-step = 0.01
-allow_greater = true
-allow_lesser = true
-prefix = "Z"
-
-[node name="VSeparator2" type="VSeparator" parent="SidePanel/TransformPanel/HBox"]
-layout_mode = 2
-
-[node name="RotBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox"]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-[node name="RotLabel" type="Label" parent="SidePanel/TransformPanel/HBox/RotBox"]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "ROTATION (DEG)"
-
-[node name="RotRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/RotBox"]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="RotX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow"]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -360.0
-max_value = 360.0
-step = 1.0
-allow_greater = true
-allow_lesser = true
-prefix = "X"
-
-[node name="RotY" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow"]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -360.0
-max_value = 360.0
-step = 1.0
-allow_greater = true
-allow_lesser = true
-prefix = "Y"
-
-[node name="RotZ" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow"]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -360.0
-max_value = 360.0
-step = 1.0
-allow_greater = true
-allow_lesser = true
-prefix = "Z"
-
-[node name="Timeline" type="Panel" parent="SidePanel"]
+[node name="TimelineRow" type="HBoxContainer" parent="SidePanel" unique_id=740570702]
 layout_mode = 1
 anchors_preset = 12
 anchor_top = 1.0
@@ -788,6 +632,150 @@ offset_left = 260.0
 offset_top = -64.0
 offset_right = -12.0
 offset_bottom = -12.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 1
+theme_override_constants/separation = 8
+
+[node name="TransformPanel" type="Panel" parent="SidePanel" unique_id=412347528]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 260.0
+offset_top = 12.0
+offset_right = -12.0
+offset_bottom = 80.0
+grow_horizontal = 2
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+script = ExtResource("8")
+
+[node name="HBox" type="HBoxContainer" parent="SidePanel/TransformPanel" unique_id=1037986193]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 8.0
+offset_right = -10.0
+offset_bottom = -8.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 10
+alignment = 1
+
+[node name="ComponentLabel" type="Label" parent="SidePanel/TransformPanel/HBox" unique_id=1622436880]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 15
+text = "—"
+vertical_alignment = 1
+
+[node name="CopySelectionButton" type="Button" parent="SidePanel/TransformPanel/HBox" unique_id=671509775]
+layout_mode = 2
+tooltip_text = "Copy the current selection's pose"
+text = "Copy sel."
+
+[node name="PasteSelectionButton" type="Button" parent="SidePanel/TransformPanel/HBox" unique_id=1448101965]
+layout_mode = 2
+tooltip_text = "Paste the copied pose onto the current selection"
+text = "Paste sel."
+
+[node name="VSeparator" type="VSeparator" parent="SidePanel/TransformPanel/HBox" unique_id=762877606]
+layout_mode = 2
+
+[node name="PosBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox" unique_id=929444439]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="PosLabel" type="Label" parent="SidePanel/TransformPanel/HBox/PosBox" unique_id=345880488]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "POSITION (M)"
+
+[node name="PosRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/PosBox" unique_id=1174147310]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="PosX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow" unique_id=1105688337]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "X"
+
+[node name="PosY" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow" unique_id=1206631584]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "Y"
+
+[node name="PosZ" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow" unique_id=1462703184]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "Z"
+
+[node name="VSeparator2" type="VSeparator" parent="SidePanel/TransformPanel/HBox" unique_id=230056475]
+layout_mode = 2
+
+[node name="RotBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox" unique_id=78617432]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="RotLabel" type="Label" parent="SidePanel/TransformPanel/HBox/RotBox" unique_id=1192490671]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 11
+text = "ROTATION (DEG)"
+
+[node name="RotRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/RotBox" unique_id=1938505101]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="RotX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow" unique_id=101833136]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+allow_greater = true
+allow_lesser = true
+prefix = "X"
+
+[node name="RotY" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow" unique_id=5912484]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+allow_greater = true
+allow_lesser = true
+prefix = "Y"
+
+[node name="RotZ" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow" unique_id=2080844036]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+min_value = -360.0
+max_value = 360.0
+allow_greater = true
+allow_lesser = true
+prefix = "Z"
+
+[node name="Timeline" type="Panel" parent="SidePanel/TimelineRow" unique_id=1626451945]
+custom_minimum_size = Vector2(100, 0)
+layout_mode = 2
+size_flags_horizontal = 3
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("7")

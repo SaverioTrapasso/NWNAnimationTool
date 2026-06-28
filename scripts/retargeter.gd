@@ -1,17 +1,26 @@
-## Bakes an animation from a foreign skeleton (e.g. FF14) onto the NWN rig's
-## rest pose, bone-by-bone, using a name-based bone_map. No IK is involved —
-## NWN's export only needs local rotations (+ rootdummy position), so this
-## is a straight FK rotation copy with a rest-pose delta:
+## Bakes an animation from a foreign skeleton onto the NWN rig using a
+## Maya-style "orient constraint with maintain offset" model:
 ##
-##   delta = inverse(source_rest_rotation) * source_animated_rotation
-##   nwn_rotation = nwn_rest_rotation * delta
+## At "Lock" time, for every mapped NWN node we record a fixed WORLD-SPACE
+## offset between the source bone's current world rotation and the NWN
+## node's current (hand-posed) world rotation:
 ##
-## i.e. "whatever rotation change happened relative to the source's own bind
-## pose, apply that same relative change on top of NWN's own bind pose."
+##   offset = inverse(source_world_rotation_at_lock) * nwn_world_rotation_at_lock
 ##
-## The rest reference is just the SAME imported file's Skeleton3D.get_bone_rest()
-## (a skeleton's own bind pose is intrinsic to it, independent of whatever
-## animation is currently posed) — no separate "reference" glb is needed.
+## Then for every frame of the bake:
+##
+##   nwn_world_rotation(t) = source_world_rotation(t) * offset
+##
+## i.e. the NWN node rigidly follows the source bone's world rotation, plus
+## that same fixed offset, exactly like a Maya constraint. This works in
+## WORLD space, so unlike a per-bone LOCAL delta scheme, it's not sensitive
+## to how extreme the source rig's own bind pose is — there's no rest-pose
+## reference involved at all, just "the source bone's current orientation,
+## offset by a constant." Each NWN node's LOCAL (parent-relative) rotation —
+## the only thing the MDL format actually stores — is then recovered by
+## dividing out its NWN parent's world rotation, walked top-down through the
+## fixed hierarchy (MdlExporter.flatten_skeleton_tree()), exactly as nested
+## constraints would cascade in Maya.
 class_name Retargeter
 
 static func _load_glb(path: String) -> Node3D:
@@ -40,14 +49,91 @@ static func _find_animation_player(node: Node) -> AnimationPlayer:
 			return found
 	return null
 
+## "Lock": call once, right after seeking the source skeleton to the frame
+## you hand-posed the rig against. Captures, for every mapped NWN node, the
+## fixed world-space offset between the source bone's current world
+## rotation and the NWN node's current (real $Rig, hand-posed) world
+## rotation — and for rootdummy specifically, the world positions needed to
+## drive root motion the same way root_scale always has.
+## nwn_world_rotations_by_name/nwn_world_positions_by_name: the REAL rig's
+## CURRENT global rotation/position for every node (whatever you posed it
+## to, by hand, to match the overlay).
+static func lock_offsets(anim_skeleton: Skeleton3D, bone_map: Dictionary, nwn_world_rotations_by_name: Dictionary, nwn_world_positions_by_name: Dictionary) -> Dictionary:
+	var offsets := {}
+	for nwn_node_name in bone_map.keys():
+		var source_bone_name: String = bone_map[nwn_node_name]
+		if source_bone_name == "" or not nwn_world_rotations_by_name.has(nwn_node_name):
+			continue
+		var bone_idx: int = anim_skeleton.find_bone(source_bone_name)
+		if bone_idx < 0:
+			continue
+		var source_world_rot: Quaternion = anim_skeleton.get_bone_global_pose(bone_idx).basis.get_rotation_quaternion()
+		var nwn_world_rot: Quaternion = nwn_world_rotations_by_name[nwn_node_name]
+		offsets[nwn_node_name] = source_world_rot.inverse() * nwn_world_rot
+
+	var root_match := {}
+	var root_source_bone: String = bone_map.get("rootdummy", "")
+	if root_source_bone != "" and nwn_world_positions_by_name.has("rootdummy"):
+		var root_idx: int = anim_skeleton.find_bone(root_source_bone)
+		if root_idx >= 0:
+			root_match = {
+				"source_pos": anim_skeleton.get_bone_global_pose(root_idx).origin,
+				"target_pos": nwn_world_positions_by_name["rootdummy"],
+			}
+
+	return {"offsets": offsets, "root_match": root_match}
+
+## Computes every NWN node's LOCAL transform for whatever pose anim_skeleton
+## is CURRENTLY in (caller seeks the AnimationPlayer first), by walking the
+## fixed hierarchy top-down: each mapped node's world rotation comes from
+## the constraint (source world rotation * locked offset); each unmapped
+## node just keeps its rest local rotation; either way, the LOCAL rotation
+## written out is recovered by dividing out the already-computed parent
+## world rotation, so children of a "flipped" parent come out correctly
+## oriented in world space too.
+static func sample_pose(anim_skeleton: Skeleton3D, hierarchy: Array, bone_map: Dictionary, nwn_rest_transforms_by_name: Dictionary, lock_data: Dictionary, root_scale: float) -> Dictionary:
+	var offsets: Dictionary = lock_data.get("offsets", {})
+	var root_match: Dictionary = lock_data.get("root_match", {})
+
+	var world_rotations := {} # node_name -> Quaternion, accumulated top-down
+	var transforms := {}
+
+	for entry in hierarchy:
+		var name: String = entry["name"]
+		var parent_name: String = entry["parent"]
+		var parent_world_rot: Quaternion = world_rotations.get(parent_name, Quaternion.IDENTITY)
+
+		var rest_transform: Transform3D = nwn_rest_transforms_by_name.get(name, Transform3D())
+		var origin: Vector3 = rest_transform.origin
+		var world_rot: Quaternion
+		var local_rot: Quaternion
+
+		var source_bone_name: String = bone_map.get(name, "")
+		var bone_idx: int = anim_skeleton.find_bone(source_bone_name) if source_bone_name != "" else -1
+
+		if bone_idx >= 0 and offsets.has(name):
+			var source_world_rot: Quaternion = anim_skeleton.get_bone_global_pose(bone_idx).basis.get_rotation_quaternion()
+			world_rot = source_world_rot * offsets[name]
+			local_rot = parent_world_rot.inverse() * world_rot
+
+			if name == "rootdummy" and not root_match.is_empty():
+				var source_world_pos: Vector3 = anim_skeleton.get_bone_global_pose(bone_idx).origin
+				origin = root_match["target_pos"] + (source_world_pos - root_match["source_pos"]) * root_scale
+		else:
+			local_rot = rest_transform.basis.get_rotation_quaternion()
+			world_rot = parent_world_rot * local_rot
+
+		world_rotations[name] = world_rot
+		transforms[name] = Transform3D(Basis(local_rot), origin)
+
+	return transforms
+
 ## Returns {"keyframes": Array, "length": float, "anim_name": String} on
 ## success, or {"error": String} on failure. `parent` must already be in the
 ## running scene tree — the imported AnimationPlayer needs that to resolve
-## its track NodePaths down to the Skeleton3D.
-## rotation_offsets: optional {nwn_node_name: Vector3 (degrees)} — a per-bone
-## local-frame rotation tweak, applied after the retarget delta, for fixing
-## axis mismatches one joint at a time instead of one global knob.
-static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_rest_transforms_by_name: Dictionary, source_fps: float, root_scale: float, rotation_offsets: Dictionary = {}) -> Dictionary:
+## its track NodePaths down to the Skeleton3D. `lock_data` comes from
+## lock_offsets(), captured at whatever frame you hand-posed the rig against.
+static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_rest_transforms_by_name: Dictionary, source_fps: float, root_scale: float, lock_data: Dictionary) -> Dictionary:
 	var anim_scene := _load_glb(anim_glb_path)
 	if anim_scene == null:
 		return {"error": "Could not load animation source: %s" % anim_glb_path}
@@ -67,16 +153,7 @@ static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_
 	var animation: Animation = anim_player.get_animation(anim_name)
 	var length: float = animation.length
 
-	var rest_rotations := {}
-	for i in range(anim_skeleton.get_bone_count()):
-		rest_rotations[anim_skeleton.get_bone_name(i)] = anim_skeleton.get_bone_rest(i).basis.get_rotation_quaternion()
-
-	var root_source_bone: String = bone_map.get("rootdummy", "")
-	var rest_root_pos := Vector3.ZERO
-	if root_source_bone != "":
-		var root_bone_idx: int = anim_skeleton.find_bone(root_source_bone)
-		if root_bone_idx >= 0:
-			rest_root_pos = anim_skeleton.get_bone_rest(root_bone_idx).origin
+	var hierarchy: Array = MdlExporter.flatten_skeleton_tree()
 
 	anim_player.play(anim_name)
 
@@ -85,45 +162,7 @@ static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_
 	for frame_i in range(total_frames + 1):
 		var t: float = min(frame_i / source_fps, length)
 		anim_player.seek(t, true)
-
-		var transforms: Dictionary = nwn_rest_transforms_by_name.duplicate()
-		for nwn_node_name in bone_map.keys():
-			var source_bone_name: String = bone_map[nwn_node_name]
-			if source_bone_name == "" or not nwn_rest_transforms_by_name.has(nwn_node_name):
-				continue
-			var bone_idx: int = anim_skeleton.find_bone(source_bone_name)
-			if bone_idx < 0:
-				continue
-
-			var animated_rot: Quaternion = anim_skeleton.get_bone_pose_rotation(bone_idx)
-			var rest_rot: Quaternion = rest_rotations.get(source_bone_name, Quaternion.IDENTITY)
-			var delta: Quaternion = rest_rot.inverse() * animated_rot
-
-			# The offset is calibrated once, against the source rig's OWN rest
-			# pose (delta == identity) lined up to NWN's rest pose — it's a
-			# coordinate-frame correction, not an extra rotation to add on
-			# every frame. So it must be applied as a similarity transform
-			# (conjugation) on the delta: at delta == identity this is a
-			# no-op (NWN stays exactly at its rest pose, as calibrated),
-			# while any other frame's relative motion gets correctly
-			# transported through that same axis correction.
-			var offset_deg: Vector3 = rotation_offsets.get(nwn_node_name, Vector3.ZERO)
-			if offset_deg != Vector3.ZERO:
-				var offset_quat := Quaternion.from_euler(Vector3(
-					deg_to_rad(offset_deg.x), deg_to_rad(offset_deg.y), deg_to_rad(offset_deg.z)
-				))
-				delta = offset_quat.inverse() * delta * offset_quat
-
-			var nwn_rest_transform: Transform3D = nwn_rest_transforms_by_name[nwn_node_name]
-			var target_rot: Quaternion = nwn_rest_transform.basis.get_rotation_quaternion() * delta
-			var origin: Vector3 = nwn_rest_transform.origin
-
-			if nwn_node_name == "rootdummy":
-				var animated_pos: Vector3 = anim_skeleton.get_bone_pose_position(bone_idx)
-				origin = nwn_rest_transform.origin + (animated_pos - rest_root_pos) * root_scale
-
-			transforms[nwn_node_name] = Transform3D(Basis(target_rot), origin)
-
+		var transforms := sample_pose(anim_skeleton, hierarchy, bone_map, nwn_rest_transforms_by_name, lock_data, root_scale)
 		keyframes.append({"time": t, "transforms": transforms})
 		if t >= length:
 			break

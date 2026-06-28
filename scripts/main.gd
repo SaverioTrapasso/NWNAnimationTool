@@ -6,7 +6,6 @@ const TranslationGizmoScript = preload("res://scripts/translation_gizmo.gd")
 @onready var rig_controller: Node3D = $RigController
 @onready var gizmo: Node3D = $RotationGizmo
 @onready var side_panel: Control = $SidePanel
-@onready var blue_visualizer: Node3D = $BlueVisualizer
 @onready var red_visualizer: Node3D = $RedVisualizer
 
 # Per-limb world-space IK targets, kept even while that limb isn't the
@@ -79,21 +78,18 @@ func _ready() -> void:
 	side_panel.focus_requested.connect(_on_focus_pressed)
 	gizmo.drag_started.connect(_push_undo_snapshot)
 
-	side_panel.retarget_panel.load_animation_requested.connect(_on_retarget_load_animation_requested)
-	side_panel.retarget_panel.bake_requested.connect(_on_retarget_bake_requested)
-	side_panel.retarget_panel.bone_map_debug_requested.connect(_on_configure_rig_requested)
-	side_panel.retarget_debug_panel.cfg_import_requested.connect(_on_retarget_cfg_import_requested)
-	side_panel.retarget_debug_panel.apply_requested.connect(_on_retarget_apply_requested)
-	side_panel.retarget_debug_panel.save_requested.connect(_on_retarget_save_config_requested)
-	side_panel.retarget_debug_panel.save_as_chosen.connect(_on_retarget_save_as_chosen)
-	side_panel.retarget_debug_panel.import_source_requested.connect(_on_compare_import_requested)
-	side_panel.retarget_debug_panel.exit_requested.connect(_on_compare_exit_requested)
+	side_panel.retarget_load_animation_requested.connect(_on_retarget_load_animation_requested)
+	side_panel.retarget_lock_requested.connect(_on_retarget_lock_requested)
+	side_panel.retarget_bake_requested.connect(_on_retarget_bake_requested)
+	side_panel.retarget_overlay_toggled.connect(_on_retarget_overlay_toggled)
+	side_panel.bone_config_panel.cfg_import_requested.connect(_on_retarget_cfg_import_requested)
+	side_panel.bone_config_panel.save_requested.connect(_on_retarget_save_config_requested)
+	side_panel.bone_config_panel.save_as_chosen.connect(_on_retarget_save_as_chosen)
+	side_panel.bone_config_panel.root_scale_changed.connect(_on_retarget_root_scale_changed)
 	side_panel.new_requested.connect(_on_new_requested)
 
-	blue_visualizer.camera = $Camera3D
 	red_visualizer.camera = $Camera3D
-	blue_visualizer.bone_clicked.connect(_on_blue_bone_clicked)
-	red_visualizer.bone_clicked.connect(_on_red_bone_clicked)
+	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
 
 	_apply_component_materials($Rig)
 	_capture_rest_transforms($Rig)
@@ -192,11 +188,14 @@ func _on_new_requested() -> void:
 	_copied_component_pose = {}
 
 	_retarget_model_path = ""
-	side_panel.retarget_panel.set_animation_label("No file loaded")
-	if side_panel.retarget_panel.visible:
-		side_panel.retarget_panel.toggle_visible()
-	if side_panel.retarget_debug_panel.visible:
-		side_panel.retarget_debug_panel.toggle_visible()
+	if _retarget_anim_scene != null:
+		_retarget_anim_scene.queue_free()
+		_retarget_anim_scene = null
+	_show_retarget_overlay = false
+	_retarget_lock = {}
+	red_visualizer.visible = false
+	if side_panel.bone_config_panel.visible:
+		side_panel.bone_config_panel.toggle_visible()
 	if not _retarget_config_path.is_empty():
 		_on_retarget_cfg_import_requested(_retarget_config_path) # reloads from disk, discarding unsaved edits
 
@@ -331,6 +330,7 @@ func _process(delta: float) -> void:
 			_play_time = fmod(_play_time, _anim_length)
 		side_panel.timeline.set_current_time(_play_time)
 		_apply_pose_at_time(_play_time)
+		_sync_retarget_overlay(_play_time)
 
 	for component_id in _limb_targets.keys():
 		var chain: Array[Node3D] = rig_controller.get_chain_nodes(component_id)
@@ -349,7 +349,6 @@ func _process(delta: float) -> void:
 			chain[2].basis = chain[1].global_basis.inverse() * t["end_basis"]
 		IKSolver.solve_two_bone(chain[0], chain[1], chain[2], t["target"], t["pole"])
 	_refresh_transform_panel()
-	_refresh_retarget_debug_panel()
 
 func _on_play_toggled(playing: bool) -> void:
 	if playing and _keyframes.is_empty():
@@ -367,6 +366,7 @@ func _on_timeline_scrubbed(t: float) -> void:
 		_playing = false
 		side_panel.set_playing(false)
 	_apply_pose_at_time(t)
+	_sync_retarget_overlay(t)
 
 func _on_component_selected(component_id: String) -> void:
 	_clear_handles()
@@ -759,67 +759,218 @@ func _on_open_file_requested(path: String) -> void:
 	_apply_pose_at_time(0.0)
 	side_panel.set_status("Opened: %s" % path)
 
+
+
 # ---------------------------------------------------------------------------
 # Retargeting
+#
+# Simplified flow: load a source model+animation, see it as a red skeleton
+# overlay synced to the MAIN timeline (same one used for hand-posed
+# animation). Scrub to a comfortable frame, pose the real rig by hand to
+# match the overlay, then press Bake — it reads the source's pose and the
+# rig's current pose at that exact frame, back-computes the rotation
+# offset that explains the difference, and bakes the whole source
+# animation through that offset onto the timeline.
 # ---------------------------------------------------------------------------
 
 var _retarget_config: Dictionary = {}
 var _retarget_config_path: String = ""
 var _retarget_model_path: String = ""
+var _retarget_anim_scene: Node3D = null
+var _show_retarget_overlay: bool = false
+var _retarget_lock: Dictionary = {} # from Retargeter.lock_offsets(), empty until "Lock" is pressed
+var _retarget_lock_time: float = 0.0
 
 func _on_retarget_cfg_import_requested(config_path: String) -> void:
 	_retarget_config_path = config_path
 	_retarget_config = RetargetConfig.load_from_file(config_path)
 	if _retarget_config.is_empty():
-		side_panel.retarget_debug_panel.set_status("Couldn't load config: %s" % config_path)
-	else:
-		side_panel.retarget_debug_panel.set_status("Config '%s' loaded (%d bones mapped)." % [
-			_retarget_config.get("prefab_name", "?"), _retarget_config.get("bone_map", {}).size()
-		])
-		side_panel.retarget_debug_panel.set_bone_map(
-			RetargetConfig.NWN_NODES,
-			_retarget_config.get("bone_map", {}),
-			_retarget_config.get("rotation_offsets", {})
-		)
-		side_panel.retarget_debug_panel.set_root_scale(_retarget_config.get("root_scale", 1.0))
+		side_panel.bone_config_panel.set_status("Couldn't load config: %s" % config_path)
+		return
+	side_panel.bone_config_panel.set_status("Config '%s' loaded (%d bones mapped)." % [
+		_retarget_config.get("prefab_name", "?"), _retarget_config.get("bone_map", {}).size()
+	])
+	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, _retarget_config.get("bone_map", {}))
+	side_panel.bone_config_panel.set_root_scale(_retarget_config.get("root_scale", 1.0))
 
-## "Carica animazione" in the Retarget panel: the model+animation file that
-## Bake actually samples. Kept separate from "Import model" in Configure rig
-## (which only drives the visual red-skeleton comparison) since you may want
-## to bake a different file than the one used to build the bone map.
+## "Load animation": the model+animation file to retarget. Drives the red
+## overlay (synced to the main timeline), supplies the bone names for the
+## Bone configuration dropdowns, and is what Bake samples from.
 func _on_retarget_load_animation_requested(path: String) -> void:
+	var scene: Node3D = Retargeter._load_glb(path)
+	if scene == null:
+		side_panel.set_status("Could not load animation file.")
+		return
+	var skeleton: Skeleton3D = Retargeter._find_skeleton(scene)
+	if skeleton == null:
+		scene.queue_free()
+		side_panel.set_status("No Skeleton3D found in that file.")
+		return
+
+	if _retarget_anim_scene != null:
+		_retarget_anim_scene.queue_free()
+	add_child(scene)
+	_retarget_anim_scene = scene
 	_retarget_model_path = path
-	side_panel.retarget_panel.set_animation_label(path.get_file())
-	side_panel.retarget_panel.set_status("Animation ready: %s" % path.get_file())
 
-func _on_retarget_bake_requested() -> void:
+	# seek() only applies a pose once current_animation is set — without an
+	# initial play(), every later seek() on this player would silently do
+	# nothing and the overlay/bake would always read the bind pose.
+	var anim_player := Retargeter._find_animation_player(scene)
+	if anim_player != null:
+		var anim_names := anim_player.get_animation_list()
+		if not anim_names.is_empty():
+			anim_player.play(anim_names[0])
+			anim_player.seek(0.0, true)
+			anim_player.pause()
+
+	var bone_names: Array = []
+	for i in range(skeleton.get_bone_count()):
+		bone_names.append(skeleton.get_bone_name(i))
+	side_panel.bone_config_panel.set_available_bones(bone_names)
+
+	# The overlay is the whole point of loading an animation — show it right
+	# away instead of making the user remember to flip the toggle. Set the
+	# button's visual state without relying on the toggled signal firing,
+	# then drive the actual show/sync logic directly.
+	side_panel.skeleton_overlay_button.set_pressed_no_signal(true)
+	_on_retarget_overlay_toggled(true)
+	side_panel.set_status("Animation loaded: %s (%d bones)." % [path.get_file(), skeleton.get_bone_count()])
+
+## Viewport toolbar toggle: show/hide the red skeleton overlay.
+func _on_retarget_overlay_toggled(enabled: bool) -> void:
+	_show_retarget_overlay = enabled
+	if not enabled:
+		red_visualizer.visible = false
+		return
+	if _retarget_anim_scene == null:
+		side_panel.set_status("Load an animation first.")
+		return
+	_sync_retarget_overlay(side_panel.timeline.current_time)
+
+## Seeks the loaded source animation to the same time as the main timeline
+## (clamped to the source's own length) and redraws the red overlay there.
+## Called on every scrub/play tick while the overlay is enabled.
+func _sync_retarget_overlay(t: float) -> void:
+	if not _show_retarget_overlay or _retarget_anim_scene == null:
+		return
+	var anim_player := Retargeter._find_animation_player(_retarget_anim_scene)
+	if anim_player == null:
+		return
+	var anim_names := anim_player.get_animation_list()
+	if anim_names.is_empty():
+		return
+	var length: float = anim_player.get_animation(anim_names[0]).length
+	var seek_t: float = clamp(t, 0.0, length) if length > 0.0 else 0.0
+	anim_player.seek(seek_t, true)
+	var skeleton := Retargeter._find_skeleton(_retarget_anim_scene)
+	if skeleton != null:
+		_refresh_red_visualizer(skeleton)
+
+## Root scale only changes how far rootdummy travels during Bake, but the
+## overlay should still visibly reflect it live — otherwise the spinbox
+## looks like it does nothing while you're tuning it against the rig.
+func _on_retarget_root_scale_changed(value: float) -> void:
+	if _retarget_anim_scene != null:
+		_retarget_anim_scene.scale = Vector3.ONE * value
+	_sync_retarget_overlay(side_panel.timeline.current_time)
+
+## Draws the red overlay. Once the Bone configuration table has at least one
+## mapped bone, only those are shown (skipping up past unmapped ancestors so
+## lines still connect to the nearest joint that's actually shown — fingers/
+## tail/hair/weapon-attach dummies on a full source rig would otherwise bury
+## the handful of joints that matter). Before anything is mapped yet, show
+## every bone instead — otherwise there'd be nothing to look at while
+## actually doing the configuring.
+func _refresh_red_visualizer(skeleton: Skeleton3D) -> void:
+	var mapped_names: Dictionary = {}
+	for source_bone in side_panel.bone_config_panel.get_bone_map().values():
+		if source_bone != "":
+			mapped_names[source_bone] = true
+	var filter_to_mapped: bool = not mapped_names.is_empty()
+
+	var entries: Array = []
+	for i in range(skeleton.get_bone_count()):
+		var bone_name: String = skeleton.get_bone_name(i)
+		if filter_to_mapped and not mapped_names.has(bone_name):
+			continue
+		var pos: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(i).origin
+		var parent_idx: int = skeleton.get_bone_parent(i)
+		if filter_to_mapped:
+			while parent_idx >= 0 and not mapped_names.has(skeleton.get_bone_name(parent_idx)):
+				parent_idx = skeleton.get_bone_parent(parent_idx)
+		var parent_pos: Variant = null
+		if parent_idx >= 0:
+			parent_pos = skeleton.global_transform * skeleton.get_bone_global_pose(parent_idx).origin
+		entries.append({"name": bone_name, "position": pos, "parent_position": parent_pos})
+	red_visualizer.build(entries)
+	red_visualizer.visible = true
+
+## "Lock": call after you've hand-posed the rig (normal gizmos) to match the
+## overlay at the current timeline frame. Records, for every mapped node, a
+## fixed WORLD-SPACE offset between the source bone's current orientation
+## and the rig's current (hand-posed) orientation — exactly a Maya "orient
+## constraint with maintain offset". Bake then just replays the source
+## animation maintaining that same offset, frame by frame.
+func _on_retarget_lock_requested() -> void:
 	if _retarget_config.is_empty():
-		side_panel.retarget_panel.set_status("Import a bone-map config first.")
+		side_panel.set_status("Load a bone configuration first.")
 		return
-	if _retarget_model_path == "":
-		side_panel.retarget_panel.set_status("Import a model file first.")
+	if _retarget_anim_scene == null:
+		side_panel.set_status("Load an animation first.")
+		return
+	var skeleton: Skeleton3D = Retargeter._find_skeleton(_retarget_anim_scene)
+	var anim_player: AnimationPlayer = Retargeter._find_animation_player(_retarget_anim_scene)
+	if skeleton == null or anim_player == null:
+		return
+	var anim_names := anim_player.get_animation_list()
+	if anim_names.is_empty():
 		return
 
+	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()
+	var length: float = anim_player.get_animation(anim_names[0]).length
+	_retarget_lock_time = clamp(side_panel.timeline.current_time, 0.0, length)
+	anim_player.seek(_retarget_lock_time, true)
+
+	var world_rotations := {}
+	var world_positions := {}
+	for nwn_node_name in bone_map.keys():
+		var node: Node3D = rig_controller.find_node(nwn_node_name)
+		if node != null:
+			world_rotations[nwn_node_name] = node.global_basis.get_rotation_quaternion()
+			world_positions[nwn_node_name] = node.global_position
+
+	_retarget_config["bone_map"] = bone_map
+	_retarget_lock = Retargeter.lock_offsets(skeleton, bone_map, world_rotations, world_positions)
+	side_panel.set_status("Locked at t=%.2fs. Ready to Bake." % _retarget_lock_time)
+
+## Bake: replays the source animation, maintaining the exact world-space
+## offset per node captured by "Lock". Must Lock first.
+func _on_retarget_bake_requested() -> void:
+	if _retarget_lock.is_empty():
+		side_panel.set_status("Press Lock first (match the pose, then lock it in).")
+		return
+	if _retarget_anim_scene == null:
+		side_panel.set_status("Load an animation first.")
+		return
+
+	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()
 	var rest_by_name: Dictionary = {}
 	for node in _rest_transforms.keys():
 		if is_instance_valid(node):
 			rest_by_name[node.name] = _rest_transforms[node]
 
-	# Read the bone map/offsets straight from the table, not from
-	# _retarget_config, so edits made after import but not yet saved are
-	# still honored by Bake (saving to disk is a separate, optional step).
 	var result: Dictionary = Retargeter.bake(
 		self,
 		_retarget_model_path,
-		side_panel.retarget_debug_panel.get_bone_map(),
+		bone_map,
 		rest_by_name,
-		_retarget_config["source_fps"],
-		side_panel.retarget_debug_panel.get_root_scale(),
-		side_panel.retarget_debug_panel.get_rotation_offsets()
+		_retarget_config.get("source_fps", 30.0),
+		side_panel.bone_config_panel.get_root_scale(),
+		_retarget_lock
 	)
-
 	if result.has("error"):
-		side_panel.retarget_panel.set_status("Bake failed: %s" % result["error"])
+		side_panel.set_status("Bake failed: %s" % result["error"])
 		return
 
 	_push_undo_snapshot()
@@ -830,253 +981,30 @@ func _on_retarget_bake_requested() -> void:
 	_refresh_timeline_markers()
 	side_panel.timeline.set_current_time(0.0)
 	_apply_pose_at_time(0.0)
-	side_panel.retarget_panel.set_status("Baked %d keyframes (%.2fs)." % [_keyframes.size(), _anim_length])
+	side_panel.set_status("Baked %d keyframes (locked at t=%.2fs)." % [_keyframes.size(), _retarget_lock_time])
 
-## Pulls whatever's currently in the bone-map panel's editable fields and
-## writes it to a .cfg file (preserving the file's leading comment block).
-## Always prompts for the filename/location (pre-filled with the currently
-## loaded path, if any) instead of silently overwriting it — configs are
-## meant to be shared/reused, so overwriting one without asking is risky.
 func _on_retarget_save_config_requested() -> void:
-	side_panel.retarget_debug_panel.prompt_save_as(_retarget_config_path)
+	if _retarget_config_path == "":
+		side_panel.bone_config_panel.prompt_save_as()
+		return
+	_save_retarget_config_to(_retarget_config_path)
 
 func _on_retarget_save_as_chosen(path: String) -> void:
 	_retarget_config_path = path
 	_save_retarget_config_to(path)
 
 func _save_retarget_config_to(path: String) -> void:
-	var bone_map: Dictionary = side_panel.retarget_debug_panel.get_bone_map()
-	var rotation_offsets: Dictionary = side_panel.retarget_debug_panel.get_rotation_offsets()
-	var root_scale: float = side_panel.retarget_debug_panel.get_root_scale()
+	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()
 	var err := RetargetConfig.save_to_file(
 		path,
 		_retarget_config.get("prefab_name", path.get_file().get_basename()),
 		_retarget_config.get("source_fps", 30.0),
-		root_scale,
-		bone_map,
-		rotation_offsets
+		side_panel.bone_config_panel.get_root_scale(),
+		bone_map
 	)
 	if err != OK:
-		side_panel.retarget_panel.set_status("Failed to save config (error %d)." % err)
+		side_panel.set_status("Failed to save config (error %d)." % err)
 		return
 	_retarget_config["bone_map"] = bone_map
-	_retarget_config["rotation_offsets"] = rotation_offsets
-	_retarget_config["root_scale"] = root_scale
-	side_panel.retarget_panel.set_status("Config saved to %s" % path)
-	side_panel.retarget_debug_panel.set_status("Config saved to %s" % path)
-
-# ---------------------------------------------------------------------------
-# Visual rig compare/configure mode: click a joint on the blue NWN dummy and
-# the matching one on the red imported skeleton to build the bone map,
-# instead of typing names blind.
-# ---------------------------------------------------------------------------
-
-var _compare_mode: bool = false
-var _pending_blue_bone: String = ""
-var _pending_red_bone: String = ""
-var _compare_red_scene: Node3D = null
-
-const COMPARE_BLUE_TINT := Color(0.2, 0.45, 0.95)
-const COMPARE_RED_TINT := Color(0.9, 0.2, 0.2)
-
-## Single entry point for "Configure rig": shows the editable bone-map
-## table AND sets up the visual aid (NWN mesh tinted blue, with clickable
-## joint dots) in one go. Clicking Import inside that panel adds the red
-## comparison skeleton; clicking pairs of joints fills in the table.
-func _on_configure_rig_requested() -> void:
-	_compare_mode = true
-	rig_controller.deselect()
-	_clear_handles()
-	gizmo.detach()
-	rig_controller.set_process_unhandled_input(false)
-	side_panel.retarget_panel.visible = false
-	side_panel.transform_panel.visible = false
-	_pending_blue_bone = ""
-	_pending_red_bone = ""
-
-	# Real NWN mesh tinted blue (the silhouette itself is the reference),
-	# with small clickable dots at each joint but no stick-figure lines —
-	# the mesh already shows how everything connects.
-	_tint_meshes($Rig, COMPARE_BLUE_TINT)
-	_build_blue_visualizer()
-	blue_visualizer.visible = true
-
-	side_panel.retarget_debug_panel.set_bone_map(
-		RetargetConfig.NWN_NODES,
-		_retarget_config.get("bone_map", {}),
-		_retarget_config.get("rotation_offsets", {})
-	)
-	side_panel.retarget_debug_panel.show_panel()
-	side_panel.retarget_debug_panel.set_status("Edit the table, or click Import to compare visually.")
-
-func _build_blue_visualizer() -> void:
-	var flat: Array = MdlExporter.flatten_skeleton_tree()
-	var entries: Array = []
-	for entry in flat:
-		var node: Node3D = rig_controller.find_node(entry["name"])
-		if node == null:
-			continue
-		var parent_pos: Variant = null
-		if entry["parent"] != "":
-			var pnode: Node3D = rig_controller.find_node(entry["parent"])
-			if pnode != null:
-				parent_pos = pnode.global_position
-		entries.append({"name": entry["name"], "position": node.global_position, "parent_position": parent_pos})
-	blue_visualizer.build(entries, false)
-
-## Recursively tints every MeshInstance3D under node a flat color — used to
-## turn the real NWN mesh (or an imported source mesh, if it has one) into a
-## clear color-coded silhouette for the rig-compare view.
-func _tint_meshes(node: Node, color: Color) -> void:
-	if node is MeshInstance3D:
-		var mat := StandardMaterial3D.new()
-		mat.albedo_color = color
-		mat.roughness = 0.85
-		node.material_override = mat
-	for child in node.get_children():
-		_tint_meshes(child, color)
-
-func _on_compare_import_requested(path: String) -> void:
-	var scene: Node3D = Retargeter._load_glb(path)
-	if scene == null:
-		side_panel.retarget_debug_panel.set_status("Could not load file.")
-		return
-	var skeleton: Skeleton3D = Retargeter._find_skeleton(scene)
-	if skeleton == null:
-		scene.queue_free()
-		side_panel.retarget_debug_panel.set_status("No Skeleton3D found in that file.")
-		return
-
-	_retarget_model_path = path
-
-	if _compare_red_scene != null:
-		_compare_red_scene.queue_free()
-	add_child(scene)
-	_compare_red_scene = scene
-	_tint_meshes(scene, COMPARE_RED_TINT) # no-op if the source has no mesh (most skeleton-only exports)
-
-	# Pose at the animation's frame 0 (not the bind/rest pose) — calibrating
-	# the bone map only makes sense against the actual first frame of the
-	# file you're about to bake, same as what Bake itself starts from.
-	var anim_player := Retargeter._find_animation_player(scene)
-	if anim_player != null:
-		var anim_names := anim_player.get_animation_list()
-		if not anim_names.is_empty():
-			anim_player.play(anim_names[0])
-			anim_player.seek(0.0, true)
-			anim_player.pause()
-
-	_refresh_red_visualizer(skeleton)
-
-	var bone_names: Array = []
-	for i in range(skeleton.get_bone_count()):
-		bone_names.append(skeleton.get_bone_name(i))
-	side_panel.retarget_debug_panel.set_available_bones(bone_names)
-	side_panel.retarget_debug_panel.set_status("Loaded %s (%d bones). Click pairs of joints, or pick from the dropdowns." % [path.get_file(), skeleton.get_bone_count()])
-
-## Rebuilds the red stick-figure from the source skeleton's CURRENT bone
-## poses (rest pose by default; _on_retarget_apply_requested temporarily
-## poses it with the rotation offsets first so they can be checked visually).
-func _refresh_red_visualizer(skeleton: Skeleton3D) -> void:
-	var entries: Array = []
-	for i in range(skeleton.get_bone_count()):
-		var bone_name: String = skeleton.get_bone_name(i)
-		var pos: Vector3 = skeleton.global_transform * skeleton.get_bone_global_pose(i).origin
-		var parent_idx: int = skeleton.get_bone_parent(i)
-		var parent_pos: Variant = null
-		if parent_idx >= 0:
-			parent_pos = skeleton.global_transform * skeleton.get_bone_global_pose(parent_idx).origin
-		entries.append({"name": bone_name, "position": pos, "parent_position": parent_pos})
-	red_visualizer.build(entries) # draw_lines=true: usually the only way to see a mesh-less skeleton
-	red_visualizer.visible = true
-
-## "Applica" button: poses the imported source skeleton's mapped bones with
-## the rotation offsets currently typed into the table, and scales the whole
-## preview by the current root scale, so the red skeleton visually reflects
-## both tweaks instead of only showing its rest pose at scale 1.
-func _on_retarget_apply_requested() -> void:
-	if _compare_red_scene == null:
-		side_panel.retarget_debug_panel.set_status("Import a model first.")
-		return
-	var skeleton: Skeleton3D = Retargeter._find_skeleton(_compare_red_scene)
-	if skeleton == null:
-		return
-	_compare_red_scene.scale = Vector3.ONE * side_panel.retarget_debug_panel.get_root_scale()
-	var bone_map: Dictionary = side_panel.retarget_debug_panel.get_bone_map()
-	var rotation_offsets: Dictionary = side_panel.retarget_debug_panel.get_rotation_offsets()
-	for nwn_node in bone_map.keys():
-		var source_bone: String = bone_map[nwn_node]
-		if source_bone == "":
-			continue
-		var idx := skeleton.find_bone(source_bone)
-		if idx == -1:
-			continue
-		var rest_rot: Quaternion = skeleton.get_bone_rest(idx).basis.get_rotation_quaternion()
-		var offset_deg: Vector3 = rotation_offsets.get(nwn_node, Vector3.ZERO)
-		var offset_quat := Quaternion.from_euler(Vector3(
-			deg_to_rad(offset_deg.x), deg_to_rad(offset_deg.y), deg_to_rad(offset_deg.z)
-		))
-		skeleton.set_bone_pose_rotation(idx, rest_rot * offset_quat)
-	_refresh_red_visualizer(skeleton)
-	side_panel.retarget_debug_panel.set_status("Applied offsets to the preview skeleton.")
-
-func _on_blue_bone_clicked(bone_name: String) -> void:
-	if not _compare_mode:
-		return
-	_pending_blue_bone = bone_name
-	blue_visualizer.set_highlight(bone_name)
-	_try_complete_compare_pair()
-
-func _on_red_bone_clicked(bone_name: String) -> void:
-	if not _compare_mode:
-		return
-	_pending_red_bone = bone_name
-	red_visualizer.set_highlight(bone_name)
-	_try_complete_compare_pair()
-
-func _try_complete_compare_pair() -> void:
-	if _pending_blue_bone == "" or _pending_red_bone == "":
-		return
-	side_panel.retarget_debug_panel.set_ff14_value(_pending_blue_bone, _pending_red_bone)
-	side_panel.retarget_debug_panel.set_status("%s → %s. Click more, or Save config in the table." % [_pending_blue_bone, _pending_red_bone])
-	blue_visualizer.set_highlight("")
-	red_visualizer.set_highlight("")
-	_pending_blue_bone = ""
-	_pending_red_bone = ""
-
-func _on_compare_exit_requested() -> void:
-	_compare_mode = false
-	blue_visualizer.clear()
-	blue_visualizer.visible = false
-	red_visualizer.clear()
-	red_visualizer.visible = false
-	if _compare_red_scene != null:
-		_compare_red_scene.queue_free()
-		_compare_red_scene = null
-	_apply_component_materials($Rig) # restore the normal IK/FK color scheme
-	rig_controller.set_process_unhandled_input(true)
-	side_panel.retarget_debug_panel.hide_panel()
-	side_panel.retarget_panel.visible = true
-
-## Live "delta from rest" readout per mapped NWN node, for the bone-map
-## debug window — a bone stuck at ~0 means it isn't actually being driven
-## (bad name / not found in the source); a wild value usually means the
-## source and NWN bone axes don't line up the way the retarget math assumes.
-func _refresh_retarget_debug_panel() -> void:
-	if not side_panel.retarget_debug_panel.visible or _retarget_config.is_empty():
-		return
-	var bone_map: Dictionary = _retarget_config.get("bone_map", {})
-	for nwn_node_name in bone_map.keys():
-		var node: Node3D = rig_controller.find_node(nwn_node_name)
-		var rest_transform: Variant = null
-		for rest_node in _rest_transforms.keys():
-			if is_instance_valid(rest_node) and rest_node.name == nwn_node_name:
-				rest_transform = _rest_transforms[rest_node]
-				break
-		if node == null or rest_transform == null:
-			side_panel.retarget_debug_panel.set_delta(nwn_node_name, INF)
-			continue
-		var rest_rot: Quaternion = rest_transform.basis.get_rotation_quaternion()
-		var current_rot: Quaternion = node.basis.get_rotation_quaternion()
-		var delta_angle: float = rad_to_deg((rest_rot.inverse() * current_rot).get_angle())
-		side_panel.retarget_debug_panel.set_delta(nwn_node_name, delta_angle)
+	side_panel.set_status("Config saved to %s" % path)
+	side_panel.bone_config_panel.set_status("Config saved to %s" % path)
