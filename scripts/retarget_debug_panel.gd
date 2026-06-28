@@ -23,7 +23,9 @@ signal flip_180_toggled(enabled: bool)
 @onready var rows_container: VBoxContainer = $Scroll/Rows
 @onready var status_label: Label = $StatusLabel
 
-var _bone_options: Dictionary = {} # nwn_node_name -> OptionButton
+const BoneSearchDropdown := preload("res://scripts/bone_search_dropdown.gd")
+
+var _bone_options: Dictionary = {} # nwn_node_name -> BoneSearchDropdown
 var _available_bones: Array = [] # source bone names, populated after Load animation
 
 func _ready() -> void:
@@ -68,11 +70,11 @@ func set_bone_map(node_names: Array, bone_map: Dictionary) -> void:
 		nwn_label.custom_minimum_size = Vector2(100, 0)
 		row.add_child(nwn_label)
 
-		var option := OptionButton.new()
+		var option := BoneSearchDropdown.new()
 		option.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(option)
 		_bone_options[nwn_name] = option
-		_set_option_items(option, _available_bones, String(bone_map.get(nwn_name, "")))
+		option.set_items(_available_bones, String(bone_map.get(nwn_name, "")))
 
 		rows_container.add_child(row)
 
@@ -83,36 +85,14 @@ func set_bone_map(node_names: Array, bone_map: Dictionary) -> void:
 func set_available_bones(names: Array) -> void:
 	_available_bones = names
 	for nwn_name in _bone_options.keys():
-		var option: OptionButton = _bone_options[nwn_name]
-		var current := _selected_text(option)
-		_set_option_items(option, names, current)
-
-func _set_option_items(option: OptionButton, names: Array, selected_value: String) -> void:
-	option.clear()
-	option.add_item("") # allow "unmapped"
-	for n in names:
-		option.add_item(n)
-	if selected_value != "":
-		var idx := names.find(selected_value)
-		if idx == -1:
-			option.add_item(selected_value)
-			idx = option.item_count - 1
-		else:
-			idx += 1 # account for the leading blank item
-		option.select(idx)
-	else:
-		option.select(0)
-
-func _selected_text(option: OptionButton) -> String:
-	if option.selected < 0:
-		return ""
-	return option.get_item_text(option.selected)
+		var option: BoneSearchDropdown = _bone_options[nwn_name]
+		option.set_items(names, option.get_selected_value())
 
 ## Reads the associated-bone dropdowns as currently selected.
 func get_bone_map() -> Dictionary:
 	var result := {}
 	for nwn_name in _bone_options.keys():
-		result[nwn_name] = _selected_text(_bone_options[nwn_name])
+		result[nwn_name] = _bone_options[nwn_name].get_selected_value()
 	return result
 
 func set_status(text: String) -> void:
