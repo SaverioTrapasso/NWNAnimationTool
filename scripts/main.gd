@@ -19,6 +19,12 @@ var _active_ik_component: String = ""
 var _target_handle: Node3D = null
 var _pole_handle: Node3D = null
 var _root_height_handle: Node3D = null
+var _attachment_translate_handle: Node3D = null
+
+## FK leaves with no mesh of their own (weapon/shield attachment dummies) --
+## besides rotation, these also get a free-drag translate handle and an
+## enabled position field in the transform panel, like the pelvis does.
+const ATTACHMENT_COMPONENT_IDS := ["right_weapon", "left_weapon", "shield"]
 
 var _show_all_poles: bool = false
 var _all_pole_handles: Dictionary = {} # component_id -> Node3D (drag handle)
@@ -60,6 +66,7 @@ func _ready() -> void:
 
 	gizmo.camera = $Camera3D
 	side_panel.rig_root = $Rig
+	side_panel.rig_controller = rig_controller
 	side_panel.reset_pressed.connect(_on_reset_pressed)
 	side_panel.pole_vectors_toggled.connect(_on_pole_vectors_toggled)
 	side_panel.save_file_requested.connect(_on_save_file_requested)
@@ -67,6 +74,9 @@ func _ready() -> void:
 	side_panel.save_to_timeline_requested.connect(_on_save_to_timeline_requested)
 	side_panel.duration_changed.connect(_on_duration_changed)
 	side_panel.timeline.time_changed.connect(_on_timeline_scrubbed)
+	side_panel.timeline.shift_drag_started.connect(_on_timeline_shift_drag_started)
+	side_panel.timeline.shift_drag_moved.connect(_on_timeline_shift_drag_moved)
+	side_panel.timeline.shift_drag_ended.connect(_on_timeline_shift_drag_ended)
 	side_panel.play_toggled.connect(_on_play_toggled)
 	side_panel.copy_key_requested.connect(_on_copy_key_requested)
 	side_panel.paste_key_requested.connect(_on_paste_key_requested)
@@ -179,7 +189,10 @@ func _on_gender_selected(model_path: String) -> void:
 	var new_rig: Node3D = new_scene.instantiate()
 	new_rig.name = "Rig"
 
-	# Drop anything that points at the OLD $Rig's nodes before freeing it.
+	# Drop anything that points at the OLD $Rig's nodes before freeing it --
+	# including weapon previews, which are parented under the old rig's
+	# rhand/lhand dummies and would otherwise be left as dangling refs.
+	side_panel.reset_display_toggles()
 	rig_controller.deselect()
 	_clear_handles()
 	gizmo.detach()
@@ -442,11 +455,13 @@ func _on_component_selected(component_id: String) -> void:
 		gizmo.attach_to(rig_controller.get_component_root_node(component_id))
 		if component_id == "pelvis":
 			_setup_root_height_handle()
+		elif component_id in ATTACHMENT_COMPONENT_IDS:
+			_setup_attachment_translate_handle(component_id)
 	_refresh_all_pole_handles()
 
 	side_panel.transform_panel.visible = true
 	side_panel.transform_panel.set_label(component_id)
-	side_panel.transform_panel.set_position_enabled(is_ik or component_id == "pelvis")
+	side_panel.transform_panel.set_position_enabled(is_ik or component_id == "pelvis" or component_id in ATTACHMENT_COMPONENT_IDS)
 
 func _on_component_deselected() -> void:
 	gizmo.detach()
@@ -501,6 +516,27 @@ func _on_root_height_moved(pos: Vector3) -> void:
 	if root_dummy != null:
 		root_dummy.global_position = pos
 
+## right_weapon/left_weapon/shield are single-node FK leaves (the rhand/
+## lhand/lforearm attachment dummies) -- unlike head/torso/pelvis they're
+## useful to reposition too, e.g. nudging a weapon's grip point or a
+## shield's offset without disturbing the limb that's holding it.
+func _setup_attachment_translate_handle(component_id: String) -> void:
+	var node: Node3D = rig_controller.get_component_root_node(component_id)
+	if node == null:
+		return
+	_attachment_translate_handle = TranslationGizmoScript.new()
+	_attachment_translate_handle.color = Color(1.0, 0.6, 0.9)
+	add_child(_attachment_translate_handle)
+	_attachment_translate_handle.camera = $Camera3D
+	_attachment_translate_handle.global_position = node.global_position
+	_attachment_translate_handle.moved.connect(_on_attachment_translate_moved.bind(component_id))
+	_attachment_translate_handle.drag_started.connect(_push_undo_snapshot)
+
+func _on_attachment_translate_moved(pos: Vector3, component_id: String) -> void:
+	var node: Node3D = rig_controller.get_component_root_node(component_id)
+	if node != null:
+		node.global_position = pos
+
 ## queue_free() only removes the node at the end of this frame — until then
 ## it's still in the tree and would still react to the very same click that's
 ## replacing it (e.g. the click that selects a new component), nudging
@@ -524,6 +560,9 @@ func _clear_handles() -> void:
 	if _root_height_handle != null:
 		_retire_handle(_root_height_handle)
 		_root_height_handle = null
+	if _attachment_translate_handle != null:
+		_retire_handle(_attachment_translate_handle)
+		_attachment_translate_handle = null
 
 # ---------------------------------------------------------------------------
 # Timeline / keyframes
@@ -567,6 +606,65 @@ func _refresh_timeline_markers() -> void:
 	for kf in _keyframes:
 		times.append(kf["time"])
 	side_panel.timeline.set_keyframe_times(times)
+
+# ---------------------------------------------------------------------------
+# Shift+drag a keyframe: rigidly slides it and every keyframe to its right
+# by the same amount (e.g. to squeeze out an unwanted opening key pose by
+# dragging the second keyframe back toward 0). Keyframes to the LEFT of the
+# one grabbed never move.
+# ---------------------------------------------------------------------------
+
+# {"time": float, "transforms": Dictionary} per entry, captured once when the
+# drag starts so every motion event recomputes from the same baseline
+# instead of compounding rounding error onto itself frame after frame.
+var _shift_drag_snapshot: Array = []
+
+func _on_timeline_shift_drag_started(_anchor_time: float) -> void:
+	_push_undo_snapshot()
+	_shift_drag_snapshot = []
+	for kf in _keyframes:
+		_shift_drag_snapshot.append({"time": kf["time"], "transforms": kf["transforms"]})
+
+func _on_timeline_shift_drag_moved(anchor_time: float, delta_time: float) -> void:
+	if _shift_drag_snapshot.is_empty():
+		return
+
+	var anchor_idx := 0
+	var best_dist := INF
+	for i in range(_shift_drag_snapshot.size()):
+		var dist: float = abs(_shift_drag_snapshot[i]["time"] - anchor_time)
+		if dist < best_dist:
+			best_dist = dist
+			anchor_idx = i
+
+	# Clamp so the shifted group can't cross the keyframe just before it
+	# (or go below 0, if it's the first keyframe) and can't push the last
+	# keyframe past the end of the animation -- a single delta clamped once
+	# keeps the whole group's relative spacing exactly intact.
+	const MIN_GAP := 0.01
+	var anchor_time_snap: float = _shift_drag_snapshot[anchor_idx]["time"]
+	var prev_time: float = _shift_drag_snapshot[anchor_idx - 1]["time"] if anchor_idx > 0 else 0.0
+	var last_time: float = _shift_drag_snapshot[_shift_drag_snapshot.size() - 1]["time"]
+	var min_delta: float = (prev_time - anchor_time_snap + MIN_GAP) if anchor_idx > 0 else (0.0 - anchor_time_snap)
+	var max_delta: float = _anim_length - last_time
+	var clamped_delta: float = clamp(delta_time, min_delta, max(max_delta, min_delta))
+
+	var new_keyframes: Array = []
+	for i in range(_shift_drag_snapshot.size()):
+		var kf: Dictionary = _shift_drag_snapshot[i]
+		var new_time: float = kf["time"] + clamped_delta if i >= anchor_idx else kf["time"]
+		new_keyframes.append({"time": new_time, "transforms": kf["transforms"]})
+	_keyframes = new_keyframes
+
+	_refresh_timeline_markers()
+	var new_anchor_time: float = anchor_time_snap + clamped_delta
+	side_panel.timeline.set_current_time(new_anchor_time)
+	_apply_pose_at_time(new_anchor_time)
+
+func _on_timeline_shift_drag_ended() -> void:
+	if not _shift_drag_snapshot.is_empty():
+		side_panel.set_status("Keyframes shifted.")
+	_shift_drag_snapshot = []
 
 ## Copies the pose currently shown at the timeline's playhead (whether
 ## that's an exact keyframe or an interpolated in-between moment) so it can
@@ -758,6 +856,8 @@ func _refresh_transform_panel() -> void:
 				panel.set_position_fields(root_dummy.global_position)
 		var node: Node3D = rig_controller.get_component_root_node(component_id)
 		if node != null:
+			if component_id in ATTACHMENT_COMPONENT_IDS:
+				panel.set_position_fields(node.global_position)
 			panel.set_rotation_fields(_basis_to_euler_degrees(node.basis))
 
 func _on_panel_position_changed(v: Vector3) -> void:
@@ -768,6 +868,12 @@ func _on_panel_position_changed(v: Vector3) -> void:
 			root_dummy.global_position = v
 		if _root_height_handle != null:
 			_root_height_handle.global_position = v
+	elif component_id in ATTACHMENT_COMPONENT_IDS:
+		var node: Node3D = rig_controller.get_component_root_node(component_id)
+		if node != null:
+			node.global_position = v
+		if _attachment_translate_handle != null:
+			_attachment_translate_handle.global_position = v
 	elif _active_ik_component != "":
 		_limb_targets[_active_ik_component]["target"] = v
 		if _target_handle != null:

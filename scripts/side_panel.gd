@@ -19,6 +19,7 @@ signal retarget_overlay_toggled(enabled: bool)
 signal gender_selected(model_path: String)
 
 @export var rig_root: Node3D
+@export var rig_controller: Node3D
 
 @onready var _sidebar: Control = $Sidebar/Scroll/Margin/Sections
 
@@ -55,6 +56,7 @@ signal gender_selected(model_path: String)
 @onready var cloak_button: Button = viewport_toolbar.get_node("CloakToggleButton")
 @onready var right_hand_weapon_button: Button = viewport_toolbar.get_node("RightHandWeaponButton")
 @onready var left_hand_weapon_button: Button = viewport_toolbar.get_node("LeftHandWeaponButton")
+@onready var left_shield_button: Button = viewport_toolbar.get_node("LeftShieldButton")
 @onready var pole_vectors_button: Button = viewport_toolbar.get_node("PoleVectorsToggleButton")
 @onready var skeleton_overlay_button: Button = viewport_toolbar.get_node("SkeletonOverlayButton")
 
@@ -90,8 +92,9 @@ func _ready() -> void:
 	cloak_button.toggled.connect(_on_cloak_toggled)
 	male_button.pressed.connect(func(): _on_gender_button_pressed(MALE_MODEL_PATH))
 	female_button.pressed.connect(func(): _on_gender_button_pressed(FEMALE_MODEL_PATH))
-	right_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("rhand_g", Color(0.2, 0.9, 1.0)))
-	left_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("lhand_g", Color(1.0, 0.2, 0.2)))
+	right_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("rhand", "right_weapon", Color(0.2, 0.9, 1.0)))
+	left_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("lhand", "left_weapon", Color(1.0, 0.2, 0.2)))
+	left_shield_button.toggled.connect(_on_weapon_toggled.bind("lforearm", "shield", Color(0.5, 1.0, 0.3)))
 	pole_vectors_button.toggled.connect(_on_pole_vectors_toggled)
 	skeleton_overlay_button.toggled.connect(func(v): retarget_overlay_toggled.emit(v))
 
@@ -109,7 +112,7 @@ func set_status(text: String) -> void:
 ## is the odd one out: its neutral/default state is HIDDEN, not shown, so
 ## it's reset to pressed=true instead of being lumped in with the others.
 func reset_display_toggles() -> void:
-	for button in [right_hand_weapon_button, left_hand_weapon_button, pole_vectors_button, skeleton_overlay_button, play_button]:
+	for button in [right_hand_weapon_button, left_hand_weapon_button, left_shield_button, pole_vectors_button, skeleton_overlay_button, play_button]:
 		if button.button_pressed:
 			button.button_pressed = false
 	if not cloak_button.button_pressed:
@@ -192,21 +195,49 @@ func set_active_gender(model_path: String) -> void:
 	male_button.disabled = (model_path == MALE_MODEL_PATH)
 	female_button.disabled = (model_path == FEMALE_MODEL_PATH)
 
-func _on_weapon_toggled(pressed: bool, hand_node_name: String, color: Color) -> void:
+## attach_node_name is the weapon/shield-attachment dummy ("rhand"/"lhand"/
+## "lforearm"), not the hand/forearm mesh itself -- the preview is parented
+## there so it rotates along with that dummy, and (since it's hard to click
+## a collider buried inside the limb) the preview mesh doubles as the actual
+## pick target for the matching component while it's visible.
+func _on_weapon_toggled(pressed: bool, attach_node_name: String, component_id: String, color: Color) -> void:
 	if pressed:
-		_add_weapon(hand_node_name, color)
-	elif _weapon_meshes.has(hand_node_name):
-		_weapon_meshes[hand_node_name].queue_free()
-		_weapon_meshes.erase(hand_node_name)
+		_add_weapon(attach_node_name, component_id, color)
+	elif _weapon_meshes.has(attach_node_name):
+		if is_instance_valid(_weapon_meshes[attach_node_name]):
+			_weapon_meshes[attach_node_name].queue_free()
+		_weapon_meshes.erase(attach_node_name)
+		if rig_controller != null:
+			rig_controller.reset_component_pick(component_id, attach_node_name)
 
-func _add_weapon(hand_node_name: String, color: Color) -> void:
+func _add_weapon(hand_node_name: String, component_id: String, color: Color) -> void:
 	var hand := _find(rig_root, hand_node_name)
 	if hand == null:
 		return
 	var mesh := CylinderMesh.new()
-	mesh.top_radius = 0.015
-	mesh.bottom_radius = 0.015
-	mesh.height = 0.6
+	var mi := MeshInstance3D.new()
+
+	if component_id == "shield":
+		# A shield reads as a short, wide disc rather than a blade: a much
+		# bigger radius (>= 10x the weapon's) squashed down to a fraction of
+		# the weapon's height, rotated 90° so its flat face points outward
+		# from the forearm instead of running along it like a cylinder grip.
+		mesh.top_radius = 0.15
+		mesh.bottom_radius = 0.15
+		mesh.height = 0.05
+		mi.rotation_degrees = Vector3(0, 0, 90)
+		mi.position = Vector3.ZERO
+	else:
+		mesh.top_radius = 0.015
+		mesh.bottom_radius = 0.015
+		mesh.height = 0.6
+		mi.rotation_degrees = Vector3(-90, 0, 0)
+		# CylinderMesh is centered on its own pivot; shift it by half its
+		# height along the (now rotated) blade axis so the hand grips the
+		# near END of the blade, not its middle, with the grip sitting right
+		# at the hand. The small extra downward nudge moves the grip from
+		# the wrist joint into the fist, where it visually belongs.
+		mi.position = Vector3(0, -0.06, -mesh.height * 0.5)
 
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
@@ -215,18 +246,12 @@ func _add_weapon(hand_node_name: String, color: Color) -> void:
 	mat.emission = color
 	mat.emission_energy_multiplier = 1.5
 
-	var mi := MeshInstance3D.new()
 	mi.mesh = mesh
 	mi.material_override = mat
-	mi.rotation_degrees = Vector3(-90, 0, 0)
-	# CylinderMesh is centered on its own pivot; shift it by half its height
-	# along the (now rotated) blade axis so the hand grips the near END of
-	# the blade, not its middle, with the grip sitting right at the hand.
-	# The small extra downward nudge moves the grip from the wrist joint
-	# into the fist, where it visually belongs.
-	mi.position = Vector3(0, -0.06, -mesh.height * 0.5)
 	hand.add_child(mi)
 	_weapon_meshes[hand_node_name] = mi
+	if rig_controller != null:
+		rig_controller.set_component_pick_mesh(component_id, hand_node_name, mi)
 
 func _find(node: Node, target_name: String) -> Node3D:
 	if node == null:

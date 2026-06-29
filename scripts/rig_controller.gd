@@ -36,6 +36,10 @@ func rebuild(new_rig_root: Node3D) -> void:
 	rig_root = new_rig_root
 	_build_pick_colliders()
 
+## Used for non-mesh dummy nodes (e.g. the rhand/lhand weapon attachment
+## points) that have no AABB of their own to size a pick collider from.
+const DUMMY_PICK_SIZE := Vector3(0.12, 0.12, 0.12)
+
 func _build_pick_colliders() -> void:
 	for component_id in _node_to_component.values():
 		if not _component_meshes.has(component_id):
@@ -43,29 +47,80 @@ func _build_pick_colliders() -> void:
 			_component_bodies[component_id] = []
 
 	for node_name in _node_to_component.keys():
-		var mesh_node := _find_descendant(rig_root, node_name)
-		if mesh_node == null or not (mesh_node is MeshInstance3D):
-			push_warning("RigController: node '%s' not found or not a MeshInstance3D" % node_name)
+		var target_node := _find_descendant(rig_root, node_name)
+		if target_node == null or not (target_node is Node3D):
+			push_warning("RigController: node '%s' not found or not a Node3D" % node_name)
 			continue
 		var component_id: String = _node_to_component[node_name]
-		_component_meshes[component_id].append(mesh_node)
 
-		var aabb: AABB = mesh_node.get_aabb()
-		var body := StaticBody3D.new()
-		body.name = "PickBody_%s" % node_name
-		body.collision_layer = RigComponents.PICK_LAYER
-		body.collision_mask = 0
-		body.set_meta("component_id", component_id)
+		if target_node is MeshInstance3D:
+			_component_meshes[component_id].append(target_node)
+			var aabb: AABB = target_node.get_aabb()
+			# slight padding so thin parts are easier to click
+			_add_pick_body(component_id, node_name, target_node, aabb.size * 1.05, aabb.get_center())
+		else:
+			_add_pick_body(component_id, node_name, target_node, DUMMY_PICK_SIZE, Vector3.ZERO)
 
-		var shape := CollisionShape3D.new()
-		var box := BoxShape3D.new()
-		box.size = aabb.size * 1.05 # slight padding so thin parts are easier to click
-		shape.shape = box
-		shape.position = aabb.get_center()
-		body.add_child(shape)
+func _add_pick_body(component_id: String, node_name: String, parent_node: Node3D, box_size: Vector3, box_center: Vector3) -> void:
+	var body := StaticBody3D.new()
+	body.name = "PickBody_%s" % node_name
+	body.collision_layer = RigComponents.PICK_LAYER
+	body.collision_mask = 0
+	body.set_meta("component_id", component_id)
 
-		mesh_node.add_child(body)
-		_component_bodies[component_id].append(body)
+	var shape := CollisionShape3D.new()
+	var box := BoxShape3D.new()
+	box.size = box_size
+	shape.shape = box
+	shape.position = box_center
+	body.add_child(shape)
+
+	parent_node.add_child(body)
+	if not _component_bodies.has(component_id):
+		_component_bodies[component_id] = []
+	_component_bodies[component_id].append(body)
+
+func _clear_component_pick(component_id: String) -> void:
+	for body in _component_bodies.get(component_id, []):
+		if is_instance_valid(body):
+			# queue_free() alone doesn't leave the tree until end of frame,
+			# so the replacement body added right after this (same intended
+			# name, e.g. "PickBody_rhand") would otherwise get silently
+			# auto-renamed to avoid the collision -- remove it from the tree
+			# immediately and only defer the actual deallocation.
+			var parent: Node = body.get_parent()
+			if parent != null:
+				parent.remove_child(body)
+			body.queue_free()
+	# If the component is currently selected (highlighted) and its mesh is
+	# about to be discarded -- e.g. the weapon/shield preview is freed while
+	# still selected -- drop the stale _highlight_materials entry too, or
+	# _clear_highlight() would later try to restore material_overlay on a
+	# freed mesh and crash the next time anything gets selected/deselected.
+	for mesh_node in _component_meshes.get(component_id, []):
+		_highlight_materials.erase(mesh_node)
+	_component_bodies[component_id] = []
+	_component_meshes[component_id] = []
+
+## A handful of components (the weapon-attachment dummies "rhand"/"lhand")
+## have no mesh of their own, so by default they only get a small, easy-to-
+## miss pick box buried inside the hand mesh. When the matching "show
+## weapon" preview mesh is visible, swap the pick collider to match ITS
+## (much bigger, more clickable) bounds instead, and let it highlight like
+## any other selectable mesh. Call reset_component_pick() when the preview
+## is hidden again to fall back to the tiny default box.
+func set_component_pick_mesh(component_id: String, node_name: String, mesh_node: MeshInstance3D) -> void:
+	_clear_component_pick(component_id)
+	_component_meshes[component_id].append(mesh_node)
+	var aabb: AABB = mesh_node.get_aabb()
+	_add_pick_body(component_id, node_name, mesh_node, aabb.size * 1.2, aabb.get_center())
+
+func reset_component_pick(component_id: String, node_name: String) -> void:
+	_clear_component_pick(component_id)
+	var target_node := _find_descendant(rig_root, node_name)
+	if target_node == null or not (target_node is Node3D):
+		return
+	_add_pick_body(component_id, node_name, target_node, DUMMY_PICK_SIZE, Vector3.ZERO)
 
 func _find_descendant(node: Node, target_name: String) -> Node:
 	if node.name == target_name:
@@ -139,7 +194,11 @@ func _apply_highlight(component_id: String) -> void:
 
 func _clear_highlight() -> void:
 	for mesh_node in _highlight_materials.keys():
-		mesh_node.material_overlay = _highlight_materials[mesh_node]
+		# A highlighted mesh can be freed out from under this dict (e.g. a
+		# weapon/shield preview hidden while still selected) -- guard
+		# defensively so a stale entry never crashes the next selection.
+		if is_instance_valid(mesh_node):
+			mesh_node.material_overlay = _highlight_materials[mesh_node]
 	_highlight_materials.clear()
 
 func get_component_chain(component_id: String) -> Array[String]:

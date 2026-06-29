@@ -264,6 +264,13 @@ tooltip_text = "Show left hand weapon"
 toggle_mode = true
 text = "L.Wpn"
 
+[node name="LeftShieldButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1883838298]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Show left forearm shield"
+toggle_mode = true
+text = "L.Sld"
+
 [node name="PoleVectorsToggleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=128322772]
 custom_minimum_size = Vector2(28, 28)
 layout_mode = 2

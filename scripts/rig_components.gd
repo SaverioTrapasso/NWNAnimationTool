@@ -24,6 +24,15 @@ static func definitions() -> Array[ComponentDef]:
 	list.append(ComponentDef.new("left_arm", ["lbicep_g", "lforearm_g", "lhand_g"], true))
 	list.append(ComponentDef.new("right_leg", ["rthigh_g", "rshin_g", "rfoot_g"], true))
 	list.append(ComponentDef.new("left_leg", ["lthigh_g", "lshin_g", "lfoot_g"], true))
+	# "rhand"/"lhand" are the weapon-attachment dummies NWN parents under
+	# rhand_g/lhand_g (no mesh of their own) -- selectable and FK-rotatable
+	# on their own so a weapon's orientation can be keyed independently of
+	# the hand that's holding it.
+	list.append(ComponentDef.new("right_weapon", ["rhand"], false))
+	list.append(ComponentDef.new("left_weapon", ["lhand"], false))
+	# "lforearm" is NWN's shield-attachment dummy (no mesh of its own),
+	# parented under lforearm_g -- same idea as rhand/lhand above.
+	list.append(ComponentDef.new("shield", ["lforearm"], false))
 	return list
 
 ## Maps every node name in every component chain to its component id.

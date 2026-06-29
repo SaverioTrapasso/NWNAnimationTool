@@ -5,12 +5,23 @@ extends Control
 ## playhead moves so the rig can preview the pose at that time.
 
 signal time_changed(t: float)
+## Shift+click-dragging an EXISTING keyframe dot rigidly slides it and every
+## keyframe to its right by the same amount -- e.g. to squeeze out an
+## unwanted opening key pose by dragging the second keyframe back toward 0.
+## Emitted only while Shift is held and the click/drag started on a real
+## keyframe; a Shift-click on empty track does nothing (no signal at all).
+signal shift_drag_started(anchor_time: float)
+signal shift_drag_moved(anchor_time: float, delta_time: float)
+signal shift_drag_ended()
 
 var length: float = 5.0
 var current_time: float = 0.0
 var keyframe_times: Array = []
 
 var _dragging: bool = false
+var _shift_dragging: bool = false
+var _shift_anchor_time: float = 0.0
+var _shift_drag_start_x: float = 0.0
 
 const MARGIN := 14.0
 const SNAP_PIXELS := 10.0
@@ -34,13 +45,56 @@ func set_current_time(t: float) -> void:
 
 func _gui_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
-		_dragging = event.pressed
 		if event.pressed:
+			if event.shift_pressed:
+				var hit = _find_keyframe_near(event.position.x)
+				if hit != null:
+					_shift_dragging = true
+					_shift_anchor_time = hit
+					_shift_drag_start_x = event.position.x
+					shift_drag_started.emit(_shift_anchor_time)
+					accept_event()
+				# Shift-click on empty track: intentionally does nothing,
+				# not even a normal scrub -- this gesture only ever means
+				# "grab that keyframe," never "move the playhead."
+			else:
+				_dragging = true
+				_scrub_to(event.position.x)
+				accept_event()
+		else:
+			if _shift_dragging:
+				_shift_dragging = false
+				shift_drag_ended.emit()
+				accept_event()
+			elif _dragging:
+				_dragging = false
+				accept_event()
+	elif event is InputEventMouseMotion:
+		if _shift_dragging:
+			var w: float = size.x - MARGIN * 2.0
+			if w > 0.0:
+				var delta_time: float = (event.position.x - _shift_drag_start_x) / w * length
+				shift_drag_moved.emit(_shift_anchor_time, delta_time)
+			accept_event()
+		elif _dragging:
 			_scrub_to(event.position.x)
 			accept_event()
-	elif event is InputEventMouseMotion and _dragging:
-		_scrub_to(event.position.x)
-		accept_event()
+
+## Returns the time of the keyframe dot nearest `x` (within SNAP_PIXELS), or
+## null if there's no keyframe close enough to count as "clicked on it."
+func _find_keyframe_near(x: float) -> Variant:
+	var w: float = size.x - MARGIN * 2.0
+	if w <= 0.0:
+		return null
+	var best_dist := INF
+	var best_time: Variant = null
+	for t in keyframe_times:
+		var kx: float = MARGIN + (t / length) * w
+		var dist: float = abs(kx - x)
+		if dist < SNAP_PIXELS and dist < best_dist:
+			best_dist = dist
+			best_time = t
+	return best_time
 
 func _scrub_to(x: float) -> void:
 	var w: float = size.x - MARGIN * 2.0
