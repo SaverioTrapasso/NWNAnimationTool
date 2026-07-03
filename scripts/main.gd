@@ -111,6 +111,7 @@ func _ready() -> void:
 	_ai_client.pose_failed.connect(_on_ai_pose_failed)
 	side_panel.ai_pose_image_selected.connect(_on_ai_image_selected)
 	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
+	side_panel.ai_pose_overlay_toggled.connect(func(v): green_visualizer.visible = v)
 
 	red_visualizer.camera = $Camera3D
 	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
@@ -1193,6 +1194,8 @@ func _on_ai_pose_received(world_landmarks: Array) -> void:
 	side_panel.set_ai_server_status("Pose detected. Press Apply Pose.")
 	side_panel.set_ai_apply_enabled(true)
 	_show_ai_landmark_overlay(world_landmarks)
+	side_panel.set_ai_pose_overlay_available(true)
+	side_panel.ai_pose_overlay_button.set_pressed_no_signal(true)
 
 # MediaPipe skeleton connections (from_idx, to_idx) — the standard 33-point
 # pose topology, enough to draw a recognizable body outline as a debug overlay.
@@ -1275,6 +1278,7 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 func _on_ai_pose_failed(error: String) -> void:
 	side_panel.set_ai_server_status("Error: %s" % error)
 	side_panel.set_ai_apply_enabled(false)
+	side_panel.set_ai_pose_overlay_available(false)
 	green_visualizer.visible = false
 
 func _on_ai_apply_pose() -> void:
@@ -1288,6 +1292,7 @@ func _on_ai_apply_pose() -> void:
 	var sel: String = rig_controller.selected_component
 	if sel != "":
 		_on_component_selected(sel)
+	side_panel.set_ai_pose_overlay_available(false)
 	green_visualizer.visible = false
 	side_panel.set_status("AI pose applied (%d bones)." % rotations.size())
 

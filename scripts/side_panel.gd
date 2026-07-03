@@ -19,6 +19,7 @@ signal retarget_overlay_toggled(enabled: bool)
 signal gender_selected(model_path: String)
 signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
+signal ai_pose_overlay_toggled(visible: bool)
 
 @export var rig_root: Node3D
 @export var rig_controller: Node3D
@@ -61,6 +62,7 @@ signal ai_pose_apply_requested()
 @onready var left_shield_button: Button = viewport_toolbar.get_node("LeftShieldButton")
 @onready var pole_vectors_button: Button = viewport_toolbar.get_node("PoleVectorsToggleButton")
 @onready var skeleton_overlay_button: Button = viewport_toolbar.get_node("SkeletonOverlayButton")
+@onready var ai_pose_overlay_button: Button = viewport_toolbar.get_node("AIPoseOverlayButton")
 
 @onready var play_button: Button = _sidebar.get_node("Keyframe/PlayButton")
 @onready var timeline: Control = $TimelineRow/Timeline
@@ -113,6 +115,7 @@ func _ready() -> void:
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
+	ai_pose_overlay_button.toggled.connect(func(v): ai_pose_overlay_toggled.emit(v))
 
 func set_status(text: String) -> void:
 	status_label.text = text
@@ -274,6 +277,11 @@ func set_ai_server_status(text: String) -> void:
 
 func set_ai_apply_enabled(enabled: bool) -> void:
 	ai_apply_pose_button.disabled = not enabled
+
+func set_ai_pose_overlay_available(available: bool) -> void:
+	ai_pose_overlay_button.disabled = not available
+	if not available:
+		ai_pose_overlay_button.set_pressed_no_signal(false)
 
 func _find(node: Node, target_name: String) -> Node3D:
 	if node == null:
