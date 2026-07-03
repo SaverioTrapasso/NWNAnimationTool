@@ -60,25 +60,34 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	# ------------------------------------------------------------------
 	# IK targets: right arm, left arm, right leg, left leg
 	# ------------------------------------------------------------------
-	if vis[MP_RIGHT_WRIST] >= 0.4 and vis[MP_RIGHT_ELBOW] >= 0.4:
+	# Pole vector formula: midpoint between root and tip of the limb,
+	# then project outward through the mid-joint (elbow/knee) doubling
+	# the distance — pole = 2*mid_joint - midpoint(root, tip).
+	# This guarantees the pole is always on the correct side and at a
+	# safe distance regardless of how extreme the pose is.
+	if vis[MP_RIGHT_SHOULDER] >= 0.4 and vis[MP_RIGHT_WRIST] >= 0.4 and vis[MP_RIGHT_ELBOW] >= 0.4:
+		var mid := (pts[MP_RIGHT_SHOULDER] + pts[MP_RIGHT_WRIST]) * 0.5
 		result["ik_targets"]["right_arm"] = {
 			"target": pts[MP_RIGHT_WRIST],
-			"pole":   pts[MP_RIGHT_ELBOW],
+			"pole":   pts[MP_RIGHT_ELBOW] * 2.0 - mid,
 		}
-	if vis[MP_LEFT_WRIST] >= 0.4 and vis[MP_LEFT_ELBOW] >= 0.4:
+	if vis[MP_LEFT_SHOULDER] >= 0.4 and vis[MP_LEFT_WRIST] >= 0.4 and vis[MP_LEFT_ELBOW] >= 0.4:
+		var mid := (pts[MP_LEFT_SHOULDER] + pts[MP_LEFT_WRIST]) * 0.5
 		result["ik_targets"]["left_arm"] = {
 			"target": pts[MP_LEFT_WRIST],
-			"pole":   pts[MP_LEFT_ELBOW],
+			"pole":   pts[MP_LEFT_ELBOW] * 2.0 - mid,
 		}
-	if vis[MP_RIGHT_ANKLE] >= 0.4 and vis[MP_RIGHT_KNEE] >= 0.4:
+	if vis[MP_RIGHT_HIP] >= 0.4 and vis[MP_RIGHT_ANKLE] >= 0.4 and vis[MP_RIGHT_KNEE] >= 0.4:
+		var mid := (pts[MP_RIGHT_HIP] + pts[MP_RIGHT_ANKLE]) * 0.5
 		result["ik_targets"]["right_leg"] = {
 			"target": pts[MP_RIGHT_ANKLE],
-			"pole":   pts[MP_RIGHT_KNEE],
+			"pole":   pts[MP_RIGHT_KNEE] * 2.0 - mid,
 		}
-	if vis[MP_LEFT_ANKLE] >= 0.4 and vis[MP_LEFT_KNEE] >= 0.4:
+	if vis[MP_LEFT_HIP] >= 0.4 and vis[MP_LEFT_ANKLE] >= 0.4 and vis[MP_LEFT_KNEE] >= 0.4:
+		var mid := (pts[MP_LEFT_HIP] + pts[MP_LEFT_ANKLE]) * 0.5
 		result["ik_targets"]["left_leg"] = {
 			"target": pts[MP_LEFT_ANKLE],
-			"pole":   pts[MP_LEFT_KNEE],
+			"pole":   pts[MP_LEFT_KNEE] * 2.0 - mid,
 		}
 
 	# ------------------------------------------------------------------
