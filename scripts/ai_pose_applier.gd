@@ -14,6 +14,8 @@ extends RefCounted
 # MediaPipe landmark indices
 # ---------------------------------------------------------------------------
 const MP_NOSE           := 0
+const MP_LEFT_EAR       := 7
+const MP_RIGHT_EAR      := 8
 const MP_LEFT_SHOULDER  := 11
 const MP_RIGHT_SHOULDER := 12
 const MP_LEFT_ELBOW     := 13
@@ -147,22 +149,29 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 			result["root_position"] = rootdummy.global_position + (support_hip - rig_hip_center)
 
 	# ------------------------------------------------------------------
-	# FK: head — use shoulder→nose direction, same Basis approach
+	# FK: head — ear midpoint up toward chest midpoint (shoulders)
+	#
+	# support_ear      = midpoint of left_ear and right_ear
+	# support_shoulder = midpoint of left_shoulder and right_shoulder
+	#
+	# Y (up)    = (ear_midpoint - shoulder_midpoint).normalized()
+	# X (right) = (right_ear - left_ear).normalized(), ortho vs Y
+	# Z         = X.cross(Y)
 	# ------------------------------------------------------------------
-	if vis[MP_NOSE] >= 0.4 and vis[MP_LEFT_SHOULDER] >= 0.4 and vis[MP_RIGHT_SHOULDER] >= 0.4:
+	if vis[MP_LEFT_EAR] >= 0.4 and vis[MP_RIGHT_EAR] >= 0.4 and \
+	   vis[MP_LEFT_SHOULDER] >= 0.4 and vis[MP_RIGHT_SHOULDER] >= 0.4:
+		var support_ear      := (pts[MP_LEFT_EAR]      + pts[MP_RIGHT_EAR])      * 0.5
 		var support_shoulder := (pts[MP_LEFT_SHOULDER] + pts[MP_RIGHT_SHOULDER]) * 0.5
-		var head_dir := (pts[MP_NOSE] - support_shoulder).normalized()
+		var h_axis_y := (support_ear - support_shoulder).normalized()
+		var h_axis_x := (pts[MP_RIGHT_EAR] - pts[MP_LEFT_EAR]).normalized()
+		h_axis_x = (h_axis_x - h_axis_y * h_axis_y.dot(h_axis_x)).normalized()
+		var h_axis_z := h_axis_x.cross(h_axis_y).normalized()
+		var target_head_basis := Basis(h_axis_x, h_axis_y, h_axis_z)
 		var head_node: Node3D = _find(rig_root, "head_g")
 		if head_node != null:
 			var rest_global_basis := head_node.global_basis
 			var parent_node := head_node.get_parent()
 			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
-			# Build a basis with Y pointing toward the nose
-			var h_axis_y := head_dir
-			var h_axis_x := rest_global_basis.x  # keep lateral axis from rest
-			h_axis_x = (h_axis_x - h_axis_y * h_axis_y.dot(h_axis_x)).normalized()
-			var h_axis_z := h_axis_x.cross(h_axis_y).normalized()
-			var target_head_basis := Basis(h_axis_x, h_axis_y, h_axis_z)
 			var rot_global := target_head_basis * rest_global_basis.inverse()
 			result["fk_rotations"]["head_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
 
