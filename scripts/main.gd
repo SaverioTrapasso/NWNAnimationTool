@@ -1303,6 +1303,14 @@ func _on_ai_apply_pose() -> void:
 			_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
 			_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
 
+	# Reset hand rotations to zero — after IK the forearm is already in the
+	# right orientation, and the hand following it at identity is almost
+	# always correct and avoids random wrist twists from the solver.
+	for hand_name in ["rhand_g", "lhand_g"]:
+		var hand: Node3D = rig_controller.find_node(hand_name)
+		if hand != null:
+			hand.basis = Basis.IDENTITY
+
 	# Apply FK rotations (torso, head) directly onto the bone nodes
 	var fk_rotations: Dictionary = data.get("fk_rotations", {})
 	for bone_name in fk_rotations:
