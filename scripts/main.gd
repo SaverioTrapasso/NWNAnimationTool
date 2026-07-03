@@ -2,11 +2,14 @@ extends Node3D
 
 const DragHandleScript = preload("res://scripts/drag_handle.gd")
 const TranslationGizmoScript = preload("res://scripts/translation_gizmo.gd")
+const AIPoseClientScript = preload("res://scripts/ai_pose_client.gd")
+const AIPoseApplier = preload("res://scripts/ai_pose_applier.gd")
 
 @onready var rig_controller: Node3D = $RigController
 @onready var gizmo: Node3D = $RotationGizmo
 @onready var side_panel: Control = $SidePanel
 @onready var red_visualizer: Node3D = $RedVisualizer
+@onready var green_visualizer: Node3D = $GreenVisualizer
 
 var _current_model_path: String = "res://assets/nwn/a_ba.glb"
 
@@ -100,6 +103,15 @@ func _ready() -> void:
 	side_panel.bone_config_panel.flip_180_toggled.connect(_on_retarget_flip_180_toggled)
 	side_panel.new_requested.connect(_on_new_requested)
 	side_panel.gender_selected.connect(_on_gender_selected)
+
+	_ai_client = AIPoseClientScript.new()
+	_ai_client.name = "AIPoseClient"
+	add_child(_ai_client)
+	_ai_client.pose_received.connect(_on_ai_pose_received)
+	_ai_client.pose_failed.connect(_on_ai_pose_failed)
+	side_panel.ai_pose_image_selected.connect(_on_ai_image_selected)
+	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
+	_ai_check_server()
 
 	red_visualizer.camera = $Camera3D
 	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
@@ -1161,6 +1173,138 @@ func _on_retarget_bake_requested() -> void:
 	side_panel.timeline.set_current_time(_retarget_lock_time)
 	_apply_pose_at_time(_retarget_lock_time)
 	side_panel.set_status("Baked %d keyframes (locked at t=%.2fs)." % [_keyframes.size(), _retarget_lock_time])
+
+# ---------------------------------------------------------------------------
+# AI Pose
+# ---------------------------------------------------------------------------
+
+var _ai_client: Node = null
+var _ai_pending_image_path: String = ""
+var _ai_pending_landmarks: Array = []
+
+func _ai_check_server() -> void:
+	if _ai_client == null:
+		return
+	_ai_client.check_server(func(ok: bool):
+		if ok:
+			side_panel.set_ai_server_status("Server: connected")
+		else:
+			side_panel.set_ai_server_status("Server: not running (start pose_server.py)")
+	)
+
+func _on_ai_image_selected(path: String) -> void:
+	_ai_pending_image_path = path
+	_ai_pending_landmarks = []
+	side_panel.set_ai_server_status("Analyzing image...")
+	side_panel.set_ai_apply_enabled(false)
+	var image_bytes := FileAccess.get_file_as_bytes(path)
+	if image_bytes.is_empty():
+		side_panel.set_ai_server_status("Error: could not read image file.")
+		return
+	_ai_client.send_image(image_bytes)
+
+func _on_ai_pose_received(world_landmarks: Array) -> void:
+	_ai_pending_landmarks = world_landmarks
+	side_panel.set_ai_server_status("Pose detected (%d landmarks). Press Apply Pose." % world_landmarks.size())
+	side_panel.set_ai_apply_enabled(true)
+	_show_ai_landmark_overlay(world_landmarks)
+
+# MediaPipe skeleton connections (from_idx, to_idx) — the standard 33-point
+# pose topology, enough to draw a recognizable body outline as a debug overlay.
+const MP_CONNECTIONS := [
+	[11, 12], # shoulders
+	[11, 13], [13, 15], # left arm
+	[12, 14], [14, 16], # right arm
+	[11, 23], [12, 24], # torso sides
+	[23, 24], # hips
+	[23, 25], [25, 27], # left leg
+	[24, 26], [26, 28], # right leg
+	[0, 11], [0, 12],   # head to shoulders (approximation)
+]
+
+func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
+	green_visualizer.clear()
+
+	if world_landmarks.is_empty():
+		green_visualizer.visible = false
+		return
+
+	# Anchor the MediaPipe skeleton to the NWN rig's hip centre so the
+	# overlay sits on top of the model rather than at the world origin.
+	var left_hip_node: Node3D = rig_controller.find_node("lthigh_g")
+	var right_hip_node: Node3D = rig_controller.find_node("rthigh_g")
+	var rig_hip_center := Vector3.ZERO
+	if left_hip_node != null and right_hip_node != null:
+		rig_hip_center = (left_hip_node.global_position + right_hip_node.global_position) * 0.5
+	elif left_hip_node != null:
+		rig_hip_center = left_hip_node.global_position
+
+	# Estimate scale: MediaPipe shoulder width in metres vs NWN shoulder width
+	var mp_left_shoulder := Vector3(world_landmarks[11]["x"], -world_landmarks[11]["y"], -world_landmarks[11]["z"])
+	var mp_right_shoulder := Vector3(world_landmarks[12]["x"], -world_landmarks[12]["y"], -world_landmarks[12]["z"])
+	var mp_shoulder_width: float = (mp_left_shoulder - mp_right_shoulder).length()
+
+	var nwn_left: Node3D = rig_controller.find_node("lbicep_g")
+	var nwn_right: Node3D = rig_controller.find_node("rbicep_g")
+	var nwn_shoulder_width: float = 0.3  # fallback
+	if nwn_left != null and nwn_right != null:
+		nwn_shoulder_width = (nwn_left.global_position - nwn_right.global_position).length()
+
+	var scale_factor: float = nwn_shoulder_width / max(mp_shoulder_width, 0.001)
+
+	# Convert landmarks to world positions
+	var positions: Array[Vector3] = []
+	for lm in world_landmarks:
+		var p := Vector3(lm["x"], -lm["y"], -lm["z"]) * scale_factor + rig_hip_center
+		positions.append(p)
+
+	# Build joint entries
+	var entries: Array = []
+	for i in range(positions.size()):
+		var lm = world_landmarks[i]
+		if lm.get("visibility", 1.0) < 0.3:
+			continue
+		entries.append({"name": lm.get("name", str(i)), "position": positions[i], "parent_position": null})
+
+	# Add bone lines from connections
+	var entry_map: Dictionary = {}
+	for e in entries:
+		entry_map[e["name"]] = e
+
+	for conn in MP_CONNECTIONS:
+		var a_idx: int = conn[0]
+		var b_idx: int = conn[1]
+		if a_idx >= positions.size() or b_idx >= positions.size():
+			continue
+		var vis_a: float = world_landmarks[a_idx].get("visibility", 1.0)
+		var vis_b: float = world_landmarks[b_idx].get("visibility", 1.0)
+		if vis_a < 0.3 or vis_b < 0.3:
+			continue
+		var name_a: String = world_landmarks[a_idx].get("name", str(a_idx))
+		if entry_map.has(name_a):
+			entry_map[name_a]["parent_position"] = positions[b_idx]
+
+	green_visualizer.build(entries)
+	green_visualizer.visible = true
+
+func _on_ai_pose_failed(error: String) -> void:
+	side_panel.set_ai_server_status("Error: %s" % error)
+	side_panel.set_ai_apply_enabled(false)
+	green_visualizer.visible = false
+
+func _on_ai_apply_pose() -> void:
+	if _ai_pending_landmarks.is_empty():
+		side_panel.set_status("No pose detected yet — load an image first.")
+		return
+	_push_undo_snapshot()
+	var rotations := AIPoseApplier.landmarks_to_rotations(_ai_pending_landmarks, $Rig)
+	AIPoseApplier.apply_rotations(rotations, $Rig)
+	_resync_limb_targets_from_current_pose()
+	var sel: String = rig_controller.selected_component
+	if sel != "":
+		_on_component_selected(sel)
+	green_visualizer.visible = false
+	side_panel.set_status("AI pose applied (%d bones)." % rotations.size())
 
 func _on_retarget_save_config_requested() -> void:
 	if _retarget_config_path == "":

@@ -143,6 +143,11 @@ visible = false
 script = ExtResource("12")
 color = Color(0.9, 0.2, 0.2, 1)
 
+[node name="GreenVisualizer" type="Node3D" parent="." unique_id=1111000010]
+visible = false
+script = ExtResource("12")
+color = Color(0.2, 1.0, 0.4, 1)
+
 [node name="SidePanel" type="Control" parent="." unique_id=2106817703]
 layout_mode = 3
 anchors_preset = 15
@@ -441,6 +446,40 @@ text = "Remove"
 layout_mode = 2
 toggle_mode = true
 text = "Play"
+
+[node name="AIPose" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1111000001]
+layout_mode = 2
+
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000002]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
+text = "AI POSE"
+
+[node name="LoadImageButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000003]
+layout_mode = 2
+text = "Load Image..."
+
+[node name="ApplyPoseButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000004]
+layout_mode = 2
+disabled = true
+text = "Apply Pose"
+
+[node name="ServerStatusLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000005]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+text = "Server: not connected"
+autowrap_mode = 3
+
+[node name="AIImageDialog" type="FileDialog" parent="SidePanel" unique_id=1111000006]
+title = "Load Reference Image"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Load"
+file_mode = 0
+access = 2
+filters = PackedStringArray("*.png,*.jpg,*.jpeg ; Image Files")
 
 [node name="StatusLabel" type="Label" parent="SidePanel/Sidebar" unique_id=1251374347]
 layout_mode = 1
