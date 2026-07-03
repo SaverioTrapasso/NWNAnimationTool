@@ -149,7 +149,7 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 			var new_root_pos: Vector3 = rootdummy.global_position + (support_hip - rig_hip_center)
 			# Ground the pose: find the lowest ankle and shift the whole
 			# thing down so that foot sits exactly at Y=0.
-			var min_foot_y := min(pts[MP_LEFT_ANKLE].y, pts[MP_RIGHT_ANKLE].y)
+			var min_foot_y: float = min(pts[MP_LEFT_ANKLE].y, pts[MP_RIGHT_ANKLE].y)
 			new_root_pos.y -= min_foot_y
 			result["root_position"] = new_root_pos
 
