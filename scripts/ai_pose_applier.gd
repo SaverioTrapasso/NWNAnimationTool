@@ -112,8 +112,8 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	#   Z (forward) = X.cross(Y)
 	#
 	# The local rotation for each bone is then:
-	#   rot = target_basis * bone_rest_global_basis.inverse()
-	# converted to local space via the parent's global basis.
+	# target_basis is already in world space. To get the local quaternion:
+	#   new_local_basis = parent_global_basis.inverse() * target_basis
 	# ------------------------------------------------------------------
 	if vis[MP_LEFT_HIP] >= 0.4 and vis[MP_RIGHT_HIP] >= 0.4 and \
 	   vis[MP_LEFT_SHOULDER] >= 0.4 and vis[MP_RIGHT_SHOULDER] >= 0.4:
@@ -121,33 +121,27 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		var support_hip      := (pts[MP_LEFT_HIP]      + pts[MP_RIGHT_HIP])      * 0.5
 		var support_shoulder := (pts[MP_LEFT_SHOULDER] + pts[MP_RIGHT_SHOULDER]) * 0.5
 
-		# After the 180° Y-flip: left_hip is pts[MP_LEFT_HIP], right is pts[MP_RIGHT_HIP].
-		# Lateral axis points from left to right in world space.
 		var axis_y := (support_shoulder - support_hip).normalized()
 		var axis_x := (pts[MP_RIGHT_HIP] - pts[MP_LEFT_HIP]).normalized()
-		axis_x = (axis_x - axis_y * axis_y.dot(axis_x)).normalized()  # Gram-Schmidt
+		axis_x = (axis_x - axis_y * axis_y.dot(axis_x)).normalized()
 		var axis_z := axis_x.cross(axis_y).normalized()
 		var target_basis := Basis(axis_x, axis_y, axis_z)
 
 		# --- Pelvis ---
 		var pelvis_node: Node3D = _find(rig_root, "pelvis_g")
 		if pelvis_node != null:
-			var rest_global_basis := pelvis_node.global_basis
 			var parent_node := pelvis_node.get_parent()
 			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
-			var rot_global := target_basis * rest_global_basis.inverse()
-			result["fk_rotations"]["pelvis_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
+			result["fk_rotations"]["pelvis_g"] = Quaternion(parent_global_basis.inverse() * target_basis)
 
 		# --- Torso ---
 		var torso_node: Node3D = _find(rig_root, "torso_g")
 		if torso_node != null:
-			var rest_global_basis := torso_node.global_basis
 			var parent_node := torso_node.get_parent()
 			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
-			var rot_global := target_basis * rest_global_basis.inverse()
-			result["fk_rotations"]["torso_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
+			result["fk_rotations"]["torso_g"] = Quaternion(parent_global_basis.inverse() * target_basis)
 
-		# --- Rootdummy position: shift so support_hip lands on the rig's hip midpoint ---
+		# --- Rootdummy position ---
 		var rootdummy: Node3D = _find(rig_root, "rootdummy")
 		var lthigh: Node3D   = _find(rig_root, "lthigh_g")
 		var rthigh: Node3D   = _find(rig_root, "rthigh_g")
@@ -156,14 +150,7 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 			result["root_position"] = rootdummy.global_position + (support_hip - rig_hip_center)
 
 	# ------------------------------------------------------------------
-	# FK: head — ear midpoint up toward chest midpoint (shoulders)
-	#
-	# support_ear      = midpoint of left_ear and right_ear
-	# support_shoulder = midpoint of left_shoulder and right_shoulder
-	#
-	# Y (up)    = (ear_midpoint - shoulder_midpoint).normalized()
-	# X (right) = (right_ear - left_ear).normalized(), ortho vs Y
-	# Z         = X.cross(Y)
+	# FK: head — ear midpoint up toward shoulder midpoint
 	# ------------------------------------------------------------------
 	if vis[MP_LEFT_EAR] >= 0.4 and vis[MP_RIGHT_EAR] >= 0.4 and \
 	   vis[MP_LEFT_SHOULDER] >= 0.4 and vis[MP_RIGHT_SHOULDER] >= 0.4:
@@ -176,11 +163,9 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		var target_head_basis := Basis(h_axis_x, h_axis_y, h_axis_z)
 		var head_node: Node3D = _find(rig_root, "head_g")
 		if head_node != null:
-			var rest_global_basis := head_node.global_basis
 			var parent_node := head_node.get_parent()
 			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
-			var rot_global := target_head_basis * rest_global_basis.inverse()
-			result["fk_rotations"]["head_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
+			result["fk_rotations"]["head_g"] = Quaternion(parent_global_basis.inverse() * target_head_basis)
 
 	return result
 
