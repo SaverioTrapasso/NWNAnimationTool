@@ -116,7 +116,7 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		if pelvis_node != null:
 			var rest_global_basis := pelvis_node.global_basis
 			var parent_node := pelvis_node.get_parent()
-			var parent_global_basis := parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
+			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
 			var rot_global := target_basis * rest_global_basis.inverse()
 			result["fk_rotations"]["pelvis_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
 
@@ -125,7 +125,7 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		if torso_node != null:
 			var rest_global_basis := torso_node.global_basis
 			var parent_node := torso_node.get_parent()
-			var parent_global_basis := parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
+			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
 			var rot_global := target_basis * rest_global_basis.inverse()
 			result["fk_rotations"]["torso_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
 
@@ -147,7 +147,7 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		if head_node != null:
 			var rest_global_basis := head_node.global_basis
 			var parent_node := head_node.get_parent()
-			var parent_global_basis := parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
+			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
 			# Build a basis with Y pointing toward the nose
 			var h_axis_y := head_dir
 			var h_axis_x := rest_global_basis.x  # keep lateral axis from rest
