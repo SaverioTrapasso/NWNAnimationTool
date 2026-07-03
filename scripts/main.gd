@@ -29,6 +29,11 @@ var _attachment_translate_handle: Node3D = null
 ## enabled position field in the transform panel, like the pelvis does.
 const ATTACHMENT_COMPONENT_IDS := ["right_weapon", "left_weapon", "shield"]
 
+## Nodes whose local basis should be forced to IDENTITY every frame,
+## applied after the IK solver runs (used to zero-out hand rotation
+## after an AI pose apply, since the IK solver would otherwise overwrite it).
+var _zero_basis_overrides: Array[Node3D] = []
+
 var _show_all_poles: bool = false
 var _all_pole_handles: Dictionary = {} # component_id -> Node3D (drag handle)
 
@@ -321,6 +326,7 @@ func _on_all_pole_moved(pos: Vector3, component_id: String) -> void:
 ## has no IK target yet and would move rigidly with the pelvis/torso instead
 ## of staying planted (e.g. feet sliding when the pelvis height changes).
 func _init_default_limb_targets() -> void:
+	_zero_basis_overrides.clear()
 	var root_dummy: Node3D = rig_controller.find_node("rootdummy")
 	var body_forward: Vector3 = root_dummy.global_basis * Vector3.FORWARD if root_dummy != null else Vector3.FORWARD
 
@@ -429,6 +435,9 @@ func _process(delta: float) -> void:
 			# staying put, since global_basis = parent_global_basis * local.
 			chain[2].basis = chain[1].global_basis.inverse() * t["end_basis"]
 		IKSolver.solve_two_bone(chain[0], chain[1], chain[2], t["target"], t["pole"])
+	for node in _zero_basis_overrides:
+		if is_instance_valid(node):
+			node.basis = Basis.IDENTITY
 	_refresh_transform_panel()
 
 func _on_play_toggled(playing: bool) -> void:
@@ -1303,13 +1312,14 @@ func _on_ai_apply_pose() -> void:
 			_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
 			_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
 
-	# Reset hand rotations to zero — after IK the forearm is already in the
-	# right orientation, and the hand following it at identity is almost
-	# always correct and avoids random wrist twists from the solver.
+	# Zero out hand rotations and keep them zeroed every frame (the IK
+	# solver runs in _process and would otherwise overwrite them).
+	_zero_basis_overrides.clear()
 	for hand_name in ["rhand_g", "lhand_g"]:
 		var hand: Node3D = rig_controller.find_node(hand_name)
 		if hand != null:
 			hand.basis = Basis.IDENTITY
+			_zero_basis_overrides.append(hand)
 
 	# Apply FK rotations (torso, head) directly onto the bone nodes
 	var fk_rotations: Dictionary = data.get("fk_rotations", {})
