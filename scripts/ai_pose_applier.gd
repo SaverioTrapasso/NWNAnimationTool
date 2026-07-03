@@ -53,6 +53,13 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	for lm in world_landmarks:
 		vis.append(lm.get("visibility", 1.0))
 
+	# Ground the entire skeleton: shift all pts down so the lowest ankle
+	# sits at Y=0. Done here before anything else so every derived point
+	# (IK targets, midpoints, FK bases) inherits the correction.
+	var min_foot_y: float = min(pts[MP_LEFT_ANKLE].y, pts[MP_RIGHT_ANKLE].y)
+	for i in range(pts.size()):
+		pts[i].y -= min_foot_y
+
 	var result := {
 		"ik_targets": {},
 		"fk_rotations": {},
@@ -146,12 +153,7 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		var rthigh: Node3D   = _find(rig_root, "rthigh_g")
 		if rootdummy != null and lthigh != null and rthigh != null:
 			var rig_hip_center := (lthigh.global_position + rthigh.global_position) * 0.5
-			var new_root_pos: Vector3 = rootdummy.global_position + (support_hip - rig_hip_center)
-			# Ground the pose: find the lowest ankle and shift the whole
-			# thing down so that foot sits exactly at Y=0.
-			var min_foot_y: float = min(pts[MP_LEFT_ANKLE].y, pts[MP_RIGHT_ANKLE].y)
-			new_root_pos.y -= min_foot_y
-			result["root_position"] = new_root_pos
+			result["root_position"] = rootdummy.global_position + (support_hip - rig_hip_center)
 
 	# ------------------------------------------------------------------
 	# FK: head — ear midpoint up toward chest midpoint (shoulders)
