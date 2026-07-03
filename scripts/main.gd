@@ -1181,6 +1181,8 @@ func _on_retarget_bake_requested() -> void:
 var _ai_client: Node = null
 var _ai_pending_image_path: String = ""
 var _ai_pending_landmarks: Array = []
+var _ai_scale_factor: float = 1.0
+var _ai_origin: Vector3 = Vector3.ZERO
 
 func _on_ai_image_selected(path: String) -> void:
 	_ai_pending_image_path = path
@@ -1239,6 +1241,8 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 		nwn_shoulder_width = (nwn_left.global_position - nwn_right.global_position).length()
 
 	var scale_factor: float = nwn_shoulder_width / max(mp_shoulder_width, 0.001)
+	_ai_scale_factor = scale_factor
+	_ai_origin = rig_hip_center
 
 	# Convert landmarks to world positions
 	var positions: Array[Vector3] = []
@@ -1286,15 +1290,42 @@ func _on_ai_apply_pose() -> void:
 		side_panel.set_status("No pose detected yet — load an image first.")
 		return
 	_push_undo_snapshot()
-	var rotations := AIPoseApplier.landmarks_to_rotations(_ai_pending_landmarks, $Rig)
-	AIPoseApplier.apply_rotations(rotations, $Rig)
-	_resync_limb_targets_from_current_pose()
+
+	var data := AIPoseApplier.compute(_ai_pending_landmarks, $Rig, _ai_scale_factor, _ai_origin)
+	if data.is_empty():
+		side_panel.set_status("Could not compute pose from landmarks.")
+		return
+
+	# Apply IK targets — same as dragging the yellow/foot handles by hand
+	var ik_targets: Dictionary = data.get("ik_targets", {})
+	for comp_id in ik_targets:
+		if _limb_targets.has(comp_id):
+			_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
+			_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
+
+	# Apply FK rotations (torso, head) directly onto the bone nodes
+	var fk_rotations: Dictionary = data.get("fk_rotations", {})
+	for bone_name in fk_rotations:
+		var node: Node3D = rig_controller.find_node(bone_name)
+		if node != null:
+			node.quaternion = fk_rotations[bone_name]
+
+	# Move pelvis/rootdummy if hip position was computed
+	var root_pos: Variant = data.get("root_position", null)
+	if root_pos != null:
+		var rootdummy: Node3D = rig_controller.find_node("rootdummy")
+		if rootdummy != null:
+			rootdummy.global_position = root_pos
+
 	var sel: String = rig_controller.selected_component
 	if sel != "":
 		_on_component_selected(sel)
+
 	side_panel.set_ai_pose_overlay_available(false)
 	green_visualizer.visible = false
-	side_panel.set_status("AI pose applied (%d bones)." % rotations.size())
+	var n_ik := ik_targets.size()
+	var n_fk := fk_rotations.size()
+	side_panel.set_status("AI pose applied (%d IK targets, %d FK bones)." % [n_ik, n_fk])
 
 func _on_retarget_save_config_requested() -> void:
 	if _retarget_config_path == "":
