@@ -82,43 +82,80 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		}
 
 	# ------------------------------------------------------------------
-	# FK: torso rotation — direction from hip centre to shoulder centre
+	# FK: pelvis + torso — build a full Basis from two support midpoints
+	#
+	# support_hip      = midpoint of left_hip  and right_hip  landmarks
+	# support_shoulder = midpoint of left_shoulder and right_shoulder
+	#
+	# From these two points we derive three orthogonal world-space axes:
+	#   Y (up)      = (support_shoulder - support_hip).normalized()
+	#   X (right)   = (right_hip - left_hip).normalized(), then
+	#                 orthogonalised w.r.t. Y (Gram-Schmidt)
+	#   Z (forward) = X.cross(Y)
+	#
+	# The local rotation for each bone is then:
+	#   rot = target_basis * bone_rest_global_basis.inverse()
+	# converted to local space via the parent's global basis.
 	# ------------------------------------------------------------------
 	if vis[MP_LEFT_HIP] >= 0.4 and vis[MP_RIGHT_HIP] >= 0.4 and \
 	   vis[MP_LEFT_SHOULDER] >= 0.4 and vis[MP_RIGHT_SHOULDER] >= 0.4:
 
-		var hip_center    := (pts[MP_LEFT_HIP]      + pts[MP_RIGHT_HIP])      * 0.5
-		var shoulder_center := (pts[MP_LEFT_SHOULDER] + pts[MP_RIGHT_SHOULDER]) * 0.5
-		var spine_dir     := (shoulder_center - hip_center).normalized()
+		var support_hip      := (pts[MP_LEFT_HIP]      + pts[MP_RIGHT_HIP])      * 0.5
+		var support_shoulder := (pts[MP_LEFT_SHOULDER] + pts[MP_RIGHT_SHOULDER]) * 0.5
 
+		# After the 180° Y-flip: left_hip is pts[MP_LEFT_HIP], right is pts[MP_RIGHT_HIP].
+		# Lateral axis points from left to right in world space.
+		var axis_y := (support_shoulder - support_hip).normalized()
+		var axis_x := (pts[MP_RIGHT_HIP] - pts[MP_LEFT_HIP]).normalized()
+		axis_x = (axis_x - axis_y * axis_y.dot(axis_x)).normalized()  # Gram-Schmidt
+		var axis_z := axis_x.cross(axis_y).normalized()
+		var target_basis := Basis(axis_x, axis_y, axis_z)
+
+		# --- Pelvis ---
+		var pelvis_node: Node3D = _find(rig_root, "pelvis_g")
+		if pelvis_node != null:
+			var rest_global_basis := pelvis_node.global_basis
+			var parent_node := pelvis_node.get_parent()
+			var parent_global_basis := parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
+			var rot_global := target_basis * rest_global_basis.inverse()
+			result["fk_rotations"]["pelvis_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
+
+		# --- Torso ---
 		var torso_node: Node3D = _find(rig_root, "torso_g")
 		if torso_node != null:
-			var parent_basis := torso_node.get_parent().global_basis if torso_node.get_parent() is Node3D else Basis.IDENTITY
-			var local_dir := parent_basis.inverse() * spine_dir
-			result["fk_rotations"]["torso_g"] = Quaternion(Vector3.UP, local_dir)
+			var rest_global_basis := torso_node.global_basis
+			var parent_node := torso_node.get_parent()
+			var parent_global_basis := parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
+			var rot_global := target_basis * rest_global_basis.inverse()
+			result["fk_rotations"]["torso_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
 
-		# Pelvis position: move rootdummy so the hip midpoint matches
+		# --- Rootdummy position: shift so support_hip lands on the rig's hip midpoint ---
 		var rootdummy: Node3D = _find(rig_root, "rootdummy")
-		if rootdummy != null:
-			var rest_hip_center := (
-				_find(rig_root, "lthigh_g").global_position +
-				_find(rig_root, "rthigh_g").global_position
-			) * 0.5 if _find(rig_root, "lthigh_g") != null and _find(rig_root, "rthigh_g") != null \
-			else rootdummy.global_position
-			var offset := hip_center - rest_hip_center
-			result["root_position"] = rootdummy.global_position + offset
+		var lthigh: Node3D   = _find(rig_root, "lthigh_g")
+		var rthigh: Node3D   = _find(rig_root, "rthigh_g")
+		if rootdummy != null and lthigh != null and rthigh != null:
+			var rig_hip_center := (lthigh.global_position + rthigh.global_position) * 0.5
+			result["root_position"] = rootdummy.global_position + (support_hip - rig_hip_center)
 
 	# ------------------------------------------------------------------
-	# FK: head — direction from shoulder centre to nose
+	# FK: head — use shoulder→nose direction, same Basis approach
 	# ------------------------------------------------------------------
 	if vis[MP_NOSE] >= 0.4 and vis[MP_LEFT_SHOULDER] >= 0.4 and vis[MP_RIGHT_SHOULDER] >= 0.4:
-		var shoulder_center := (pts[MP_LEFT_SHOULDER] + pts[MP_RIGHT_SHOULDER]) * 0.5
-		var head_dir := (pts[MP_NOSE] - shoulder_center).normalized()
+		var support_shoulder := (pts[MP_LEFT_SHOULDER] + pts[MP_RIGHT_SHOULDER]) * 0.5
+		var head_dir := (pts[MP_NOSE] - support_shoulder).normalized()
 		var head_node: Node3D = _find(rig_root, "head_g")
 		if head_node != null:
-			var parent_basis := head_node.get_parent().global_basis if head_node.get_parent() is Node3D else Basis.IDENTITY
-			var local_dir := parent_basis.inverse() * head_dir
-			result["fk_rotations"]["head_g"] = Quaternion(Vector3.UP, local_dir)
+			var rest_global_basis := head_node.global_basis
+			var parent_node := head_node.get_parent()
+			var parent_global_basis := parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
+			# Build a basis with Y pointing toward the nose
+			var h_axis_y := head_dir
+			var h_axis_x := rest_global_basis.x  # keep lateral axis from rest
+			h_axis_x = (h_axis_x - h_axis_y * h_axis_y.dot(h_axis_x)).normalized()
+			var h_axis_z := h_axis_x.cross(h_axis_y).normalized()
+			var target_head_basis := Basis(h_axis_x, h_axis_y, h_axis_z)
+			var rot_global := target_head_basis * rest_global_basis.inverse()
+			result["fk_rotations"]["head_g"] = Quaternion(parent_global_basis.inverse() * rot_global * parent_global_basis)
 
 	return result
 
