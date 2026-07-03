@@ -19,6 +19,7 @@ signal retarget_overlay_toggled(enabled: bool)
 signal gender_selected(model_path: String)
 signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
+signal ai_pose_offset_requested()
 signal ai_pose_overlay_toggled(visible: bool)
 
 @export var rig_root: Node3D
@@ -70,6 +71,7 @@ signal ai_pose_overlay_toggled(visible: bool)
 
 @onready var ai_load_image_button: Button = _sidebar.get_node("AIPose/LoadImageButton")
 @onready var ai_apply_pose_button: Button = _sidebar.get_node("AIPose/ApplyPoseButton")
+@onready var ai_apply_offset_button: Button = _sidebar.get_node("AIPose/ApplyOffsetButton")
 @onready var ai_server_status_label: Label = _sidebar.get_node("AIPose/ServerStatusLabel")
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
 
@@ -115,6 +117,7 @@ func _ready() -> void:
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
+	ai_apply_offset_button.pressed.connect(func(): ai_pose_offset_requested.emit())
 	ai_pose_overlay_button.toggled.connect(func(v): ai_pose_overlay_toggled.emit(v))
 
 func set_status(text: String) -> void:

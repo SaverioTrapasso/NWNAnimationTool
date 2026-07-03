@@ -116,6 +116,7 @@ func _ready() -> void:
 	_ai_client.pose_failed.connect(_on_ai_pose_failed)
 	side_panel.ai_pose_image_selected.connect(_on_ai_image_selected)
 	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
+	side_panel.ai_pose_offset_requested.connect(_on_ai_apply_offset)
 	side_panel.ai_pose_overlay_toggled.connect(func(v): green_visualizer.visible = v)
 
 	red_visualizer.camera = $Camera3D
@@ -1344,6 +1345,15 @@ func _on_ai_apply_pose() -> void:
 	var n_ik := ik_targets.size()
 	var n_fk := fk_rotations.size()
 	side_panel.set_status("AI pose applied (%d IK targets, %d FK bones)." % [n_ik, n_fk])
+
+const AI_FOOT_OFFSET := 0.14
+
+func _on_ai_apply_offset() -> void:
+	_push_undo_snapshot()
+	for comp_id in ["right_leg", "left_leg"]:
+		if _limb_targets.has(comp_id):
+			_limb_targets[comp_id]["target"].y += AI_FOOT_OFFSET
+	side_panel.set_status("Foot offset +%.2f applied." % AI_FOOT_OFFSET)
 
 func _on_retarget_save_config_requested() -> void:
 	if _retarget_config_path == "":

@@ -474,6 +474,12 @@ layout_mode = 2
 disabled = true
 text = "Apply Pose"
 
+[node name="ApplyOffsetButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000007]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+theme_override_font_sizes/font_size = 10
+text = "Apply Offset (+0.14 feet)"
+
 [node name="ServerStatusLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000005]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
