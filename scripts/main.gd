@@ -1228,8 +1228,8 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 		rig_hip_center = left_hip_node.global_position
 
 	# Estimate scale: MediaPipe shoulder width in metres vs NWN shoulder width
-	var mp_left_shoulder := Vector3(world_landmarks[11]["x"], -world_landmarks[11]["y"], -world_landmarks[11]["z"])
-	var mp_right_shoulder := Vector3(world_landmarks[12]["x"], -world_landmarks[12]["y"], -world_landmarks[12]["z"])
+	var mp_left_shoulder := Vector3(-world_landmarks[11]["x"], -world_landmarks[11]["y"], world_landmarks[11]["z"])
+	var mp_right_shoulder := Vector3(-world_landmarks[12]["x"], -world_landmarks[12]["y"], world_landmarks[12]["z"])
 	var mp_shoulder_width: float = (mp_left_shoulder - mp_right_shoulder).length()
 
 	var nwn_left: Node3D = rig_controller.find_node("lbicep_g")
@@ -1243,7 +1243,7 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 	# Convert landmarks to world positions
 	var positions: Array[Vector3] = []
 	for lm in world_landmarks:
-		var p := Vector3(lm["x"], -lm["y"], -lm["z"]) * scale_factor + rig_hip_center
+		var p := Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + rig_hip_center
 		positions.append(p)
 
 	# Build joint entries

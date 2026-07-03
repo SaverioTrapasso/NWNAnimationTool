@@ -78,7 +78,7 @@ static func landmarks_to_rotations(world_landmarks: Array, rig_root: Node3D) -> 
 	var pts: Array[Vector3] = []
 	for lm in world_landmarks:
 		# MediaPipe: X right, Y up, Z toward camera → Godot: X right, Y up, Z toward camera ✓
-		pts.append(Vector3(lm["x"], -lm["y"], -lm["z"]))  # flip Y and Z for Godot Y-up right-hand
+		pts.append(Vector3(-lm["x"], -lm["y"], lm["z"]))  # 180° Y rotation to match NWN rig facing
 
 	var result := {}
 	for bone_name in BONE_LANDMARK_PAIRS:
