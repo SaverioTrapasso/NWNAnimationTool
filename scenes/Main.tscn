@@ -469,7 +469,7 @@ text = "Apply Pose"
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
-text = "Server: not connected"
+text = "Load an image to generate a pose"
 autowrap_mode = 3
 
 [node name="AIImageDialog" type="FileDialog" parent="SidePanel" unique_id=1111000006]

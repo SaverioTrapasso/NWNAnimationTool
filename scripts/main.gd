@@ -111,7 +111,6 @@ func _ready() -> void:
 	_ai_client.pose_failed.connect(_on_ai_pose_failed)
 	side_panel.ai_pose_image_selected.connect(_on_ai_image_selected)
 	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
-	_ai_check_server()
 
 	red_visualizer.camera = $Camera3D
 	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
@@ -1182,30 +1181,16 @@ var _ai_client: Node = null
 var _ai_pending_image_path: String = ""
 var _ai_pending_landmarks: Array = []
 
-func _ai_check_server() -> void:
-	if _ai_client == null:
-		return
-	_ai_client.check_server(func(ok: bool):
-		if ok:
-			side_panel.set_ai_server_status("Server: connected")
-		else:
-			side_panel.set_ai_server_status("Server: not running (start pose_server.py)")
-	)
-
 func _on_ai_image_selected(path: String) -> void:
 	_ai_pending_image_path = path
 	_ai_pending_landmarks = []
 	side_panel.set_ai_server_status("Analyzing image...")
 	side_panel.set_ai_apply_enabled(false)
-	var image_bytes := FileAccess.get_file_as_bytes(path)
-	if image_bytes.is_empty():
-		side_panel.set_ai_server_status("Error: could not read image file.")
-		return
-	_ai_client.send_image(image_bytes)
+	_ai_client.detect(path)
 
 func _on_ai_pose_received(world_landmarks: Array) -> void:
 	_ai_pending_landmarks = world_landmarks
-	side_panel.set_ai_server_status("Pose detected (%d landmarks). Press Apply Pose." % world_landmarks.size())
+	side_panel.set_ai_server_status("Pose detected. Press Apply Pose.")
 	side_panel.set_ai_apply_enabled(true)
 	_show_ai_landmark_overlay(world_landmarks)
 
