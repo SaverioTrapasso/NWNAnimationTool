@@ -30,11 +30,11 @@ signal video_pose_open_requested()
 
 @onready var _sidebar: Control = $Sidebar/Scroll/Margin/Sections
 
-@onready var new_button: Button = $TopBar/Margin/Row/NewButton
-@onready var open_button: Button = $TopBar/Margin/Row/OpenButton
-@onready var save_button: Button = $TopBar/Margin/Row/SaveButton
-@onready var male_button: Button = $TopBar/GenderRow/MarginRight/Row/MaleButton
-@onready var female_button: Button = $TopBar/GenderRow/MarginRight/Row/FemaleButton
+@onready var file_menu: MenuButton = $TopBar/Margin/Row/FileMenu
+@onready var utility_menu: MenuButton = $TopBar/Margin/Row/UtilityMenu
+@onready var header_name_label: Label = $TopBar/HeaderNameLabel
+@onready var male_button: Button = $ViewportToolbar/MaleButton
+@onready var female_button: Button = $ViewportToolbar/FemaleButton
 @onready var new_confirm_dialog: ConfirmationDialog = $NewConfirmDialog
 @onready var save_dialog: FileDialog = $SaveDialog
 @onready var open_dialog: FileDialog = $OpenDialog
@@ -47,8 +47,11 @@ signal video_pose_open_requested()
 @onready var load_animation_dialog: FileDialog = $LoadAnimationDialog
 @onready var bone_config_panel: Panel = $BoneConfigPanel
 
-@onready var name_edit: LineEdit = _sidebar.get_node("AnimationInfo/AnimNameEdit")
-@onready var duration_edit: SpinBox = _sidebar.get_node("AnimationInfo/DurationRow/DurationSpinBox")
+@onready var duration_edit: SpinBox = $TimelineRow/DurationBox/DurationSpinBox
+
+## The animation name is set during the Save flow (derived from the chosen
+## filename) and mirrored in the header label so it stays always visible.
+var _anim_name: String = ""
 
 @onready var save_to_timeline_button: Button = _sidebar.get_node("Keyframe/KeyframeGrid/SetButton")
 @onready var copy_key_button: Button = _sidebar.get_node("Keyframe/KeyframeGrid/CopyKeyButton")
@@ -58,8 +61,6 @@ signal video_pose_open_requested()
 @onready var status_label: Label = $Sidebar/StatusLabel
 
 @onready var viewport_toolbar: Control = $ViewportToolbar
-@onready var undo_button: Button = viewport_toolbar.get_node("UndoButton")
-@onready var focus_button: Button = viewport_toolbar.get_node("FocusButton")
 @onready var cloak_button: Button = viewport_toolbar.get_node("CloakToggleButton")
 @onready var right_hand_weapon_button: Button = viewport_toolbar.get_node("RightHandWeaponButton")
 @onready var left_hand_weapon_button: Button = viewport_toolbar.get_node("LeftHandWeaponButton")
@@ -95,16 +96,39 @@ const FEMALE_MODEL_PATH := "res://assets/nwn/a_fa.glb"
 
 var _weapon_meshes: Dictionary = {} # hand_node_name -> MeshInstance3D
 
+const FILE_ID_NEW := 0
+const FILE_ID_OPEN := 1
+const FILE_ID_SAVE := 2
+const FILE_ID_UNDO := 3
+const FILE_ID_FOCUS := 4
+
+const UTIL_ID_IMAGE := 0
+const UTIL_ID_VIDEO := 1
+const UTIL_ID_GLB := 2
+const UTIL_ID_BULK := 3
+
 func _ready() -> void:
-	new_button.pressed.connect(func(): new_confirm_dialog.popup_centered())
+	var fm: PopupMenu = file_menu.get_popup()
+	fm.add_item("New", FILE_ID_NEW)
+	fm.add_item("Open...", FILE_ID_OPEN)
+	fm.add_item("Save...", FILE_ID_SAVE)
+	fm.add_separator()
+	fm.add_item("Undo", FILE_ID_UNDO, KEY_MASK_CTRL | KEY_Z)
+	fm.add_item("Focus selection", FILE_ID_FOCUS, KEY_F)
+	fm.id_pressed.connect(_on_file_menu_pressed)
+
+	var um: PopupMenu = utility_menu.get_popup()
+	um.add_item("Pose from image...", UTIL_ID_IMAGE)
+	um.add_item("Motion capture from video...", UTIL_ID_VIDEO)
+	um.add_item("Import from 3D file...", UTIL_ID_GLB)
+	um.add_separator()
+	um.add_item("Bulk: image folder...", UTIL_ID_BULK)
+	um.id_pressed.connect(_on_utility_menu_pressed)
+
 	new_confirm_dialog.confirmed.connect(func(): new_requested.emit())
-	save_button.pressed.connect(_on_save_pressed)
 	save_dialog.file_selected.connect(_on_save_file_selected)
-	open_button.pressed.connect(_on_open_pressed)
 	open_dialog.file_selected.connect(_on_open_file_selected)
 	reset_button.pressed.connect(_on_reset_pressed)
-	undo_button.pressed.connect(func(): undo_requested.emit())
-	focus_button.pressed.connect(func(): focus_requested.emit())
 	save_to_timeline_button.pressed.connect(_on_save_to_timeline_pressed)
 	copy_key_button.pressed.connect(func(): copy_key_requested.emit())
 	paste_key_button.pressed.connect(func(): paste_key_requested.emit())
@@ -162,25 +186,40 @@ func reset_display_toggles() -> void:
 	if not cloak_button.button_pressed:
 		cloak_button.button_pressed = true
 
+func _on_file_menu_pressed(id: int) -> void:
+	match id:
+		FILE_ID_NEW: new_confirm_dialog.popup_centered()
+		FILE_ID_OPEN: _on_open_pressed()
+		FILE_ID_SAVE: _on_save_pressed()
+		FILE_ID_UNDO: undo_requested.emit()
+		FILE_ID_FOCUS: focus_requested.emit()
+
+func _on_utility_menu_pressed(id: int) -> void:
+	match id:
+		UTIL_ID_IMAGE: ai_image_dialog.popup_centered_ratio(0.6)
+		UTIL_ID_VIDEO: video_pose_open_requested.emit()
+		UTIL_ID_GLB: load_animation_dialog.popup_centered_ratio(0.6)
+		UTIL_ID_BULK: ai_bulk_input_dialog.popup_centered_ratio(0.6)
+
 func get_anim_name() -> String:
-	return name_edit.text.strip_edges()
+	return _anim_name
 
 func set_anim_name(value: String) -> void:
-	name_edit.text = value
+	_anim_name = value.strip_edges()
+	header_name_label.text = _anim_name if _anim_name != "" else "untitled"
 
 func set_duration(value: float) -> void:
 	duration_edit.set_value_no_signal(value)
 	timeline.set_length(value)
 
 func _on_save_pressed() -> void:
-	var anim_name := get_anim_name()
-	if anim_name.is_empty():
-		status_label.text = "Enter an animation name."
-		return
-	save_dialog.current_file = "%s.txt" % anim_name
+	save_dialog.current_file = "%s.txt" % (_anim_name if _anim_name != "" else "animation")
 	save_dialog.popup_centered_ratio(0.6)
 
+## The animation name IS the chosen filename (without extension): one thing
+## to type, and the header always reflects what will be exported.
 func _on_save_file_selected(path: String) -> void:
+	set_anim_name(path.get_file().get_basename())
 	save_file_requested.emit(path, get_anim_name())
 
 func _on_open_pressed() -> void:

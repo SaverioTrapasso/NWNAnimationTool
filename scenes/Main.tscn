@@ -179,47 +179,26 @@ theme_override_constants/margin_bottom = 3
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="NewButton" type="Button" parent="SidePanel/TopBar/Margin/Row" unique_id=941924397]
+[node name="FileMenu" type="MenuButton" parent="SidePanel/TopBar/Margin/Row" unique_id=1666000001]
 layout_mode = 2
-tooltip_text = "Discard everything and start fresh (pose, timeline, undo, retarget state)"
-text = "New"
+text = "File"
 
-[node name="OpenButton" type="Button" parent="SidePanel/TopBar/Margin/Row" unique_id=1579522496]
+[node name="UtilityMenu" type="MenuButton" parent="SidePanel/TopBar/Margin/Row" unique_id=1666000002]
 layout_mode = 2
-text = "Open"
+text = "Utility"
 
-[node name="SaveButton" type="Button" parent="SidePanel/TopBar/Margin/Row" unique_id=842579717]
-layout_mode = 2
-text = "Save"
-
-[node name="GenderSpacer" type="Control" parent="SidePanel/TopBar" unique_id=2241997331]
+[node name="HeaderSpacer" type="Control" parent="SidePanel/TopBar" unique_id=2241997331]
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="GenderRow" type="HBoxContainer" parent="SidePanel/TopBar" unique_id=2241997332]
+[node name="HeaderNameLabel" type="Label" parent="SidePanel/TopBar" unique_id=1666000003]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+text = "untitled"
 
-[node name="MarginRight" type="MarginContainer" parent="SidePanel/TopBar/GenderRow" unique_id=2241997333]
+[node name="HeaderSpacer2" type="Control" parent="SidePanel/TopBar" unique_id=1666000004]
 layout_mode = 2
-theme_override_constants/margin_top = 4
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 4
-
-[node name="Row" type="HBoxContainer" parent="SidePanel/TopBar/GenderRow/MarginRight" unique_id=2241997334]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="MaleButton" type="Button" parent="SidePanel/TopBar/GenderRow/MarginRight/Row" unique_id=2241997335]
-layout_mode = 2
-tooltip_text = "Switch to the male NWN dummy model (a_ba.glb)"
-text = "Male"
-disabled = true
-
-[node name="FemaleButton" type="Button" parent="SidePanel/TopBar/GenderRow/MarginRight/Row" unique_id=2241997336]
-layout_mode = 2
-tooltip_text = "Switch to the female NWN dummy model (a_fa.glb)"
-text = "Female"
+size_flags_horizontal = 3
 
 [node name="ViewportToolbar" type="HBoxContainer" parent="SidePanel" unique_id=1386701003]
 layout_mode = 1
@@ -232,21 +211,6 @@ offset_bottom = 50.0
 grow_horizontal = 2
 theme_override_constants/separation = 4
 alignment = 1
-
-[node name="UndoButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1305928715]
-custom_minimum_size = Vector2(28, 28)
-layout_mode = 2
-tooltip_text = "Undo the last move/rotation (Ctrl+Z)"
-text = "Undo"
-
-[node name="FocusButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1440917769]
-custom_minimum_size = Vector2(28, 28)
-layout_mode = 2
-tooltip_text = "Center the camera on the current selection (F)"
-text = "Focus"
-
-[node name="VSeparator" type="VSeparator" parent="SidePanel/ViewportToolbar" unique_id=814166042]
-layout_mode = 2
 
 [node name="CloakToggleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=358442810]
 custom_minimum_size = Vector2(28, 28)
@@ -301,6 +265,22 @@ toggle_mode = true
 disabled = true
 text = "Pose"
 
+[node name="VSeparator2" type="VSeparator" parent="SidePanel/ViewportToolbar" unique_id=1666000010]
+layout_mode = 2
+
+[node name="MaleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=2241997335]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Switch to the male NWN dummy model (a_ba.glb)"
+text = "Male"
+disabled = true
+
+[node name="FemaleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=2241997336]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Switch to the female NWN dummy model (a_fa.glb)"
+text = "Female"
+
 [node name="Sidebar" type="Panel" parent="SidePanel" unique_id=674632175]
 layout_mode = 1
 anchors_preset = 9
@@ -331,37 +311,6 @@ theme_override_constants/margin_bottom = 6
 [node name="Sections" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin" unique_id=959555677]
 layout_mode = 2
 theme_override_constants/separation = 8
-
-[node name="AnimationInfo" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1674928077]
-layout_mode = 2
-theme_override_constants/separation = 3
-
-[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=318005209]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 9
-text = "ANIMATION"
-
-[node name="AnimNameEdit" type="LineEdit" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1051052711]
-layout_mode = 2
-placeholder_text = "Animation name"
-
-[node name="DurationRow" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1674000010]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="DurationLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo/DurationRow" unique_id=536189110]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Duration (s)"
-
-[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo/DurationRow" unique_id=2017674164]
-layout_mode = 2
-custom_minimum_size = Vector2(72, 0)
-min_value = 0.5
-max_value = 60.0
-step = 0.5
-value = 5.0
 
 [node name="Keyframe" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1932247017]
 layout_mode = 2
@@ -1418,3 +1367,23 @@ size_flags_horizontal = 3
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 script = ExtResource("7")
+
+[node name="DurationBox" type="VBoxContainer" parent="SidePanel/TimelineRow" unique_id=1666000020]
+layout_mode = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="DurationLabel" type="Label" parent="SidePanel/TimelineRow/DurationBox" unique_id=536189110]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "DURATA (S)"
+horizontal_alignment = 1
+
+[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/TimelineRow/DurationBox" unique_id=2017674164]
+layout_mode = 2
+custom_minimum_size = Vector2(76, 0)
+min_value = 0.5
+max_value = 60.0
+step = 0.5
+value = 5.0

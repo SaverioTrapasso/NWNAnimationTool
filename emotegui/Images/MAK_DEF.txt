@@ -1,0 +1,155 @@
+newanim MAK_DEF a_ba_non_combat
+  length 1.000000
+  transtime 0.25
+  animroot rootdummy
+    node dummy a_ba_non_combat
+        parent NULL
+    endnode
+    node dummy rootdummy
+        parent a_ba_non_combat
+        positionkey
+            0.000000 0.007746 0.014901 0.998498
+        endlist
+        orientationkey
+            0.000000 0.000000 -0.000000 0.000000 0.000000
+        endlist
+    endnode
+    node trimesh torso_g
+        parent rootdummy
+        orientationkey
+            0.000000 -0.379172 -0.214317 0.900165 0.224282
+        endlist
+    endnode
+    node dummy impact
+        parent torso_g
+        orientationkey
+            0.000000 0.000000 -0.000000 0.000000 0.000000
+        endlist
+    endnode
+    node trimesh lbicep_g
+        parent torso_g
+        orientationkey
+            0.000000 0.987804 0.098248 -0.120791 0.796614
+        endlist
+    endnode
+    node trimesh lforearm_g
+        parent lbicep_g
+        orientationkey
+            0.000000 0.717211 -0.683659 -0.134979 1.174957
+        endlist
+    endnode
+    node dummy lforearm
+        parent lforearm_g
+        orientationkey
+            0.000000 0.000000 1.000008 0.000000 0.069809
+        endlist
+    endnode
+    node trimesh lhand_g
+        parent lforearm_g
+        orientationkey
+            0.000000 -0.904093 0.356872 0.235071 1.673879
+        endlist
+    endnode
+    node dummy lhand
+        parent lhand_g
+        orientationkey
+            0.000000 0.000000 -0.000000 0.000000 0.000000
+        endlist
+    endnode
+    node trimesh lshoulder_g
+        parent torso_g
+        orientationkey
+            0.000000 0.000000 -0.000000 0.000000 0.000000
+        endlist
+    endnode
+    node trimesh rbicep_g
+        parent torso_g
+        orientationkey
+            0.000000 0.008599 -0.997580 -0.069002 0.901674
+        endlist
+    endnode
+    node trimesh rforearm_g
+        parent rbicep_g
+        orientationkey
+            0.000000 0.710401 -0.703339 0.025390 1.435741
+        endlist
+    endnode
+    node trimesh rhand_g
+        parent rforearm_g
+        orientationkey
+            0.000000 0.505868 -0.802475 0.316434 4.079583
+        endlist
+    endnode
+    node dummy rhand
+        parent rhand_g
+        orientationkey
+            0.000000 0.000000 -0.000000 0.000000 0.000000
+        endlist
+    endnode
+    node trimesh rshoulder_g
+        parent torso_g
+        orientationkey
+            0.000000 0.000000 -0.000000 0.000000 0.000000
+        endlist
+    endnode
+    node trimesh neck_g
+        parent torso_g
+        orientationkey
+            0.000000 0.000000 -0.000000 0.000000 0.000000
+        endlist
+    endnode
+    node trimesh head_g
+        parent neck_g
+        orientationkey
+            0.000000 -0.417168 0.090173 -0.904345 0.684408
+        endlist
+    endnode
+    node dummy head
+        parent head_g
+        orientationkey
+            0.000000 0.000000 -0.000000 0.000000 0.000000
+        endlist
+    endnode
+    node trimesh pelvis_g
+        parent rootdummy
+        orientationkey
+            0.000000 -0.379172 -0.214317 0.900165 0.224282
+        endlist
+    endnode
+    node trimesh lthigh_g
+        parent pelvis_g
+        orientationkey
+            0.000000 0.516599 0.856219 0.003724 0.761775
+        endlist
+    endnode
+    node trimesh lshin_g
+        parent lthigh_g
+        orientationkey
+            0.000000 -0.832928 -0.551453 0.046154 0.987463
+        endlist
+    endnode
+    node trimesh lfoot_g
+        parent lshin_g
+        orientationkey
+            0.000000 0.780638 0.018961 -0.624697 0.613968
+        endlist
+    endnode
+    node trimesh rthigh_g
+        parent pelvis_g
+        orientationkey
+            0.000000 -0.097455 -0.994355 0.042004 0.420661
+        endlist
+    endnode
+    node trimesh rshin_g
+        parent rthigh_g
+        orientationkey
+            0.000000 0.770560 0.623693 -0.134061 0.031220
+        endlist
+    endnode
+    node trimesh rfoot_g
+        parent rshin_g
+        orientationkey
+            0.000000 0.119640 0.878989 -0.461589 0.507611
+        endlist
+    endnode
+doneanim MAK_DEF a_ba_non_combat
