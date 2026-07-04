@@ -120,6 +120,7 @@ func _ready() -> void:
 	side_panel.ai_ground_toggled.connect(func(_v: bool):
 		if not _ai_pending_landmarks.is_empty():
 			_show_ai_landmark_overlay(_ai_pending_landmarks))
+	side_panel.source_xform_changed.connect(_on_source_xform_changed)
 	side_panel.ai_bulk_requested.connect(_on_ai_bulk_requested)
 	side_panel.pose_memory_save_requested.connect(_on_pose_memory_save)
 	side_panel.pose_memory_load_requested.connect(_on_pose_memory_load)
@@ -299,6 +300,10 @@ func _on_new_requested() -> void:
 		side_panel.bone_config_panel.toggle_visible()
 	if not _retarget_config_path.is_empty():
 		_on_retarget_cfg_import_requested(_retarget_config_path) # reloads from disk, discarding unsaved edits
+
+	for kind in ["image", "video", "glb"]:
+		side_panel.reset_source_xform(kind)
+	green_visualizer.transform = Transform3D.IDENTITY
 
 	side_panel.reset_display_toggles()
 	side_panel.set_status("New project started.")
@@ -1131,7 +1136,7 @@ func _on_retarget_root_scale_changed(value: float) -> void:
 func _on_retarget_flip_180_toggled(enabled: bool) -> void:
 	_retarget_flip_180 = enabled
 	if _retarget_anim_scene != null:
-		_retarget_anim_scene.rotation.y = PI if enabled else 0.0
+		_apply_glb_source_xform()
 	_sync_retarget_overlay(side_panel.timeline.current_time)
 
 ## Draws the red overlay. Once the Bone configuration table has at least one
@@ -1224,7 +1229,9 @@ func _on_retarget_bake_requested() -> void:
 		_retarget_config.get("source_fps", 30.0),
 		side_panel.bone_config_panel.get_root_scale(),
 		_retarget_lock,
-		_retarget_flip_180
+		_retarget_flip_180,
+		side_panel.get_source_rot_y("glb"),
+		side_panel.get_source_xform("glb").origin
 	)
 	if result.has("error"):
 		side_panel.set_status("Bake failed: %s" % result["error"])
@@ -1255,8 +1262,31 @@ var _ai_pending_landmarks: Array = []
 var _ai_scale_factor: float = 1.0
 var _ai_origin: Vector3 = Vector3.ZERO
 # True once scale/origin were measured for the current detection; cleared on
-# every new image/video so the next overlay recalibrates from the rig.
+# every new image/video so the next overlay recalibrated from the rig.
 var _ai_overlay_calibrated: bool = false
+# Which AI wizard currently owns the green overlay ("image" or "video") —
+# picks whose SOURCE TRANSFORM controls drive the preview and the apply.
+var _ai_wizard: String = "image"
+
+## Live update of the reference skeleton when the user edits a SOURCE
+## TRANSFORM control. The green visualizer's node transform IS the user
+## transform (its content stays in untransformed coordinates); the glb
+## source gets it on the loaded scene root so lock/bake see it too.
+func _on_source_xform_changed(kind: String) -> void:
+	match kind:
+		"image", "video":
+			if kind == _ai_wizard:
+				green_visualizer.transform = side_panel.get_source_xform(kind)
+		"glb":
+			_apply_glb_source_xform()
+
+func _apply_glb_source_xform() -> void:
+	if _retarget_anim_scene == null:
+		return
+	var xf: Transform3D = side_panel.get_source_xform("glb")
+	_retarget_anim_scene.rotation.y = (PI if _retarget_flip_180 else 0.0) + side_panel.get_source_rot_y("glb")
+	_retarget_anim_scene.position = xf.origin
+	_sync_retarget_overlay(side_panel.timeline.current_time)
 
 # Pose memory slots (3 session-only snapshots)
 var _pose_memory: Array = [null, null, null]  # each entry is a snapshot dict or null
@@ -1284,6 +1314,7 @@ func _on_ai_image_selected(path: String) -> void:
 	_ai_pending_image_path = path
 	_ai_pending_landmarks = []
 	_ai_overlay_calibrated = false
+	_ai_wizard = "image"
 	side_panel.set_ai_server_status("Analyzing image...")
 	side_panel.set_ai_apply_enabled(false)
 	_ai_client.detect(path)
@@ -1318,6 +1349,11 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 	if world_landmarks.is_empty():
 		green_visualizer.visible = false
 		return
+
+	# The user's SOURCE TRANSFORM lives on the visualizer node itself, so
+	# the content below stays in untransformed coordinates and the preview
+	# rotates/moves live as the spinboxes change.
+	green_visualizer.transform = side_panel.get_source_xform(_ai_wizard)
 
 	# Scale and anchor are measured from the rig ONCE per detection and then
 	# cached: Apply pose moves the rig (grounding lowers the hips), so
@@ -1408,7 +1444,7 @@ func _on_ai_apply_pose() -> void:
 	_push_undo_snapshot()
 
 	var data := AIPoseApplier.compute(_ai_pending_landmarks, $Rig, _ai_scale_factor, _ai_origin,
-		Quaternion.IDENTITY, {}, side_panel.is_ai_ground_enabled())
+		Quaternion.IDENTITY, {}, side_panel.is_ai_ground_enabled(), side_panel.get_source_xform("image"))
 	if data.is_empty():
 		side_panel.set_status("Could not compute pose from landmarks.")
 		return
@@ -1628,6 +1664,7 @@ func _on_video_extraction_done(frames: Array, duration: float) -> void:
 	_video_extracted_frames = frames
 	_video_extracted_duration = duration
 	_ai_overlay_calibrated = false
+	_ai_wizard = "video"
 	var n := frames.size()
 	_video_panel.get_node("Body/ExtractButton").disabled = false
 	_video_panel.get_node("Body/ResultRow/ResultLabel").text = "%d poses detected (%.1fs)" % [n, duration]
@@ -1711,10 +1748,12 @@ func _on_video_apply_to_timeline() -> void:
 	# Hand/foot orientation: auto first-frame calibration (optional) plus the
 	# panel's per-bone manual offsets on top, in the bone's local frame.
 	var use_end_bones: bool = mcp.is_auto_calibration()
+	var user_xform: Transform3D = side_panel.get_source_xform("video")
+
 	var calibration: Dictionary = {}
 	if use_end_bones:
 		calibration = AIPoseApplier.compute_rest_calibration(
-			first_landmarks, $Rig, scale_factor, origin, pre_rotation)
+			first_landmarks, $Rig, scale_factor, origin, pre_rotation, user_xform)
 		for bone_name in ["rhand_g", "lhand_g", "rfoot_g", "lfoot_g"]:
 			var extra: Quaternion = mcp.get_bone_offset(bone_name)
 			if not extra.is_equal_approx(Quaternion.IDENTITY):
@@ -1735,7 +1774,7 @@ func _on_video_apply_to_timeline() -> void:
 				node.transform = _rest_transforms[node]
 		_init_default_limb_targets()
 
-		var data := AIPoseApplier.compute(landmarks, $Rig, scale_factor, origin, pre_rotation, calibration)
+		var data := AIPoseApplier.compute(landmarks, $Rig, scale_factor, origin, pre_rotation, calibration, true, user_xform)
 		if data.is_empty():
 			continue
 

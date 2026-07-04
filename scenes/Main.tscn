@@ -587,14 +587,61 @@ toggle_mode = true
 tooltip_text = "Rotate the loaded source glb 180° before you start posing — feeds directly into Lock and Bake, so it compensates left/right-handed source animations in one step instead of re-posing every limb"
 text = "Flip source 180°"
 
-[node name="ColumnHeaderRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=839992420]
+[node name="XformRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=1888000020]
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 14.0
 offset_top = 66.0
 offset_right = -14.0
-offset_bottom = 84.0
+offset_bottom = 88.0
+grow_horizontal = 2
+theme_override_constants/separation = 4
+
+[node name="RotYSpin" type="SpinBox" parent="SidePanel/BoneConfigPanel/XformRow" unique_id=1888000021]
+layout_mode = 2
+custom_minimum_size = Vector2(78, 0)
+tooltip_text = "Extra Y rotation of the source (deg), on top of Flip 180"
+min_value = -180.0
+max_value = 180.0
+step = 5.0
+prefix = "Rot"
+
+[node name="OffX" type="SpinBox" parent="SidePanel/BoneConfigPanel/XformRow" unique_id=1888000022]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Source offset X (m)"
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "X"
+
+[node name="OffY" type="SpinBox" parent="SidePanel/BoneConfigPanel/XformRow" unique_id=1888000023]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Source offset Y (m)"
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "Y"
+
+[node name="OffZ" type="SpinBox" parent="SidePanel/BoneConfigPanel/XformRow" unique_id=1888000024]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Source offset Z (m)"
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "Z"
+
+[node name="ColumnHeaderRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=839992420]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 92.0
+offset_right = -14.0
+offset_bottom = 110.0
 grow_horizontal = 2
 theme_override_constants/separation = 4
 
@@ -618,7 +665,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = 88.0
+offset_top = 114.0
 offset_right = -14.0
 offset_bottom = -64.0
 grow_horizontal = 2
@@ -713,7 +760,7 @@ anchors_preset = -1
 anchor_left = 0.74
 anchor_top = 0.09
 anchor_right = 0.99
-anchor_bottom = 0.46
+anchor_bottom = 0.62
 visible = false
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
@@ -806,6 +853,56 @@ layout_mode = 2
 disabled = true
 text = "Extract poses"
 
+[node name="XformHeader" type="Label" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000011]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "SOURCE TRANSFORM"
+
+[node name="RotYRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000012]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RotYLabel" type="Label" parent="SidePanel/VideoPosePanel/Body/RotYRow" unique_id=1888000013]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rotate Y (deg)"
+
+[node name="RotYSpin" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/RotYRow" unique_id=1888000014]
+layout_mode = 2
+custom_minimum_size = Vector2(72, 0)
+min_value = -180.0
+max_value = 180.0
+step = 5.0
+
+[node name="OffsetRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000015]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="OffX" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/OffsetRow" unique_id=1888000016]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "X"
+
+[node name="OffY" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/OffsetRow" unique_id=1888000017]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "Y"
+
+[node name="OffZ" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/OffsetRow" unique_id=1888000018]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "Z"
+
 [node name="ResultRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000018]
 layout_mode = 2
 theme_override_constants/separation = 8
@@ -853,7 +950,7 @@ anchors_preset = -1
 anchor_left = 0.74
 anchor_top = 0.09
 anchor_right = 0.99
-anchor_bottom = 0.4
+anchor_bottom = 0.55
 visible = false
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
@@ -913,6 +1010,56 @@ button_pressed = true
 tooltip_text = "Shift the pose down so the lowest foot touches the floor. The green preview updates live so you can compare before applying."
 text = "Ground to floor"
 
+[node name="XformHeader" type="Label" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000001]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "SOURCE TRANSFORM"
+
+[node name="RotYRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000002]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="RotYLabel" type="Label" parent="SidePanel/ImagePosePanel/Body/RotYRow" unique_id=1888000003]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "Rotate Y (deg)"
+
+[node name="RotYSpin" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/RotYRow" unique_id=1888000004]
+layout_mode = 2
+custom_minimum_size = Vector2(72, 0)
+min_value = -180.0
+max_value = 180.0
+step = 5.0
+
+[node name="OffsetRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000005]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="OffX" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/OffsetRow" unique_id=1888000006]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "X"
+
+[node name="OffY" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/OffsetRow" unique_id=1888000007]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "Y"
+
+[node name="OffZ" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/OffsetRow" unique_id=1888000008]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -2.0
+max_value = 2.0
+step = 0.05
+prefix = "Z"
+
 [node name="ApplyPoseButton" type="Button" parent="SidePanel/ImagePosePanel/Body" unique_id=1111000004]
 layout_mode = 2
 disabled = true
@@ -938,9 +1085,9 @@ text = "Bulk: image folder..."
 layout_mode = 1
 anchors_preset = -1
 anchor_left = 0.74
-anchor_top = 0.53
+anchor_top = 0.63
 anchor_right = 0.99
-anchor_bottom = 0.97
+anchor_bottom = 0.98
 visible = false
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")

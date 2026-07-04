@@ -24,6 +24,11 @@ signal pose_memory_load_requested(slot: int)
 signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
 signal ai_ground_toggled(enabled: bool)
+## Emitted when the user edits any SOURCE TRANSFORM control; kind is
+## "image", "video" or "glb". Same manual-adjustment language in all three
+## motion-source wizards: rotate/offset the reference skeleton until it
+## matches, then Apply/Bake picks the transform up automatically.
+signal source_xform_changed(kind: String)
 signal ai_bulk_requested(input_dir: String, output_dir: String)
 signal video_pose_open_requested()
 
@@ -75,6 +80,7 @@ var _anim_name: String = ""
 @onready var _pose_memory_load_buttons: Array[Button] = []
 
 @onready var image_pose_panel: Panel = $ImagePosePanel
+@onready var video_pose_panel: Panel = $VideoPosePanel
 @onready var ai_load_image_button: Button = $ImagePosePanel/Body/ImageRow/BrowseButton
 @onready var ai_apply_pose_button: Button = $ImagePosePanel/Body/ApplyPoseButton
 @onready var ai_ground_check: CheckBox = $ImagePosePanel/Body/GroundCheck
@@ -161,6 +167,15 @@ func _ready() -> void:
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
 	ai_ground_check.toggled.connect(func(v): ai_ground_toggled.emit(v))
+
+	# SOURCE TRANSFORM spins: same node names in every wizard, one wiring loop.
+	for pair in [[image_pose_panel.get_node("Body"), "image"],
+			[video_pose_panel.get_node("Body"), "video"],
+			[bone_config_panel.get_node("XformRow"), "glb"]]:
+		var container: Node = pair[0]
+		var kind: String = pair[1]
+		for spin in _source_xform_spins(container, kind):
+			spin.value_changed.connect(func(_v): source_xform_changed.emit(kind))
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 
@@ -376,6 +391,45 @@ func set_ai_apply_enabled(enabled: bool) -> void:
 
 func is_ai_ground_enabled() -> bool:
 	return ai_ground_check.button_pressed
+
+## The four SOURCE TRANSFORM spinboxes of a wizard. The glb row is flat
+## (RotYSpin/OffX/OffY/OffZ direct children), the AI panels nest RotYSpin
+## under RotYRow and the offsets under OffsetRow.
+func _source_xform_spins(container: Node, kind: String) -> Array:
+	if kind == "glb":
+		return [container.get_node("RotYSpin"), container.get_node("OffX"),
+			container.get_node("OffY"), container.get_node("OffZ")]
+	return [container.get_node("RotYRow/RotYSpin"), container.get_node("OffsetRow/OffX"),
+		container.get_node("OffsetRow/OffY"), container.get_node("OffsetRow/OffZ")]
+
+## User-authored source transform for the given wizard ("image"/"video"/
+## "glb"): Y rotation plus world offset, applied to the reference skeleton
+## preview and baked into Apply/Bake.
+func get_source_xform(kind: String) -> Transform3D:
+	var container: Node
+	match kind:
+		"image": container = image_pose_panel.get_node("Body")
+		"video": container = video_pose_panel.get_node("Body")
+		"glb": container = bone_config_panel.get_node("XformRow")
+		_: return Transform3D.IDENTITY
+	var spins := _source_xform_spins(container, kind)
+	var basis := Basis(Vector3.UP, deg_to_rad(spins[0].value))
+	var offset := Vector3(spins[1].value, spins[2].value, spins[3].value)
+	return Transform3D(basis, offset)
+
+func get_source_rot_y(kind: String) -> float:
+	var xf := get_source_xform(kind)
+	return xf.basis.get_euler().y
+
+func reset_source_xform(kind: String) -> void:
+	var container: Node
+	match kind:
+		"image": container = image_pose_panel.get_node("Body")
+		"video": container = video_pose_panel.get_node("Body")
+		"glb": container = bone_config_panel.get_node("XformRow")
+		_: return
+	for spin in _source_xform_spins(container, kind):
+		spin.set_value_no_signal(0.0)
 
 ## Sets the unified overlay toggle's visual state without re-emitting.
 func set_overlay_active(active: bool) -> void:

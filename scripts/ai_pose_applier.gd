@@ -47,7 +47,7 @@ const MP_RIGHT_FOOT_INDEX := 32
 #   root_position: Vector3 (world) or null
 # ---------------------------------------------------------------------------
 
-static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY, calibration: Dictionary = {}, ground: bool = true) -> Dictionary:
+static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY, calibration: Dictionary = {}, ground: bool = true, user_xform: Transform3D = Transform3D.IDENTITY) -> Dictionary:
 	if world_landmarks.size() < 33:
 		return {}
 
@@ -75,6 +75,13 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		var min_foot_y: float = ground_shift(pts)
 		for i in range(pts.size()):
 			pts[i].y -= min_foot_y
+
+	# User-authored SOURCE TRANSFORM (rotate/offset from the wizard panel),
+	# applied last so it matches the preview exactly: the green visualizer
+	# shows T * p with the same T on its node transform.
+	if user_xform != Transform3D.IDENTITY:
+		for i in range(pts.size()):
+			pts[i] = user_xform * pts[i]
 
 	var result := {
 		"ik_targets": {},
@@ -322,14 +329,15 @@ static func compute_ground_alignment(world_landmarks: Array) -> Quaternion:
 ## roughly neutral orientation (true for grounded combat-stance videos).
 ## Returns { bone_name: Quaternion } to pass as compute()'s calibration.
 static func compute_rest_calibration(world_landmarks: Array, rig_root: Node3D,
-		scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY) -> Dictionary:
+		scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY,
+		user_xform: Transform3D = Transform3D.IDENTITY) -> Dictionary:
 	if world_landmarks.size() < 33:
 		return {}
 
 	var pre_basis := Basis(pre_rotation)
 	var pts: Array[Vector3] = []
 	for lm in world_landmarks:
-		pts.append(pre_basis * Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + origin)
+		pts.append(user_xform * (pre_basis * Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + origin))
 	var vis: Array = []
 	for lm in world_landmarks:
 		vis.append(lm.get("visibility", 1.0))

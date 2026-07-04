@@ -164,13 +164,15 @@ static func sample_pose(anim_skeleton: Skeleton3D, hierarchy: Array, bone_map: D
 ## pressed — bake() reloads the glb fresh, so it has to re-apply the exact
 ## same external rotation for the world-space math to stay consistent with
 ## what was captured at Lock time.
-static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_rest_transforms_by_name: Dictionary, source_fps: float, root_scale: float, lock_data: Dictionary, flip_180: bool = false) -> Dictionary:
+static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_rest_transforms_by_name: Dictionary, source_fps: float, root_scale: float, lock_data: Dictionary, flip_180: bool = false, source_rot_y: float = 0.0, source_offset: Vector3 = Vector3.ZERO) -> Dictionary:
 	var anim_scene := _load_glb(anim_glb_path)
 	if anim_scene == null:
 		return {"error": "Could not load animation source: %s" % anim_glb_path}
 	parent.add_child(anim_scene)
-	if flip_180:
-		anim_scene.rotation.y = PI
+	# Re-apply the exact external transform the live overlay had when Lock
+	# was pressed: flip + the user's manual SOURCE TRANSFORM (rot Y, offset).
+	anim_scene.rotation.y = (PI if flip_180 else 0.0) + source_rot_y
+	anim_scene.position = source_offset
 	# Match the live overlay's scale (set via the Root Scale slider) so this
 	# freshly-reloaded copy reads the exact same world-space positions that
 	# lock_offsets() captured from the overlay -- otherwise the locked frame
