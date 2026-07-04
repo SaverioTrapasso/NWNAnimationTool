@@ -277,6 +277,7 @@ offset_top = 26.0
 offset_right = 200.0
 grow_vertical = 2
 mouse_filter = 1
+clip_contents = true
 
 [node name="Scroll" type="ScrollContainer" parent="SidePanel/Sidebar" unique_id=237005695]
 layout_mode = 1

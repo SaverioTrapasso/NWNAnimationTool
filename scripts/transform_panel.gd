@@ -29,6 +29,12 @@ func _ready() -> void:
 		sb.value_changed.connect(_on_position_field_changed)
 	for sb in [rot_x, rot_y, rot_z]:
 		sb.value_changed.connect(_on_rotation_field_changed)
+	# Three SpinBoxes per row must fit the 200px sidebar: their internal
+	# LineEdit defaults to a 4-character minimum width, which pushes the row
+	# past the sidebar and stretches EVERY section with it. Two characters
+	# of guaranteed width is enough since the fields scroll while typing.
+	for sb in [pos_x, pos_y, pos_z, rot_x, rot_y, rot_z]:
+		sb.get_line_edit().add_theme_constant_override("minimum_character_width", 2)
 	copy_selection_button.pressed.connect(func(): copy_selection_requested.emit())
 	paste_selection_button.pressed.connect(func(): paste_selection_requested.emit())
 
