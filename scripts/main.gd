@@ -119,6 +119,8 @@ func _ready() -> void:
 	side_panel.ai_pose_offset_requested.connect(_on_ai_apply_offset)
 	side_panel.ai_pose_overlay_toggled.connect(func(v): green_visualizer.visible = v)
 	side_panel.ai_bulk_requested.connect(_on_ai_bulk_requested)
+	side_panel.pose_memory_save_requested.connect(_on_pose_memory_save)
+	side_panel.pose_memory_load_requested.connect(_on_pose_memory_load)
 
 	red_visualizer.camera = $Camera3D
 	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
@@ -1194,6 +1196,22 @@ var _ai_pending_image_path: String = ""
 var _ai_pending_landmarks: Array = []
 var _ai_scale_factor: float = 1.0
 var _ai_origin: Vector3 = Vector3.ZERO
+
+# Pose memory slots (3 session-only snapshots)
+var _pose_memory: Array = [null, null, null]  # each entry is a snapshot dict or null
+
+func _on_pose_memory_save(slot: int) -> void:
+	_pose_memory[slot] = MdlExporter.capture_pose($Rig)
+	side_panel.set_pose_memory_slot_filled(slot, true)
+	side_panel.set_status("Pose saved to slot %d." % (slot + 1))
+
+func _on_pose_memory_load(slot: int) -> void:
+	if _pose_memory[slot] == null:
+		return
+	var snap: Dictionary = _pose_memory[slot]
+	_push_undo_snapshot()
+	_apply_transforms(snap)
+	side_panel.set_status("Pose loaded from slot %d." % (slot + 1))
 
 # Bulk processing state
 var _bulk_queue: Array = []       # Array of file paths remaining

@@ -27,10 +27,10 @@ albedo_color = Color(0.906, 0.902, 0.875, 1)
 roughness = 0.85
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_orange_normal"]
-content_margin_left = 10.0
-content_margin_top = 5.0
-content_margin_right = 10.0
-content_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 bg_color = Color(0.85, 0.45, 0.13, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
@@ -38,10 +38,10 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_orange_hover"]
-content_margin_left = 10.0
-content_margin_top = 5.0
-content_margin_right = 10.0
-content_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 bg_color = Color(0.93, 0.54, 0.2, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
@@ -49,10 +49,10 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_remove_normal"]
-content_margin_left = 10.0
-content_margin_top = 5.0
-content_margin_right = 10.0
-content_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 bg_color = Color(0.82, 0.27, 0.24, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
@@ -60,10 +60,10 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_remove_hover"]
-content_margin_left = 10.0
-content_margin_top = 5.0
-content_margin_right = 10.0
-content_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 bg_color = Color(0.89, 0.34, 0.31, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
@@ -85,10 +85,10 @@ shadow_color = Color(0, 0, 0, 0.08)
 shadow_size = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_normal"]
-content_margin_left = 10.0
-content_margin_top = 5.0
-content_margin_right = 10.0
-content_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 bg_color = Color(0.31, 0.58, 0.78, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
@@ -96,10 +96,10 @@ corner_radius_bottom_right = 5
 corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_hover"]
-content_margin_left = 10.0
-content_margin_top = 5.0
-content_margin_right = 10.0
-content_margin_bottom = 5.0
+content_margin_left = 7.0
+content_margin_top = 3.0
+content_margin_right = 7.0
+content_margin_bottom = 3.0
 bg_color = Color(0.4, 0.66, 0.86, 1)
 corner_radius_top_left = 5
 corner_radius_top_right = 5
@@ -163,9 +163,9 @@ script = ExtResource("6")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 34.0
+offset_bottom = 30.0
 grow_horizontal = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="Margin" type="MarginContainer" parent="SidePanel/TopBar" unique_id=1613073795]
 layout_mode = 2
@@ -224,10 +224,10 @@ text = "Female"
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 248.0
-offset_top = 38.0
+offset_left = 220.0
+offset_top = 34.0
 offset_right = -12.0
-offset_bottom = 64.0
+offset_bottom = 58.0
 grow_horizontal = 2
 theme_override_constants/separation = 4
 alignment = 1
@@ -304,8 +304,8 @@ text = "Pose"
 layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
-offset_top = 34.0
-offset_right = 248.0
+offset_top = 30.0
+offset_right = 220.0
 grow_vertical = 2
 mouse_filter = 1
 
@@ -314,7 +314,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_bottom = -38.0
+offset_bottom = -32.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_scroll_mode = 0
@@ -322,14 +322,14 @@ horizontal_scroll_mode = 0
 [node name="Margin" type="MarginContainer" parent="SidePanel/Sidebar/Scroll" unique_id=1948779755]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/margin_left = 14
-theme_override_constants/margin_top = 14
-theme_override_constants/margin_right = 14
-theme_override_constants/margin_bottom = 10
+theme_override_constants/margin_left = 10
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 10
+theme_override_constants/margin_bottom = 8
 
 [node name="Sections" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin" unique_id=959555677]
 layout_mode = 2
-theme_override_constants/separation = 18
+theme_override_constants/separation = 12
 
 [node name="Tools" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1297613824]
 layout_mode = 2
@@ -344,6 +344,85 @@ text = "TOOLS"
 [node name="ResetButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Tools" unique_id=1506300410]
 layout_mode = 2
 text = "Reset pose"
+
+[node name="PoseMemory" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1222000001]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000002]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "POSE MEMORY"
+
+[node name="Slot1" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000010]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Label" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1" unique_id=1222000011]
+layout_mode = 2
+custom_minimum_size = Vector2(14, 0)
+theme_override_font_sizes/font_size = 10
+text = "1"
+
+[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1" unique_id=1222000012]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Save current pose to slot 1"
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1" unique_id=1222000013]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Recall pose from slot 1"
+disabled = true
+text = "Load"
+
+[node name="Slot2" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000020]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Label" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2" unique_id=1222000021]
+layout_mode = 2
+custom_minimum_size = Vector2(14, 0)
+theme_override_font_sizes/font_size = 10
+text = "2"
+
+[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2" unique_id=1222000022]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Save current pose to slot 2"
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2" unique_id=1222000023]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Recall pose from slot 2"
+disabled = true
+text = "Load"
+
+[node name="Slot3" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000030]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="Label" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3" unique_id=1222000031]
+layout_mode = 2
+custom_minimum_size = Vector2(14, 0)
+theme_override_font_sizes/font_size = 10
+text = "3"
+
+[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3" unique_id=1222000032]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Save current pose to slot 3"
+text = "Save"
+
+[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3" unique_id=1222000033]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Recall pose from slot 3"
+disabled = true
+text = "Load"
 
 [node name="Retarget" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=2046610014]
 layout_mode = 2
@@ -750,10 +829,10 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 260.0
-offset_top = -64.0
+offset_left = 232.0
+offset_top = -58.0
 offset_right = -12.0
-offset_bottom = -12.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 1
@@ -763,10 +842,10 @@ theme_override_constants/separation = 8
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 260.0
-offset_top = 12.0
+offset_left = 232.0
+offset_top = 10.0
 offset_right = -12.0
-offset_bottom = 80.0
+offset_bottom = 72.0
 grow_horizontal = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")

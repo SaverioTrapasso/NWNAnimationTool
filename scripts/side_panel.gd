@@ -17,6 +17,8 @@ signal retarget_load_animation_requested(path: String)
 signal retarget_bake_requested()
 signal retarget_overlay_toggled(enabled: bool)
 signal gender_selected(model_path: String)
+signal pose_memory_save_requested(slot: int)
+signal pose_memory_load_requested(slot: int)
 signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
 signal ai_pose_offset_requested()
@@ -70,6 +72,8 @@ signal ai_bulk_requested(input_dir: String, output_dir: String)
 @onready var timeline: Control = $TimelineRow/Timeline
 @onready var transform_panel: Panel = $TransformPanel
 
+@onready var _pose_memory_load_buttons: Array[Button] = []
+
 @onready var ai_load_image_button: Button = _sidebar.get_node("AIPose/LoadImageButton")
 @onready var ai_apply_pose_button: Button = _sidebar.get_node("AIPose/ApplyPoseButton")
 @onready var ai_apply_offset_button: Button = _sidebar.get_node("AIPose/ApplyOffsetButton")
@@ -119,6 +123,14 @@ func _ready() -> void:
 	bone_config_button.pressed.connect(func(): bone_config_panel.toggle_visible())
 	bake_button.pressed.connect(func(): retarget_bake_requested.emit())
 
+	for i in 3:
+		var slot_name := "Slot%d" % (i + 1)
+		var save_btn: Button = _sidebar.get_node("PoseMemory/%s/SaveButton" % slot_name)
+		var load_btn: Button = _sidebar.get_node("PoseMemory/%s/LoadButton" % slot_name)
+		_pose_memory_load_buttons.append(load_btn)
+		save_btn.pressed.connect(pose_memory_save_requested.emit.bind(i))
+		load_btn.pressed.connect(pose_memory_load_requested.emit.bind(i))
+
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
@@ -127,6 +139,10 @@ func _ready() -> void:
 	ai_bulk_button.pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
+
+func set_pose_memory_slot_filled(slot: int, filled: bool) -> void:
+	if slot >= 0 and slot < _pose_memory_load_buttons.size():
+		_pose_memory_load_buttons[slot].disabled = not filled
 
 func set_status(text: String) -> void:
 	status_label.text = text
