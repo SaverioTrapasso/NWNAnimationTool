@@ -123,6 +123,13 @@ func _ready() -> void:
 	side_panel.video_pose_open_requested.connect(_on_video_pose_open)
 	_setup_video_pose_panel()
 
+	# UX rule shared by every motion-source wizard: opening the panel turns
+	# its reference skeleton on, closing it turns it off. Bound to visibility
+	# so it holds no matter how the panel gets opened or closed.
+	_bind_wizard_overlay(side_panel.image_pose_panel, "ai")
+	_bind_wizard_overlay(_video_panel, "ai")
+	_bind_wizard_overlay(side_panel.bone_config_panel, "retarget")
+
 	red_visualizer.camera = $Camera3D
 	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
 
@@ -1056,6 +1063,13 @@ func _set_overlay_source(source: String) -> void:
 	elif source == "retarget":
 		green_visualizer.visible = false
 
+func _bind_wizard_overlay(panel: Control, source: String) -> void:
+	panel.visibility_changed.connect(func():
+		if panel.visible:
+			_set_overlay_source(source)
+		side_panel.set_overlay_active(panel.visible)
+		_on_overlay_toggled(panel.visible))
+
 func _on_overlay_toggled(enabled: bool) -> void:
 	match _overlay_source:
 		"ai":
@@ -1738,10 +1752,10 @@ func _on_video_apply_to_timeline() -> void:
 		var snapshot := MdlExporter.capture_pose($Rig)
 		_upsert_keyframe(t, snapshot)
 
-	_video_panel.visible = false
+	# The panel stays open on purpose: baking is iterative (tweak calibration,
+	# re-bake) and the overlay follows the panel's lifecycle — closing it is
+	# how the user dismisses the whole debug context.
 	side_panel.set_status("Applied %d keyframes from video (%.1fs)." % [_video_extracted_frames.size(), _video_extracted_duration])
-	_set_overlay_source("ai")
-	side_panel.set_overlay_active(true)
 	green_visualizer.visible = true
 	_sync_video_pose_overlay(0.0)
 

@@ -196,13 +196,12 @@ func _on_utility_menu_pressed(id: int) -> void:
 		UTIL_ID_GLB: load_animation_dialog.popup_centered_ratio(0.6)
 		UTIL_ID_BULK: ai_bulk_input_dialog.popup_centered_ratio(0.6)
 
-## The green debug skeleton is tied to the image panel's lifecycle: opening
-## the panel turns the Pose overlay on, closing it turns it off. Apply pose
-## must NOT touch it — the overlay stays up for comparison while iterating.
+## The reference-skeleton overlay follows the panel's lifecycle — main.gd
+## binds to visibility_changed (see _bind_wizard_overlay), so just setting
+## visible is enough. Apply pose must NOT touch the overlay: it stays up
+## as a debug reference while iterating.
 func set_image_panel_open(open: bool) -> void:
 	image_pose_panel.visible = open
-	overlay_button.set_pressed_no_signal(open)
-	overlay_toggled.emit(open)
 
 func get_anim_name() -> String:
 	return _anim_name
