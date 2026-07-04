@@ -41,9 +41,7 @@ signal video_pose_open_requested()
 
 @onready var reset_button: Button = _sidebar.get_node("Keyframe/ResetButton")
 
-@onready var load_animation_button: Button = _sidebar.get_node("MotionSource/LoadAnimationButton")
-@onready var bone_config_button: Button = _sidebar.get_node("MotionSource/BoneConfigButton")
-@onready var bake_button: Button = _sidebar.get_node("MotionSource/BakeButton")
+@onready var bake_button: Button = $BoneConfigPanel/ConfigRow/BakeButton
 @onready var load_animation_dialog: FileDialog = $LoadAnimationDialog
 @onready var bone_config_panel: Panel = $BoneConfigPanel
 
@@ -75,16 +73,13 @@ var _anim_name: String = ""
 
 @onready var _pose_memory_load_buttons: Array[Button] = []
 
-@onready var ai_load_image_button: Button = _sidebar.get_node("MotionSource/LoadImageButton")
-@onready var ai_apply_pose_button: Button = _sidebar.get_node("MotionSource/ApplyPoseButton")
-@onready var ai_bulk_button: Button = _sidebar.get_node("MotionSource/BulkProcessButton")
-@onready var ai_bulk_progress_label: Label = _sidebar.get_node("MotionSource/BulkProgressLabel")
-@onready var ai_server_status_label: Label = _sidebar.get_node("MotionSource/ServerStatusLabel")
+@onready var image_pose_panel: Panel = $ImagePosePanel
+@onready var ai_load_image_button: Button = $ImagePosePanel/Body/ImageRow/BrowseButton
+@onready var ai_apply_pose_button: Button = $ImagePosePanel/Body/ApplyPoseButton
+@onready var ai_server_status_label: Label = $ImagePosePanel/Body/StatusLabel
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
 @onready var ai_bulk_input_dialog: FileDialog = $BulkInputDialog
 @onready var ai_bulk_output_dialog: FileDialog = $BulkOutputDialog
-@onready var ai_video_button: Button = _sidebar.get_node("MotionSource/VideoButton")
-@onready var ai_calibration_button: Button = _sidebar.get_node("MotionSource/CalibrationButton")
 @onready var motion_config_panel: Panel = $MotionConfigPanel
 
 ## The female model (a_fa.glb) names its cloak mesh "Cloak_g" (capital C)
@@ -144,9 +139,11 @@ func _ready() -> void:
 	pole_vectors_button.toggled.connect(_on_pole_vectors_toggled)
 	skeleton_overlay_button.toggled.connect(func(v): retarget_overlay_toggled.emit(v))
 
-	load_animation_button.pressed.connect(func(): load_animation_dialog.popup_centered_ratio(0.6))
-	load_animation_dialog.file_selected.connect(func(path): retarget_load_animation_requested.emit(path))
-	bone_config_button.pressed.connect(func(): bone_config_panel.toggle_visible())
+	# glb wizard: picking the file opens the Bone Config panel right away —
+	# it IS the configure step of that flow, and Bake now lives inside it.
+	load_animation_dialog.file_selected.connect(func(path):
+		retarget_load_animation_requested.emit(path)
+		bone_config_panel.visible = true)
 	bake_button.pressed.connect(func(): retarget_bake_requested.emit())
 
 	for i in 3:
@@ -157,13 +154,11 @@ func _ready() -> void:
 		save_btn.pressed.connect(pose_memory_save_requested.emit.bind(i))
 		load_btn.pressed.connect(pose_memory_load_requested.emit.bind(i))
 
+	image_pose_panel.get_node("TitleRow/CloseButton").pressed.connect(func(): image_pose_panel.visible = false)
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
 	ai_pose_overlay_button.toggled.connect(func(v): ai_pose_overlay_toggled.emit(v))
-	ai_bulk_button.pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
-	ai_video_button.pressed.connect(func(): video_pose_open_requested.emit())
-	ai_calibration_button.pressed.connect(func(): motion_config_panel.toggle_visible())
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 
@@ -196,7 +191,7 @@ func _on_file_menu_pressed(id: int) -> void:
 
 func _on_utility_menu_pressed(id: int) -> void:
 	match id:
-		UTIL_ID_IMAGE: ai_image_dialog.popup_centered_ratio(0.6)
+		UTIL_ID_IMAGE: image_pose_panel.visible = true
 		UTIL_ID_VIDEO: video_pose_open_requested.emit()
 		UTIL_ID_GLB: load_animation_dialog.popup_centered_ratio(0.6)
 		UTIL_ID_BULK: ai_bulk_input_dialog.popup_centered_ratio(0.6)
@@ -345,15 +340,18 @@ func _on_bulk_input_selected(dir: String) -> void:
 func _on_bulk_output_selected(dir: String) -> void:
 	ai_bulk_requested.emit(_bulk_input_dir, dir)
 
+## Bulk progress goes to the always-visible status bar at the bottom of the
+## Edit sidebar — the bulk flow has no panel of its own anymore.
 func set_bulk_progress(text: String) -> void:
-	ai_bulk_progress_label.text = text
-	ai_bulk_progress_label.visible = text != ""
+	status_label.text = text
 
 func set_bulk_running(running: bool) -> void:
-	ai_bulk_button.disabled = running
+	utility_menu.disabled = running
 	ai_load_image_button.disabled = running
 
 func _on_ai_image_selected(path: String) -> void:
+	image_pose_panel.get_node("Body/ImageRow/ImagePathLabel").text = path.get_file()
+	image_pose_panel.visible = true
 	ai_server_status_label.text = "Image loaded: %s" % path.get_file()
 	ai_apply_pose_button.disabled = false
 	ai_pose_image_selected.emit(path)

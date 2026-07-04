@@ -1538,6 +1538,7 @@ func _setup_video_pose_panel() -> void:
 	video_dialog.file_selected.connect(_on_video_selected)
 
 	panel.get_node("Body/ExtractButton").pressed.connect(_on_video_extract_pressed)
+	panel.get_node("Body/CalibrationButton").pressed.connect(func(): side_panel.motion_config_panel.toggle_visible())
 	panel.get_node("Body/ResultRow/ApplyButton").pressed.connect(_on_video_apply_to_timeline)
 
 func _on_video_pose_open() -> void:

@@ -220,27 +220,6 @@ toggle_mode = true
 button_pressed = true
 text = "Cloak"
 
-[node name="RightHandWeaponButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1957365070]
-custom_minimum_size = Vector2(28, 28)
-layout_mode = 2
-tooltip_text = "Show right hand weapon"
-toggle_mode = true
-text = "R.Wpn"
-
-[node name="LeftHandWeaponButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1883838297]
-custom_minimum_size = Vector2(28, 28)
-layout_mode = 2
-tooltip_text = "Show left hand weapon"
-toggle_mode = true
-text = "L.Wpn"
-
-[node name="LeftShieldButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1883838298]
-custom_minimum_size = Vector2(28, 28)
-layout_mode = 2
-tooltip_text = "Show left forearm shield"
-toggle_mode = true
-text = "L.Sld"
-
 [node name="PoleVectorsToggleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=128322772]
 custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
@@ -267,6 +246,27 @@ text = "Pose"
 
 [node name="VSeparator2" type="VSeparator" parent="SidePanel/ViewportToolbar" unique_id=1666000010]
 layout_mode = 2
+
+[node name="RightHandWeaponButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1957365070]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Show right hand weapon"
+toggle_mode = true
+text = "R.Wpn"
+
+[node name="LeftHandWeaponButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1883838297]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Show left hand weapon"
+toggle_mode = true
+text = "L.Wpn"
+
+[node name="LeftShieldButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=1883838298]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Show left forearm shield"
+toggle_mode = true
+text = "L.Sld"
 
 [node name="MaleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=2241997335]
 custom_minimum_size = Vector2(28, 28)
@@ -451,92 +451,6 @@ size_flags_horizontal = 3
 tooltip_text = "Recall pose from slot 3"
 disabled = true
 text = "Load"
-
-[node name="MotionSource" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1555000001]
-layout_mode = 2
-theme_override_constants/separation = 3
-
-[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1555000002]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.85, 0.45, 0.13, 1)
-theme_override_font_sizes/font_size = 9
-text = "MOTION SOURCE"
-
-[node name="LoadAnimationButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=788902617]
-layout_mode = 2
-tooltip_text = "Load the model+animation glb/gltf to clone onto the NWN dummy"
-text = "Animation (.glb)..."
-
-[node name="LoadImageButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1111000003]
-layout_mode = 2
-tooltip_text = "Detect a single pose from a reference image (MediaPipe)"
-text = "Image..."
-
-[node name="VideoButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1333000030]
-layout_mode = 2
-tooltip_text = "Extract an animation from a video (MediaPipe, one pose per sampled frame)"
-text = "Video..."
-
-[node name="BulkProcessButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1111000008]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 20)
-theme_override_font_sizes/font_size = 10
-tooltip_text = "Detect every image in a folder and export one MDL file each"
-text = "Bulk: image folder..."
-
-[node name="ConfigureLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1555000010]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.54, 0.5, 1)
-theme_override_font_sizes/font_size = 9
-text = "CONFIGURE"
-
-[node name="BoneConfigButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1305397705]
-layout_mode = 2
-tooltip_text = "Map NWN nodes to the loaded animation's bone names (glb source)"
-text = "Bone configuration (glb)"
-
-[node name="CalibrationButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1444000080]
-layout_mode = 2
-tooltip_text = "Tune tilt correction, hand/foot rotation offsets, feet height and scale used by the AI bake"
-text = "Motion calibration (AI)"
-
-[node name="ApplyLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1555000011]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.55, 0.54, 0.5, 1)
-theme_override_font_sizes/font_size = 9
-text = "APPLY"
-
-[node name="ApplyPoseButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1111000004]
-layout_mode = 2
-disabled = true
-tooltip_text = "Apply the detected image pose to the rig"
-text = "Apply pose (image)"
-
-[node name="BakeButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=2138954672]
-layout_mode = 2
-tooltip_text = "Match the rig's current hand-posed match to the overlay at this timeline frame, then bake the whole source animation maintaining that exact offset"
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_orange_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_orange_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_orange_hover")
-text = "Bake (glb)"
-
-[node name="ServerStatusLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1111000005]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
-text = "Pick a motion source above"
-autowrap_mode = 3
-
-[node name="BulkProgressLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/MotionSource" unique_id=1111000009]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-theme_override_colors/font_color = Color(0.5, 0.8, 0.5, 1)
-text = ""
-autowrap_mode = 3
-visible = false
 
 [node name="AIImageDialog" type="FileDialog" parent="SidePanel" unique_id=1111000006]
 title = "Load Reference Image"
@@ -755,6 +669,18 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
 text = "Save config"
 
+[node name="BakeButton" type="Button" parent="SidePanel/BoneConfigPanel/ConfigRow" unique_id=2138954672]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Match the rig's current hand-posed match to the overlay at this timeline frame, then bake the whole source animation maintaining that exact offset"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_orange_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_orange_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_orange_hover")
+text = "Bake"
+
 [node name="StatusLabel" type="Label" parent="SidePanel/BoneConfigPanel" unique_id=217525663]
 layout_mode = 1
 anchors_preset = 12
@@ -886,6 +812,11 @@ max_value = 15.0
 step = 2.0
 value = 3.0
 
+[node name="CalibrationButton" type="Button" parent="SidePanel/VideoPosePanel/Body" unique_id=1444000080]
+layout_mode = 2
+tooltip_text = "Tune tilt correction, hand/foot rotation offsets, feet height and scale used by the bake"
+text = "Motion calibration..."
+
 [node name="ExtractButton" type="Button" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000016]
 layout_mode = 2
 disabled = true
@@ -929,6 +860,84 @@ file_mode = 0
 access = 2
 filters = PackedStringArray("*.mp4,*.mov,*.avi,*.mkv,*.webm ; Video Files")
 theme = ExtResource("9")
+
+[node name="ImagePosePanel" type="Panel" parent="SidePanel" unique_id=1777000001]
+layout_mode = 1
+anchors_preset = -1
+anchor_left = 0.3
+anchor_top = 0.12
+anchor_right = 0.62
+anchor_bottom = 0.42
+visible = false
+mouse_filter = 1
+theme_override_styles/panel = SubResource("StyleBoxFlat_card")
+
+[node name="TitleRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel" unique_id=1777000002]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 14.0
+offset_top = 12.0
+offset_right = -14.0
+offset_bottom = 34.0
+grow_horizontal = 2
+theme_override_constants/separation = 4
+
+[node name="HeaderLabel" type="Label" parent="SidePanel/ImagePosePanel/TitleRow" unique_id=1777000003]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 13
+text = "Pose from image"
+
+[node name="CloseButton" type="Button" parent="SidePanel/ImagePosePanel/TitleRow" unique_id=1777000004]
+layout_mode = 2
+text = "X"
+
+[node name="Body" type="VBoxContainer" parent="SidePanel/ImagePosePanel" unique_id=1777000005]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 14.0
+offset_top = 40.0
+offset_right = -14.0
+offset_bottom = -14.0
+grow_horizontal = 2
+grow_vertical = 2
+theme_override_constants/separation = 8
+
+[node name="ImageRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000006]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ImagePathLabel" type="Label" parent="SidePanel/ImagePosePanel/Body/ImageRow" unique_id=1777000007]
+layout_mode = 2
+size_flags_horizontal = 3
+text = "No image selected"
+clip_text = true
+
+[node name="BrowseButton" type="Button" parent="SidePanel/ImagePosePanel/Body/ImageRow" unique_id=1777000008]
+layout_mode = 2
+text = "Browse..."
+
+[node name="StatusLabel" type="Label" parent="SidePanel/ImagePosePanel/Body" unique_id=1111000005]
+layout_mode = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
+text = "Load an image to detect a pose"
+autowrap_mode = 3
+
+[node name="ApplyPoseButton" type="Button" parent="SidePanel/ImagePosePanel/Body" unique_id=1111000004]
+layout_mode = 2
+disabled = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
+text = "Apply pose"
 
 [node name="MotionConfigPanel" type="Panel" parent="SidePanel" unique_id=1444000001]
 layout_mode = 1
