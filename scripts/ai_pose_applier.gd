@@ -214,14 +214,14 @@ static func _compute_hand_fk(rig_root: Node3D, pts: Array, vis: Array,
 		return
 
 	# Fingers direction: wrist → index knuckle
-	var axis_z := (pts[index_idx] - pts[wrist_idx]).normalized()
+	var axis_z: Vector3 = (pts[index_idx] - pts[wrist_idx]).normalized()
 	# Across knuckles: for right hand pinky→index = +X (thumb side); mirror for left
-	var across := (pts[index_idx] - pts[pinky_idx]).normalized()
+	var across: Vector3 = (pts[index_idx] - pts[pinky_idx]).normalized()
 	if not is_right:
 		across = -across
 	# Gram-Schmidt: orthogonalise across vs fingers
-	var axis_x := (across - axis_z * axis_z.dot(across)).normalized()
-	var axis_y := axis_z.cross(axis_x).normalized()
+	var axis_x: Vector3 = (across - axis_z * axis_z.dot(across)).normalized()
+	var axis_y: Vector3 = axis_z.cross(axis_x).normalized()
 	var target_basis := Basis(axis_x, axis_y, axis_z)
 
 	var bone: Node3D = _find(rig_root, bone_name)
@@ -240,14 +240,14 @@ static func _compute_foot_fk(rig_root: Node3D, pts: Array, vis: Array,
 		return
 
 	# Foot forward: heel → toe
-	var axis_z := (pts[toe_idx] - pts[heel_idx]).normalized()
+	var axis_z: Vector3 = (pts[toe_idx] - pts[heel_idx]).normalized()
 	# Shin reference for lateral: knee → ankle points down the leg
-	var shin_ref := (pts[ankle_idx] - pts[knee_idx]).normalized() if vis[knee_idx] >= VIS_THRESH \
+	var shin_ref: Vector3 = (pts[ankle_idx] - pts[knee_idx]).normalized() if vis[knee_idx] >= VIS_THRESH \
 		else Vector3(0.0, -1.0, 0.0)
 	# Lateral axis: perpendicular to both forward and shin, then orthogonalised
-	var axis_x := axis_z.cross(shin_ref).normalized()
+	var axis_x: Vector3 = axis_z.cross(shin_ref).normalized()
 	axis_x = (axis_x - axis_z * axis_z.dot(axis_x)).normalized()
-	var axis_y := axis_x.cross(axis_z).normalized()
+	var axis_y: Vector3 = axis_x.cross(axis_z).normalized()
 	var target_basis := Basis(axis_x, axis_y, axis_z)
 
 	var bone: Node3D = _find(rig_root, bone_name)
