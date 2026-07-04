@@ -1637,6 +1637,9 @@ func _on_video_extraction_done(frames: Array, duration: float) -> void:
 	_anim_length = duration
 	side_panel.set_duration(_anim_length)
 	side_panel.set_status("Video: %d poses detected (%.1fs). Timeline set to %.1fs." % [n, duration, duration])
+	# Render the overlay right away — _sync only runs on scrub/play, so
+	# without this the skeleton stays invisible until the first scrub.
+	_sync_video_pose_overlay(side_panel.timeline.current_time)
 
 func _on_video_extraction_failed(error: String) -> void:
 	side_panel.set_status("Video extraction error: %s" % error)
