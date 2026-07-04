@@ -1575,18 +1575,42 @@ func _on_video_apply_to_timeline() -> void:
 		return
 	_push_undo_snapshot()
 
-	# Resize the animation to match the video duration
-	side_panel.set_duration(_video_extracted_duration)
+	# Reset to rest first so scale/origin are measured from the neutral pose
+	for node in _rest_transforms.keys():
+		if is_instance_valid(node):
+			node.transform = _rest_transforms[node]
+	_init_default_limb_targets()
+	await get_tree().process_frame
 
-	# Compute scale once from the first well-detected frame
-	var rig_hip_center := Vector3.ZERO
+	# Compute scale and origin from the rig at rest — same method as single-image
 	var lthigh: Node3D = rig_controller.find_node("lthigh_g")
 	var rthigh: Node3D = rig_controller.find_node("rthigh_g")
-	if lthigh and rthigh:
+	var rig_hip_center := Vector3.ZERO
+	if lthigh != null and rthigh != null:
 		rig_hip_center = (lthigh.global_position + rthigh.global_position) * 0.5
 
-	var scale_factor := _ai_scale_factor if _ai_scale_factor > 0.01 else 1.0
-	var origin := _ai_origin if _ai_origin != Vector3.ZERO else rig_hip_center
+	var nwn_left: Node3D = rig_controller.find_node("lbicep_g")
+	var nwn_right: Node3D = rig_controller.find_node("rbicep_g")
+	var nwn_shoulder_width := 0.3
+	if nwn_left != null and nwn_right != null:
+		nwn_shoulder_width = (nwn_left.global_position - nwn_right.global_position).length()
+
+	# Use the first frame with a good shoulder reading to fix the scale
+	var scale_factor := 1.0
+	var origin := rig_hip_center
+	for frame_data in _video_extracted_frames:
+		var lms: Array = frame_data["world_landmarks"]
+		if lms.size() < 33:
+			continue
+		var mp_ls := Vector3(-lms[11]["x"], -lms[11]["y"], lms[11]["z"])
+		var mp_rs := Vector3(-lms[12]["x"], -lms[12]["y"], lms[12]["z"])
+		var mp_shoulder_width := (mp_ls - mp_rs).length()
+		if mp_shoulder_width > 0.001:
+			scale_factor = nwn_shoulder_width / mp_shoulder_width
+			break
+
+	# Resize the animation to match the video duration
+	side_panel.set_duration(_video_extracted_duration)
 
 	# Apply each frame as a keyframe
 	for frame_data in _video_extracted_frames:
