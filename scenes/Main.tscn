@@ -1129,17 +1129,20 @@ visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.2, 0.55, 0.3, 1)
+theme_override_font_sizes/font_size = 10
+clip_text = true
 text = ""
 
 [node name="ApplyButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body/ResultRow" unique_id=1333000020]
 layout_mode = 2
+tooltip_text = "Bake every extracted pose as a keyframe on the timeline"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
-text = "Apply to timeline"
+text = "Apply"
 
 [node name="HSeparator" type="HSeparator" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000031]
 layout_mode = 2

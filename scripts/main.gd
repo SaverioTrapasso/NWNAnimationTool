@@ -1669,7 +1669,7 @@ func _on_video_extraction_done(frames: Array, duration: float) -> void:
 	_ai_wizard = "video"
 	var n := frames.size()
 	_video_panel.get_node("Scroll/Body/ExtractButton").disabled = false
-	_video_panel.get_node("Scroll/Body/ResultRow/ResultLabel").text = "%d poses detected (%.1fs)" % [n, duration]
+	_video_panel.get_node("Scroll/Body/ResultRow/ResultLabel").text = "%d poses (%.1fs)" % [n, duration]
 	_video_panel.get_node("Scroll/Body/ResultRow").visible = true
 	# The animation duration follows the video as soon as it's known — the
 	# user shouldn't have to wait for Apply to see the timeline match.
