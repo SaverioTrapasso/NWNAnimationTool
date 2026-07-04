@@ -20,8 +20,11 @@ ambient_light_source = 2
 ambient_light_color = Color(1, 1, 1, 1)
 ambient_light_energy = 0.3
 
-[sub_resource type="PlaneMesh" id="PlaneMesh_floor"]
-size = Vector2(10, 10)
+[sub_resource type="CylinderMesh" id="CylinderMesh_floor"]
+top_radius = 2.5
+bottom_radius = 2.5
+height = 0.06
+radial_segments = 96
 
 [sub_resource type="StandardMaterial3D" id="Material_floor"]
 albedo_color = Color(0.906, 0.902, 0.875, 1)
@@ -100,7 +103,8 @@ current = true
 script = ExtResource("2")
 
 [node name="Floor" type="MeshInstance3D" parent="." unique_id=1570344627]
-mesh = SubResource("PlaneMesh_floor")
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.03, 0)
+mesh = SubResource("CylinderMesh_floor")
 surface_material_override/0 = SubResource("Material_floor")
 
 [node name="Rig" parent="." unique_id=1946327235 instance=ExtResource("1")]
@@ -183,6 +187,27 @@ offset_bottom = 50.0
 grow_horizontal = 2
 theme_override_constants/separation = 4
 alignment = 1
+
+[node name="View3DButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=2000000001]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Classic 3D perspective orbit view"
+text = "3D"
+
+[node name="ViewFrontButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=2000000002]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Orthographic front view"
+text = "Front"
+
+[node name="ViewSideButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=2000000003]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Orthographic side view"
+text = "Side"
+
+[node name="VSeparator0" type="VSeparator" parent="SidePanel/ViewportToolbar" unique_id=2000000004]
+layout_mode = 2
 
 [node name="CloakToggleButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=358442810]
 custom_minimum_size = Vector2(28, 28)

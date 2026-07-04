@@ -97,6 +97,7 @@ func _ready() -> void:
 	side_panel.transform_panel.paste_selection_requested.connect(_on_paste_selection_requested)
 	side_panel.undo_requested.connect(_undo)
 	side_panel.focus_requested.connect(_on_focus_pressed)
+	side_panel.view_mode_requested.connect(func(mode: String): $Camera3D.set_view_mode(mode))
 	gizmo.drag_started.connect(_push_undo_snapshot)
 
 	side_panel.retarget_load_animation_requested.connect(_on_retarget_load_animation_requested)

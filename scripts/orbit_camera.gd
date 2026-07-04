@@ -25,11 +25,32 @@ func focus_on(pos: Vector3) -> void:
 	target = pos
 	_update_transform()
 
+## View presets. "3d" = classic perspective orbit; "front"/"side" snap to an
+## orthographic view straight at the character. Orbiting or zooming still
+## works in ortho — pressing 3D brings the perspective back.
+func set_view_mode(mode: String) -> void:
+	match mode:
+		"3d":
+			projection = PROJECTION_PERSPECTIVE
+		"front":
+			yaw = PI # camera on the character's front axis
+			pitch = 0.0
+			projection = PROJECTION_ORTHOGONAL
+		"side":
+			yaw = PI * 0.5 # camera on +X, looking at the character's side
+			pitch = 0.0
+			projection = PROJECTION_ORTHOGONAL
+	_update_transform()
+
 func _update_transform() -> void:
 	var rot_basis := Basis(Vector3.UP, yaw) * Basis(Vector3.RIGHT, pitch)
 	var offset := rot_basis * Vector3(0, 0, distance)
 	global_position = target + offset
 	look_at(target, Vector3.UP)
+	# In orthographic mode the wheel-driven distance maps onto the ortho
+	# frame size, so zoom keeps behaving as expected.
+	if projection == PROJECTION_ORTHOGONAL:
+		size = distance * 0.8
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventMouseButton:
