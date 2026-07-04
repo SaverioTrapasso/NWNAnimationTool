@@ -425,6 +425,7 @@ func _process(delta: float) -> void:
 		side_panel.timeline.set_current_time(_play_time)
 		_apply_pose_at_time(_play_time)
 		_sync_retarget_overlay(_play_time)
+		_sync_video_pose_overlay(_play_time)
 
 	for component_id in _limb_targets.keys():
 		var chain: Array[Node3D] = rig_controller.get_chain_nodes(component_id)
@@ -464,6 +465,20 @@ func _on_timeline_scrubbed(t: float) -> void:
 		side_panel.set_playing(false)
 	_apply_pose_at_time(t)
 	_sync_retarget_overlay(t)
+	_sync_video_pose_overlay(t)
+
+func _sync_video_pose_overlay(t: float) -> void:
+	if not green_visualizer.visible or _video_extracted_frames.is_empty():
+		return
+	# Find the closest extracted frame to time t
+	var best_idx := 0
+	var best_dist := INF
+	for i in _video_extracted_frames.size():
+		var d: float = abs(_video_extracted_frames[i]["time"] - t)
+		if d < best_dist:
+			best_dist = d
+			best_idx = i
+	_show_ai_landmark_overlay(_video_extracted_frames[best_idx]["world_landmarks"])
 
 func _on_component_selected(component_id: String) -> void:
 	_clear_handles()
@@ -1654,6 +1669,10 @@ func _on_video_apply_to_timeline() -> void:
 
 	_video_panel.visible = false
 	side_panel.set_status("Applied %d keyframes from video (%.1fs)." % [_video_extracted_frames.size(), _video_extracted_duration])
+	side_panel.set_ai_pose_overlay_available(true)
+	side_panel.ai_pose_overlay_button.set_pressed_no_signal(true)
+	green_visualizer.visible = true
+	_sync_video_pose_overlay(0.0)
 
 func _save_retarget_config_to(path: String) -> void:
 	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()
