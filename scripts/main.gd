@@ -1642,7 +1642,7 @@ func _on_video_apply_to_timeline() -> void:
 
 	# Hand/foot orientation: auto first-frame calibration (optional) plus the
 	# panel's per-bone manual offsets on top, in the bone's local frame.
-	var use_end_bones := mcp.is_auto_calibration()
+	var use_end_bones: bool = mcp.is_auto_calibration()
 	var calibration: Dictionary = {}
 	if use_end_bones:
 		calibration = AIPoseApplier.compute_rest_calibration(
