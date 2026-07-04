@@ -1685,8 +1685,11 @@ func _on_video_apply_to_timeline() -> void:
 	if scale_override > 0.0:
 		scale_factor = scale_override
 
-	# Resize the animation to match the video duration
-	side_panel.set_duration(_video_extracted_duration)
+	# Resize the animation to match the video duration. _anim_length drives
+	# playback wrap-around AND the exported MDL "length" — updating only the
+	# UI here would silently export animations with the stale duration.
+	_anim_length = _video_extracted_duration
+	side_panel.set_duration(_anim_length)
 
 	# World tilt: auto-level on frame 1 (assumed grounded/standing), or the
 	# panel's manual X/Z angles when auto is unchecked.
