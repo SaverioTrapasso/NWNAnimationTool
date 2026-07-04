@@ -117,7 +117,6 @@ func _ready() -> void:
 	_ai_client.pose_failed.connect(_on_ai_pose_failed)
 	side_panel.ai_pose_image_selected.connect(_on_ai_image_selected)
 	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
-	side_panel.ai_pose_offset_requested.connect(_on_ai_apply_offset)
 	side_panel.ai_pose_overlay_toggled.connect(func(v): green_visualizer.visible = v)
 	side_panel.ai_bulk_requested.connect(_on_ai_bulk_requested)
 	side_panel.pose_memory_save_requested.connect(_on_pose_memory_save)
@@ -1393,8 +1392,6 @@ func _on_ai_apply_pose() -> void:
 	var n_fk := fk_rotations.size()
 	side_panel.set_status("AI pose applied (%d IK targets, %d FK bones)." % [n_ik, n_fk])
 
-const AI_FOOT_OFFSET := 0.14
-
 # Maps the AI applier's end-bone names onto the IK component whose end_basis
 # pin controls that bone's world orientation.
 const END_BONE_COMPONENT := {
@@ -1505,13 +1502,6 @@ func _bulk_on_pose_received(world_landmarks: Array) -> void:
 
 	green_visualizer.visible = false
 	_bulk_process_next()
-
-func _on_ai_apply_offset() -> void:
-	_push_undo_snapshot()
-	for comp_id in ["right_leg", "left_leg"]:
-		if _limb_targets.has(comp_id):
-			_limb_targets[comp_id]["target"].y += AI_FOOT_OFFSET
-	side_panel.set_status("Foot offset +%.2f applied." % AI_FOOT_OFFSET)
 
 func _on_retarget_save_config_requested() -> void:
 	if _retarget_config_path == "":
@@ -1629,17 +1619,42 @@ func _on_video_apply_to_timeline() -> void:
 			scale_factor = nwn_shoulder_width / mp_shoulder_width
 			break
 
+	# Everything below reads the Motion Calibration panel, so the workflow
+	# is bake → inspect → tweak a knob → bake again, no code edits needed.
+	var mcp: Panel = side_panel.motion_config_panel
+
+	var scale_override: float = mcp.get_scale_override()
+	if scale_override > 0.0:
+		scale_factor = scale_override
+
 	# Resize the animation to match the video duration
 	side_panel.set_duration(_video_extracted_duration)
 
-	# First-frame alignment: the animation is assumed grounded at frame 1,
-	# so level MediaPipe's tilted world estimate on the feet contact points,
-	# then calibrate the hand/foot bone-axis offsets while the rig is still
-	# at rest. Both corrections are reused verbatim on every frame.
+	# World tilt: auto-level on frame 1 (assumed grounded/standing), or the
+	# panel's manual X/Z angles when auto is unchecked.
 	var first_landmarks: Array = _video_extracted_frames[0]["world_landmarks"]
-	var pre_rotation: Quaternion = AIPoseApplier.compute_ground_alignment(first_landmarks)
-	var calibration: Dictionary = AIPoseApplier.compute_rest_calibration(
-		first_landmarks, $Rig, scale_factor, origin, pre_rotation)
+	var pre_rotation := Quaternion.IDENTITY
+	if mcp.is_auto_tilt():
+		pre_rotation = AIPoseApplier.compute_ground_alignment(first_landmarks)
+	else:
+		var tilt: Vector2 = mcp.get_manual_tilt()
+		pre_rotation = Quaternion.from_euler(Vector3(deg_to_rad(tilt.x), 0.0, deg_to_rad(tilt.y)))
+
+	# Hand/foot orientation: auto first-frame calibration (optional) plus the
+	# panel's per-bone manual offsets on top, in the bone's local frame.
+	var use_end_bones := mcp.is_auto_calibration()
+	var calibration: Dictionary = {}
+	if use_end_bones:
+		calibration = AIPoseApplier.compute_rest_calibration(
+			first_landmarks, $Rig, scale_factor, origin, pre_rotation)
+		for bone_name in ["rhand_g", "lhand_g", "rfoot_g", "lfoot_g"]:
+			var extra: Quaternion = mcp.get_bone_offset(bone_name)
+			if not extra.is_equal_approx(Quaternion.IDENTITY):
+				calibration[bone_name] = (calibration.get(bone_name, Quaternion.IDENTITY) as Quaternion) * extra
+
+	var foot_y_offset: float = mcp.get_foot_y_offset()
+	var tilt_deg := rad_to_deg(pre_rotation.get_angle())
+	mcp.set_readout("Last bake: scale %.3f, tilt %.1f°, calib %s" % [scale_factor, tilt_deg, "auto" if use_end_bones else "off"])
 
 	# Apply each frame as a keyframe
 	for frame_data in _video_extracted_frames:
@@ -1662,14 +1677,22 @@ func _on_video_apply_to_timeline() -> void:
 				_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
 				_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
 
+		# Panel knob: constant vertical correction on both feet targets
+		if foot_y_offset != 0.0:
+			for leg_id in ["right_leg", "left_leg"]:
+				if _limb_targets.has(leg_id):
+					_limb_targets[leg_id]["target"].y += foot_y_offset
+
 		# Hand/foot orientations go into the end_basis PIN, not onto the node:
 		# the IK loop in _process re-pins chain[2] to end_basis every frame,
-		# so that's the only write that survives.
-		var end_bases: Dictionary = data.get("end_world_bases", {})
-		for bone_name in end_bases:
-			var comp_id: String = END_BONE_COMPONENT.get(bone_name, "")
-			if comp_id != "" and _limb_targets.has(comp_id):
-				_limb_targets[comp_id]["end_basis"] = end_bases[bone_name]
+		# so that's the only write that survives. Skipped entirely when the
+		# panel's auto-calibration is off (bones keep their rest orientation).
+		if use_end_bones:
+			var end_bases: Dictionary = data.get("end_world_bases", {})
+			for bone_name in end_bases:
+				var comp_id: String = END_BONE_COMPONENT.get(bone_name, "")
+				if comp_id != "" and _limb_targets.has(comp_id):
+					_limb_targets[comp_id]["end_basis"] = end_bases[bone_name]
 
 		var fk_rotations: Dictionary = data.get("fk_rotations", {})
 		for bone_name in fk_rotations:

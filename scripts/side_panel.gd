@@ -21,7 +21,6 @@ signal pose_memory_save_requested(slot: int)
 signal pose_memory_load_requested(slot: int)
 signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
-signal ai_pose_offset_requested()
 signal ai_pose_overlay_toggled(visible: bool)
 signal ai_bulk_requested(input_dir: String, output_dir: String)
 signal video_pose_open_requested()
@@ -42,9 +41,9 @@ signal video_pose_open_requested()
 
 @onready var reset_button: Button = _sidebar.get_node("Keyframe/ResetButton")
 
-@onready var load_animation_button: Button = _sidebar.get_node("Retarget/LoadAnimationButton")
-@onready var bone_config_button: Button = _sidebar.get_node("Retarget/BoneConfigButton")
-@onready var bake_button: Button = _sidebar.get_node("Retarget/BakeButton")
+@onready var load_animation_button: Button = _sidebar.get_node("MotionSource/LoadAnimationButton")
+@onready var bone_config_button: Button = _sidebar.get_node("MotionSource/BoneConfigButton")
+@onready var bake_button: Button = _sidebar.get_node("MotionSource/BakeButton")
 @onready var load_animation_dialog: FileDialog = $LoadAnimationDialog
 @onready var bone_config_panel: Panel = $BoneConfigPanel
 
@@ -75,16 +74,17 @@ signal video_pose_open_requested()
 
 @onready var _pose_memory_load_buttons: Array[Button] = []
 
-@onready var ai_load_image_button: Button = _sidebar.get_node("AIPose/LoadImageButton")
-@onready var ai_apply_pose_button: Button = _sidebar.get_node("AIPose/ApplyPoseButton")
-@onready var ai_apply_offset_button: Button = _sidebar.get_node("AIPose/ApplyOffsetButton")
-@onready var ai_bulk_button: Button = _sidebar.get_node("AIPose/BulkProcessButton")
-@onready var ai_bulk_progress_label: Label = _sidebar.get_node("AIPose/BulkProgressLabel")
-@onready var ai_server_status_label: Label = _sidebar.get_node("AIPose/ServerStatusLabel")
+@onready var ai_load_image_button: Button = _sidebar.get_node("MotionSource/LoadImageButton")
+@onready var ai_apply_pose_button: Button = _sidebar.get_node("MotionSource/ApplyPoseButton")
+@onready var ai_bulk_button: Button = _sidebar.get_node("MotionSource/BulkProcessButton")
+@onready var ai_bulk_progress_label: Label = _sidebar.get_node("MotionSource/BulkProgressLabel")
+@onready var ai_server_status_label: Label = _sidebar.get_node("MotionSource/ServerStatusLabel")
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
 @onready var ai_bulk_input_dialog: FileDialog = $BulkInputDialog
 @onready var ai_bulk_output_dialog: FileDialog = $BulkOutputDialog
-@onready var ai_video_button: Button = _sidebar.get_node("AIPose/VideoButton")
+@onready var ai_video_button: Button = _sidebar.get_node("MotionSource/VideoButton")
+@onready var ai_calibration_button: Button = _sidebar.get_node("MotionSource/CalibrationButton")
+@onready var motion_config_panel: Panel = $MotionConfigPanel
 
 ## The female model (a_fa.glb) names its cloak mesh "Cloak_g" (capital C)
 ## instead of the male model's "cloak_g" -- both are listed so the hide
@@ -136,10 +136,10 @@ func _ready() -> void:
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
-	ai_apply_offset_button.pressed.connect(func(): ai_pose_offset_requested.emit())
 	ai_pose_overlay_button.toggled.connect(func(v): ai_pose_overlay_toggled.emit(v))
 	ai_bulk_button.pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
 	ai_video_button.pressed.connect(func(): video_pose_open_requested.emit())
+	ai_calibration_button.pressed.connect(func(): motion_config_panel.toggle_visible())
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 
