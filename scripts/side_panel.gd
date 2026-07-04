@@ -177,6 +177,12 @@ func _ready() -> void:
 		for spin in _source_xform_spins(_source_xform_container(kind), kind):
 			spin.value_changed.connect(func(_v): source_xform_changed.emit(kind))
 
+	# The right-column panels are only 200px wide like the left sidebar, so
+	# every SpinBox inside them gets the same slim minimum width used by the
+	# Selection section — otherwise three-per-row layouts overflow the panel.
+	for panel in [image_pose_panel, video_pose_panel, motion_config_panel, bone_config_panel]:
+		_shrink_spinboxes(panel)
+
 	# Wizard panels are mutually exclusive: opening one closes whichever was
 	# open. Motion calibration is a companion of the video wizard, so it only
 	# survives when the video panel is the one being opened.
@@ -460,6 +466,12 @@ func reset_source_xform(kind: String) -> void:
 ## Sets the unified overlay toggle's visual state without re-emitting.
 func set_overlay_active(active: bool) -> void:
 	overlay_button.set_pressed_no_signal(active)
+
+func _shrink_spinboxes(node: Node) -> void:
+	if node is SpinBox:
+		node.get_line_edit().add_theme_constant_override("minimum_character_width", 2)
+	for child in node.get_children():
+		_shrink_spinboxes(child)
 
 func _find(node: Node, target_name: String) -> Node3D:
 	if node == null:

@@ -923,10 +923,12 @@ theme = ExtResource("9")
 [node name="VideoPosePanel" type="Panel" parent="SidePanel" unique_id=1333000001]
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.74
+anchor_left = 1.0
 anchor_top = 0.09
-anchor_right = 0.99
+anchor_right = 1.0
 anchor_bottom = 0.62
+offset_left = -208.0
+offset_right = -8.0
 visible = false
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
@@ -935,10 +937,10 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 14.0
-offset_top = 12.0
-offset_right = -14.0
-offset_bottom = 34.0
+offset_left = 8.0
+offset_top = 6.0
+offset_right = -8.0
+offset_bottom = 26.0
 grow_horizontal = 2
 theme_override_constants/separation = 4
 
@@ -946,11 +948,12 @@ theme_override_constants/separation = 4
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 text = "Motion capture from video"
 
 [node name="CloseButton" type="Button" parent="SidePanel/VideoPosePanel/TitleRow" unique_id=1333000004]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "X"
 
 [node name="Body" type="VBoxContainer" parent="SidePanel/VideoPosePanel" unique_id=1333000005]
@@ -958,13 +961,13 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 14.0
-offset_top = 40.0
-offset_right = -14.0
-offset_bottom = -14.0
+offset_left = 8.0
+offset_top = 30.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="VideoRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000006]
 layout_mode = 2
@@ -1137,10 +1140,12 @@ theme = ExtResource("9")
 [node name="ImagePosePanel" type="Panel" parent="SidePanel" unique_id=1777000001]
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.74
+anchor_left = 1.0
 anchor_top = 0.09
-anchor_right = 0.99
+anchor_right = 1.0
 anchor_bottom = 0.55
+offset_left = -208.0
+offset_right = -8.0
 visible = false
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
@@ -1149,10 +1154,10 @@ theme_override_styles/panel = SubResource("StyleBoxFlat_card")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 14.0
-offset_top = 12.0
-offset_right = -14.0
-offset_bottom = 34.0
+offset_left = 8.0
+offset_top = 6.0
+offset_right = -8.0
+offset_bottom = 26.0
 grow_horizontal = 2
 theme_override_constants/separation = 4
 
@@ -1160,11 +1165,12 @@ theme_override_constants/separation = 4
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 text = "Pose from image"
 
 [node name="CloseButton" type="Button" parent="SidePanel/ImagePosePanel/TitleRow" unique_id=1777000004]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "X"
 
 [node name="Body" type="VBoxContainer" parent="SidePanel/ImagePosePanel" unique_id=1777000005]
@@ -1172,13 +1178,13 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 14.0
-offset_top = 40.0
-offset_right = -14.0
-offset_bottom = -14.0
+offset_left = 8.0
+offset_top = 30.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
-theme_override_constants/separation = 8
+theme_override_constants/separation = 4
 
 [node name="ImageRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000006]
 layout_mode = 2
@@ -1298,10 +1304,12 @@ text = "Bulk: image folder..."
 [node name="MotionConfigPanel" type="Panel" parent="SidePanel" unique_id=1444000001]
 layout_mode = 1
 anchors_preset = -1
-anchor_left = 0.74
+anchor_left = 1.0
 anchor_top = 0.63
-anchor_right = 0.99
+anchor_right = 1.0
 anchor_bottom = 0.98
+offset_left = -208.0
+offset_right = -8.0
 visible = false
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
@@ -1311,10 +1319,10 @@ script = ExtResource("13")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 14.0
-offset_top = 12.0
-offset_right = -14.0
-offset_bottom = 34.0
+offset_left = 8.0
+offset_top = 6.0
+offset_right = -8.0
+offset_bottom = 26.0
 grow_horizontal = 2
 theme_override_constants/separation = 4
 
@@ -1322,11 +1330,12 @@ theme_override_constants/separation = 4
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 13
+theme_override_font_sizes/font_size = 11
 text = "Motion calibration"
 
 [node name="CloseButton" type="Button" parent="SidePanel/MotionConfigPanel/TitleRow" unique_id=1444000004]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "X"
 
 [node name="Scroll" type="ScrollContainer" parent="SidePanel/MotionConfigPanel" unique_id=1444000005]
@@ -1334,10 +1343,10 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 14.0
-offset_top = 40.0
-offset_right = -14.0
-offset_bottom = -12.0
+offset_left = 8.0
+offset_top = 30.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_scroll_mode = 0
@@ -1345,7 +1354,7 @@ horizontal_scroll_mode = 0
 [node name="Rows" type="VBoxContainer" parent="SidePanel/MotionConfigPanel/Scroll" unique_id=1444000006]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="GroundHeader" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000010]
 layout_mode = 2
@@ -1369,7 +1378,7 @@ text = "Manual tilt (deg)"
 
 [node name="TiltX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/TiltRow" unique_id=1444000014]
 layout_mode = 2
-custom_minimum_size = Vector2(64, 0)
+size_flags_horizontal = 3
 min_value = -45.0
 max_value = 45.0
 step = 1.0
@@ -1377,7 +1386,7 @@ prefix = "X"
 
 [node name="TiltZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/TiltRow" unique_id=1444000015]
 layout_mode = 2
-custom_minimum_size = Vector2(64, 0)
+size_flags_horizontal = 3
 min_value = -45.0
 max_value = 45.0
 step = 1.0
@@ -1412,7 +1421,7 @@ text = "R hand"
 
 [node name="rhand_gX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000031]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1420,7 +1429,7 @@ prefix = "X"
 
 [node name="rhand_gY" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000032]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1428,7 +1437,7 @@ prefix = "Y"
 
 [node name="rhand_gZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000033]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1440,7 +1449,7 @@ text = "L hand"
 
 [node name="lhand_gX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000035]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1448,7 +1457,7 @@ prefix = "X"
 
 [node name="lhand_gY" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000036]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1456,7 +1465,7 @@ prefix = "Y"
 
 [node name="lhand_gZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000037]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1468,7 +1477,7 @@ text = "R foot"
 
 [node name="rfoot_gX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000039]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1476,7 +1485,7 @@ prefix = "X"
 
 [node name="rfoot_gY" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000040]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1484,7 +1493,7 @@ prefix = "Y"
 
 [node name="rfoot_gZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000041]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1496,7 +1505,7 @@ text = "L foot"
 
 [node name="lfoot_gX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000043]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1504,7 +1513,7 @@ prefix = "X"
 
 [node name="lfoot_gY" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000044]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
@@ -1512,7 +1521,7 @@ prefix = "Y"
 
 [node name="lfoot_gZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000045]
 layout_mode = 2
-custom_minimum_size = Vector2(58, 0)
+size_flags_horizontal = 3
 min_value = -180.0
 max_value = 180.0
 step = 5.0
