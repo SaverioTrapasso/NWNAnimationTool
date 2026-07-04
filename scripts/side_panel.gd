@@ -23,6 +23,7 @@ signal pose_memory_save_requested(slot: int)
 signal pose_memory_load_requested(slot: int)
 signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
+signal ai_ground_toggled(enabled: bool)
 signal ai_bulk_requested(input_dir: String, output_dir: String)
 signal video_pose_open_requested()
 
@@ -76,6 +77,7 @@ var _anim_name: String = ""
 @onready var image_pose_panel: Panel = $ImagePosePanel
 @onready var ai_load_image_button: Button = $ImagePosePanel/Body/ImageRow/BrowseButton
 @onready var ai_apply_pose_button: Button = $ImagePosePanel/Body/ApplyPoseButton
+@onready var ai_ground_check: CheckBox = $ImagePosePanel/Body/GroundCheck
 @onready var ai_server_status_label: Label = $ImagePosePanel/Body/StatusLabel
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
 @onready var ai_bulk_input_dialog: FileDialog = $BulkInputDialog
@@ -159,6 +161,7 @@ func _ready() -> void:
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
+	ai_ground_check.toggled.connect(func(v): ai_ground_toggled.emit(v))
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 
@@ -374,6 +377,9 @@ func set_ai_server_status(text: String) -> void:
 
 func set_ai_apply_enabled(enabled: bool) -> void:
 	ai_apply_pose_button.disabled = not enabled
+
+func is_ai_ground_enabled() -> bool:
+	return ai_ground_check.button_pressed
 
 ## Sets the unified overlay toggle's visual state without re-emitting.
 func set_overlay_active(active: bool) -> void:

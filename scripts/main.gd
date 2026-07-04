@@ -117,6 +117,9 @@ func _ready() -> void:
 	_ai_client.pose_failed.connect(_on_ai_pose_failed)
 	side_panel.ai_pose_image_selected.connect(_on_ai_image_selected)
 	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
+	side_panel.ai_ground_toggled.connect(func(_v: bool):
+		if not _ai_pending_landmarks.is_empty():
+			_show_ai_landmark_overlay(_ai_pending_landmarks))
 	side_panel.ai_bulk_requested.connect(_on_ai_bulk_requested)
 	side_panel.pose_memory_save_requested.connect(_on_pose_memory_save)
 	side_panel.pose_memory_load_requested.connect(_on_pose_memory_load)
@@ -1343,6 +1346,14 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 		var p := Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + rig_hip_center
 		positions.append(p)
 
+	# Preview honesty: when "Ground to floor" is on, shift the overlay by the
+	# exact same amount the pose application will use, so what the user sees
+	# is what Apply pose produces.
+	if side_panel.is_ai_ground_enabled() and positions.size() >= 33:
+		var shift: float = AIPoseApplier.ground_shift(positions)
+		for i in range(positions.size()):
+			positions[i].y -= shift
+
 	# Build joint entries
 	var entries: Array = []
 	for i in range(positions.size()):
@@ -1388,7 +1399,8 @@ func _on_ai_apply_pose() -> void:
 		return
 	_push_undo_snapshot()
 
-	var data := AIPoseApplier.compute(_ai_pending_landmarks, $Rig, _ai_scale_factor, _ai_origin)
+	var data := AIPoseApplier.compute(_ai_pending_landmarks, $Rig, _ai_scale_factor, _ai_origin,
+		Quaternion.IDENTITY, {}, side_panel.is_ai_ground_enabled())
 	if data.is_empty():
 		side_panel.set_status("Could not compute pose from landmarks.")
 		return

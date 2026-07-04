@@ -919,6 +919,12 @@ theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
 text = "Load an image to detect a pose"
 autowrap_mode = 3
 
+[node name="GroundCheck" type="CheckBox" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000020]
+layout_mode = 2
+button_pressed = true
+tooltip_text = "Shift the pose down so the lowest foot touches the floor. The green preview updates live so you can compare before applying."
+text = "Ground to floor"
+
 [node name="ApplyPoseButton" type="Button" parent="SidePanel/ImagePosePanel/Body" unique_id=1111000004]
 layout_mode = 2
 disabled = true

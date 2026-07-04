@@ -47,7 +47,7 @@ const MP_RIGHT_FOOT_INDEX := 32
 #   root_position: Vector3 (world) or null
 # ---------------------------------------------------------------------------
 
-static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY, calibration: Dictionary = {}) -> Dictionary:
+static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY, calibration: Dictionary = {}, ground: bool = true) -> Dictionary:
 	if world_landmarks.size() < 33:
 		return {}
 
@@ -65,16 +65,16 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	for lm in world_landmarks:
 		vis.append(lm.get("visibility", 1.0))
 
-	# Ground the entire skeleton: shift all pts down so the lowest foot
-	# CONTACT point (heel or toe — not the ankle, which sits above the
-	# sole) rests at Y=0. Done here before anything else so every derived
-	# point (IK targets, midpoints, FK bases) inherits the correction.
-	var min_foot_y: float = min(
-		min(pts[MP_LEFT_HEEL].y, pts[MP_RIGHT_HEEL].y),
-		min(pts[MP_LEFT_FOOT_INDEX].y, pts[MP_RIGHT_FOOT_INDEX].y)
-	)
-	for i in range(pts.size()):
-		pts[i].y -= min_foot_y
+	# Ground the entire skeleton (optional): shift all pts down so the
+	# lowest foot CONTACT point (heel or toe — not the ankle, which sits
+	# above the sole) rests at Y=0. Done here before anything else so every
+	# derived point (IK targets, midpoints, FK bases) inherits the
+	# correction. When ground is false the pose lands exactly where the
+	# markers are, even if that leaves it floating or sunken.
+	if ground:
+		var min_foot_y: float = ground_shift(pts)
+		for i in range(pts.size()):
+			pts[i].y -= min_foot_y
 
 	var result := {
 		"ik_targets": {},
@@ -352,6 +352,16 @@ static func compute_rest_calibration(world_landmarks: Array, rig_root: Node3D,
 		# offset such that: conv(frame 1) * offset == bone's rest WORLD basis
 		calibration[bone_name] = Quaternion((conv as Basis).inverse() * bone.global_basis)
 	return calibration
+
+
+## Vertical shift needed to rest the lowest foot contact point on Y=0.
+## Exposed so the overlay preview can apply the exact same correction the
+## pose application would, letting the user judge the effect beforehand.
+static func ground_shift(pts: Array) -> float:
+	return min(
+		min(pts[MP_LEFT_HEEL].y, pts[MP_RIGHT_HEEL].y),
+		min(pts[MP_LEFT_FOOT_INDEX].y, pts[MP_RIGHT_FOOT_INDEX].y)
+	)
 
 
 static func _find(node: Node, target: String) -> Node3D:
