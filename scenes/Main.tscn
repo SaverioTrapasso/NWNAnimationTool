@@ -586,6 +586,7 @@ ok_button_text = "Load"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.png,*.jpg,*.jpeg ; Image Files")
+theme = ExtResource("9")
 
 [node name="BulkInputDialog" type="FileDialog" parent="SidePanel" unique_id=1111000011]
 title = "Select Folder with Pose Images"
@@ -594,6 +595,7 @@ size = Vector2i(600, 400)
 ok_button_text = "Select Folder"
 file_mode = 2
 access = 2
+theme = ExtResource("9")
 
 [node name="BulkOutputDialog" type="FileDialog" parent="SidePanel" unique_id=1111000012]
 title = "Select Output Folder for MDL Files"
@@ -602,6 +604,7 @@ size = Vector2i(600, 400)
 ok_button_text = "Select Folder"
 file_mode = 2
 access = 2
+theme = ExtResource("9")
 
 [node name="StatusLabel" type="Label" parent="SidePanel/Sidebar" unique_id=1251374347]
 layout_mode = 1
@@ -625,6 +628,7 @@ initial_position = 1
 size = Vector2i(420, 130)
 ok_button_text = "New"
 dialog_text = "This discards the current pose, timeline, undo history, and retarget state. This can't be undone. Continue?"
+theme = ExtResource("9")
 
 [node name="SaveDialog" type="FileDialog" parent="SidePanel" unique_id=932833161]
 title = "Save MDL animation"
@@ -633,6 +637,7 @@ size = Vector2i(600, 400)
 ok_button_text = "Save"
 access = 2
 filters = PackedStringArray("*.txt ; Text Files")
+theme = ExtResource("9")
 
 [node name="OpenDialog" type="FileDialog" parent="SidePanel" unique_id=1485209523]
 title = "Open a File"
@@ -642,6 +647,7 @@ ok_button_text = "Open"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.txt ; Text Files")
+theme = ExtResource("9")
 
 [node name="LoadAnimationDialog" type="FileDialog" parent="SidePanel" unique_id=815214300]
 title = "Open a File"
@@ -651,6 +657,7 @@ ok_button_text = "Load"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.glb,*.gltf ; glTF Files")
+theme = ExtResource("9")
 
 [node name="BoneConfigPanel" type="Panel" parent="SidePanel" unique_id=886102673]
 layout_mode = 1
@@ -812,6 +819,7 @@ ok_button_text = "Load"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.cfg ; Config Files")
+theme = ExtResource("9")
 
 [node name="SaveAsDialog" type="FileDialog" parent="SidePanel/BoneConfigPanel" unique_id=1667002643]
 title = "Save bone-map config as"
@@ -820,6 +828,7 @@ size = Vector2i(600, 400)
 ok_button_text = "Save"
 access = 2
 filters = PackedStringArray("*.cfg ; Config Files")
+theme = ExtResource("9")
 
 [node name="TimelineRow" type="HBoxContainer" parent="SidePanel" unique_id=740570702]
 layout_mode = 1
