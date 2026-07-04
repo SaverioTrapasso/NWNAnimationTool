@@ -21,6 +21,7 @@ signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
 signal ai_pose_offset_requested()
 signal ai_pose_overlay_toggled(visible: bool)
+signal ai_bulk_requested(input_dir: String, output_dir: String)
 
 @export var rig_root: Node3D
 @export var rig_controller: Node3D
@@ -72,8 +73,12 @@ signal ai_pose_overlay_toggled(visible: bool)
 @onready var ai_load_image_button: Button = _sidebar.get_node("AIPose/LoadImageButton")
 @onready var ai_apply_pose_button: Button = _sidebar.get_node("AIPose/ApplyPoseButton")
 @onready var ai_apply_offset_button: Button = _sidebar.get_node("AIPose/ApplyOffsetButton")
+@onready var ai_bulk_button: Button = _sidebar.get_node("AIPose/BulkProcessButton")
+@onready var ai_bulk_progress_label: Label = _sidebar.get_node("AIPose/BulkProgressLabel")
 @onready var ai_server_status_label: Label = _sidebar.get_node("AIPose/ServerStatusLabel")
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
+@onready var ai_bulk_input_dialog: FileDialog = $BulkInputDialog
+@onready var ai_bulk_output_dialog: FileDialog = $BulkOutputDialog
 
 ## The female model (a_fa.glb) names its cloak mesh "Cloak_g" (capital C)
 ## instead of the male model's "cloak_g" -- both are listed so the hide
@@ -119,6 +124,9 @@ func _ready() -> void:
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
 	ai_apply_offset_button.pressed.connect(func(): ai_pose_offset_requested.emit())
 	ai_pose_overlay_button.toggled.connect(func(v): ai_pose_overlay_toggled.emit(v))
+	ai_bulk_button.pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
+	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
+	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 
 func set_status(text: String) -> void:
 	status_label.text = text
@@ -269,6 +277,23 @@ func _add_weapon(hand_node_name: String, component_id: String, color: Color) -> 
 	_weapon_meshes[hand_node_name] = mi
 	if rig_controller != null:
 		rig_controller.set_component_pick_mesh(component_id, hand_node_name, mi)
+
+var _bulk_input_dir: String = ""
+
+func _on_bulk_input_selected(dir: String) -> void:
+	_bulk_input_dir = dir
+	ai_bulk_output_dialog.popup_centered_ratio(0.6)
+
+func _on_bulk_output_selected(dir: String) -> void:
+	ai_bulk_requested.emit(_bulk_input_dir, dir)
+
+func set_bulk_progress(text: String) -> void:
+	ai_bulk_progress_label.text = text
+	ai_bulk_progress_label.visible = text != ""
+
+func set_bulk_running(running: bool) -> void:
+	ai_bulk_button.disabled = running
+	ai_load_image_button.disabled = running
 
 func _on_ai_image_selected(path: String) -> void:
 	ai_server_status_label.text = "Image loaded: %s" % path.get_file()

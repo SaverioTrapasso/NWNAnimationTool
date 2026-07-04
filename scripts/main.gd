@@ -118,6 +118,7 @@ func _ready() -> void:
 	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
 	side_panel.ai_pose_offset_requested.connect(_on_ai_apply_offset)
 	side_panel.ai_pose_overlay_toggled.connect(func(v): green_visualizer.visible = v)
+	side_panel.ai_bulk_requested.connect(_on_ai_bulk_requested)
 
 	red_visualizer.camera = $Camera3D
 	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
@@ -1194,6 +1195,12 @@ var _ai_pending_landmarks: Array = []
 var _ai_scale_factor: float = 1.0
 var _ai_origin: Vector3 = Vector3.ZERO
 
+# Bulk processing state
+var _bulk_queue: Array = []       # Array of file paths remaining
+var _bulk_output_dir: String = ""
+var _bulk_total: int = 0
+var _bulk_done: int = 0
+
 func _on_ai_image_selected(path: String) -> void:
 	_ai_pending_image_path = path
 	_ai_pending_landmarks = []
@@ -1202,6 +1209,9 @@ func _on_ai_image_selected(path: String) -> void:
 	_ai_client.detect(path)
 
 func _on_ai_pose_received(world_landmarks: Array) -> void:
+	if _bulk_total > 0:
+		_bulk_on_pose_received(world_landmarks)
+		return
 	_ai_pending_landmarks = world_landmarks
 	side_panel.set_ai_server_status("Pose detected. Press Apply Pose.")
 	side_panel.set_ai_apply_enabled(true)
@@ -1290,6 +1300,11 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 	green_visualizer.visible = true
 
 func _on_ai_pose_failed(error: String) -> void:
+	if _bulk_total > 0:
+		side_panel.set_bulk_progress("Error on %s: %s" % [_ai_pending_image_path.get_file(), error])
+		_bulk_done += 1
+		_bulk_process_next()
+		return
 	side_panel.set_ai_server_status("Error: %s" % error)
 	side_panel.set_ai_apply_enabled(false)
 	side_panel.set_ai_pose_overlay_available(false)
@@ -1347,6 +1362,108 @@ func _on_ai_apply_pose() -> void:
 	side_panel.set_status("AI pose applied (%d IK targets, %d FK bones)." % [n_ik, n_fk])
 
 const AI_FOOT_OFFSET := 0.14
+const BULK_IMAGE_EXTENSIONS := ["png", "jpg", "jpeg"]
+
+func _on_ai_bulk_requested(input_dir: String, output_dir: String) -> void:
+	var dir := DirAccess.open(input_dir)
+	if dir == null:
+		side_panel.set_status("Could not open folder: %s" % input_dir)
+		return
+
+	_bulk_queue = []
+	dir.list_dir_begin()
+	var fname := dir.get_next()
+	while fname != "":
+		if not dir.current_is_dir():
+			var ext := fname.get_extension().to_lower()
+			if ext in BULK_IMAGE_EXTENSIONS:
+				_bulk_queue.append(input_dir.path_join(fname))
+		fname = dir.get_next()
+	dir.list_dir_end()
+	_bulk_queue.sort()
+
+	if _bulk_queue.is_empty():
+		side_panel.set_status("No images found in folder.")
+		return
+
+	_bulk_output_dir = output_dir
+	_bulk_total = _bulk_queue.size()
+	_bulk_done = 0
+	side_panel.set_bulk_running(true)
+	side_panel.set_bulk_progress("0 / %d" % _bulk_total)
+	_bulk_process_next()
+
+func _bulk_process_next() -> void:
+	if _bulk_queue.is_empty():
+		side_panel.set_bulk_running(false)
+		side_panel.set_bulk_progress("Done: %d animations saved." % _bulk_done)
+		side_panel.set_status("Bulk complete: %d animations saved to %s" % [_bulk_done, _bulk_output_dir])
+		_bulk_total = 0
+		return
+
+	var path: String = _bulk_queue.pop_front()
+	side_panel.set_bulk_progress("%d / %d — %s" % [_bulk_done, _bulk_total, path.get_file()])
+	_ai_pending_image_path = path
+	_ai_pending_landmarks = []
+	_ai_client.detect(path)
+
+func _bulk_on_pose_received(world_landmarks: Array) -> void:
+	# Compute scale/origin same as single-image flow
+	_show_ai_landmark_overlay(world_landmarks)
+	var data := AIPoseApplier.compute(world_landmarks, $Rig, _ai_scale_factor, _ai_origin)
+	if data.is_empty():
+		_bulk_done += 1
+		_bulk_process_next()
+		return
+
+	# Reset rig to rest before applying each pose
+	for node in _rest_transforms.keys():
+		if is_instance_valid(node):
+			node.transform = _rest_transforms[node]
+	_init_default_limb_targets()
+
+	# Apply IK targets
+	for comp_id in data.get("ik_targets", {}).keys():
+		if _limb_targets.has(comp_id):
+			_limb_targets[comp_id]["target"] = data["ik_targets"][comp_id]["target"]
+			_limb_targets[comp_id]["pole"]   = data["ik_targets"][comp_id]["pole"]
+
+	# Apply FK
+	for bone_name in data.get("fk_rotations", {}).keys():
+		var node: Node3D = rig_controller.find_node(bone_name)
+		if node != null:
+			node.quaternion = data["fk_rotations"][bone_name]
+
+	# Root position
+	var root_pos: Variant = data.get("root_position", null)
+	if root_pos != null:
+		var rootdummy: Node3D = rig_controller.find_node("rootdummy")
+		if rootdummy != null:
+			rootdummy.global_position = root_pos
+
+	# Zero hands
+	for hand_name in ["rhand_g", "lhand_g"]:
+		var hand: Node3D = rig_controller.find_node(hand_name)
+		if hand != null:
+			hand.basis = Basis.IDENTITY
+
+	# Let the IK solver run for one frame before exporting
+	await get_tree().process_frame
+
+	# Export and save
+	var anim_name: String = _ai_pending_image_path.get_file().get_basename()
+	var content := MdlExporter.export_pose($Rig, anim_name)
+	var out_path := _bulk_output_dir.path_join(anim_name + ".txt")
+	var file := FileAccess.open(out_path, FileAccess.WRITE)
+	if file != null:
+		file.store_string(content)
+		file.close()
+		_bulk_done += 1
+	else:
+		side_panel.set_bulk_progress("Error saving: %s" % out_path)
+
+	green_visualizer.visible = false
+	_bulk_process_next()
 
 func _on_ai_apply_offset() -> void:
 	_push_undo_snapshot()

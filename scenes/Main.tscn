@@ -487,6 +487,20 @@ theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
 text = "Load an image to generate a pose"
 autowrap_mode = 3
 
+[node name="BulkProcessButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000008]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+theme_override_font_sizes/font_size = 10
+text = "Bulk Process Folder..."
+
+[node name="BulkProgressLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000009]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.5, 0.8, 0.5, 1)
+text = ""
+autowrap_mode = 3
+visible = false
+
 [node name="AIImageDialog" type="FileDialog" parent="SidePanel" unique_id=1111000006]
 title = "Load Reference Image"
 initial_position = 1
@@ -495,6 +509,22 @@ ok_button_text = "Load"
 file_mode = 0
 access = 2
 filters = PackedStringArray("*.png,*.jpg,*.jpeg ; Image Files")
+
+[node name="BulkInputDialog" type="FileDialog" parent="SidePanel" unique_id=1111000011]
+title = "Select Folder with Pose Images"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Select Folder"
+file_mode = 2
+access = 2
+
+[node name="BulkOutputDialog" type="FileDialog" parent="SidePanel" unique_id=1111000012]
+title = "Select Output Folder for MDL Files"
+initial_position = 1
+size = Vector2i(600, 400)
+ok_button_text = "Select Folder"
+file_mode = 2
+access = 2
 
 [node name="StatusLabel" type="Label" parent="SidePanel/Sidebar" unique_id=1251374347]
 layout_mode = 1
