@@ -82,9 +82,9 @@ var _anim_name: String = ""
 
 @onready var image_pose_panel: Panel = $ImagePosePanel
 @onready var video_pose_panel: Panel = $VideoPosePanel
-@onready var ai_load_image_button: Button = $ImagePosePanel/Body/ImageRow/BrowseButton
-@onready var ai_apply_pose_button: Button = $ImagePosePanel/Body/ApplyPoseButton
-@onready var ai_ground_check: CheckBox = $ImagePosePanel/Body/GroundCheck
+@onready var ai_load_image_button: Button = $ImagePosePanel/Scroll/Body/ImageRow/BrowseButton
+@onready var ai_apply_pose_button: Button = $ImagePosePanel/Scroll/Body/ApplyPoseButton
+@onready var ai_ground_check: CheckBox = $ImagePosePanel/Scroll/Body/GroundCheck
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
 @onready var ai_bulk_input_dialog: FileDialog = $BulkInputDialog
 @onready var ai_bulk_output_dialog: FileDialog = $BulkOutputDialog
@@ -166,7 +166,7 @@ func _ready() -> void:
 		load_btn.pressed.connect(pose_memory_load_requested.emit.bind(i))
 
 	image_pose_panel.get_node("TitleRow/CloseButton").pressed.connect(func(): set_image_panel_open(false))
-	image_pose_panel.get_node("Body/BulkButton").pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
+	image_pose_panel.get_node("Scroll/Body/BulkButton").pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
@@ -398,7 +398,7 @@ func set_bulk_running(running: bool) -> void:
 	image_pose_panel.get_node("Body/BulkButton").disabled = running
 
 func _on_ai_image_selected(path: String) -> void:
-	image_pose_panel.get_node("Body/ImageRow/ImagePathLabel").text = path.get_file()
+	image_pose_panel.get_node("Scroll/Body/ImageRow/ImagePathLabel").text = path.get_file()
 	set_image_panel_open(true)
 	status_label.text = "Image loaded: %s" % path.get_file()
 	ai_apply_pose_button.disabled = false
@@ -429,8 +429,8 @@ func _source_xform_spins(container: Node, kind: String) -> Array:
 
 func _source_xform_container(kind: String) -> Node:
 	match kind:
-		"image": return image_pose_panel.get_node("Body")
-		"video": return video_pose_panel.get_node("Body")
+		"image": return image_pose_panel.get_node("Scroll/Body")
+		"video": return video_pose_panel.get_node("Scroll/Body")
 		"glb": return bone_config_panel
 	return null
 

@@ -1,4 +1,4 @@
-﻿[gd_scene format=3 uid="uid://b1q7x8f3wq8nk"]
+[gd_scene format=3 uid="uid://b1q7x8f3wq8nk"]
 
 [ext_resource type="PackedScene" uid="uid://bk5top5rlti6i" path="res://assets/nwn/a_ba.glb" id="1"]
 [ext_resource type="Script" uid="uid://daq1neut88g00" path="res://scripts/orbit_camera.gd" id="2"]
@@ -956,7 +956,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "X"
 
-[node name="Body" type="VBoxContainer" parent="SidePanel/VideoPosePanel" unique_id=1333000005]
+[node name="Scroll" type="ScrollContainer" parent="SidePanel/VideoPosePanel" unique_id=2100000001]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -967,32 +967,37 @@ offset_right = -8.0
 offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="SidePanel/VideoPosePanel/Scroll" unique_id=1333000005]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="VideoRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000006]
+[node name="VideoRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000006]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="VideoPathLabel" type="Label" parent="SidePanel/VideoPosePanel/Body/VideoRow" unique_id=1333000007]
+[node name="VideoPathLabel" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body/VideoRow" unique_id=1333000007]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "No video selected"
 clip_text = true
 
-[node name="LoadVideoButton" type="Button" parent="SidePanel/VideoPosePanel/Body/VideoRow" unique_id=1333000008]
+[node name="LoadVideoButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body/VideoRow" unique_id=1333000008]
 layout_mode = 2
 text = "Browse..."
 
-[node name="FpsRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000010]
+[node name="FpsRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000010]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="FpsLabel" type="Label" parent="SidePanel/VideoPosePanel/Body/FpsRow" unique_id=1333000011]
+[node name="FpsLabel" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body/FpsRow" unique_id=1333000011]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Sample FPS"
 
-[node name="FpsSpin" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/FpsRow" unique_id=1333000012]
+[node name="FpsSpin" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/FpsRow" unique_id=1333000012]
 layout_mode = 2
 custom_minimum_size = Vector2(72, 0)
 min_value = 1.0
@@ -1000,16 +1005,16 @@ max_value = 30.0
 step = 1.0
 value = 10.0
 
-[node name="SmoothRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000013]
+[node name="SmoothRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000013]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="SmoothLabel" type="Label" parent="SidePanel/VideoPosePanel/Body/SmoothRow" unique_id=1333000014]
+[node name="SmoothLabel" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body/SmoothRow" unique_id=1333000014]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "Smooth window"
 
-[node name="SmoothSpin" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/SmoothRow" unique_id=1333000015]
+[node name="SmoothSpin" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/SmoothRow" unique_id=1333000015]
 layout_mode = 2
 custom_minimum_size = Vector2(72, 0)
 min_value = 1.0
@@ -1017,28 +1022,28 @@ max_value = 15.0
 step = 2.0
 value = 3.0
 
-[node name="ExtractButton" type="Button" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000016]
+[node name="ExtractButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000016]
 layout_mode = 2
 disabled = true
 text = "Extract poses"
 
-[node name="XformHeader" type="Label" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000011]
+[node name="XformHeader" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1888000011]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 9
 text = "SOURCE TRANSFORM"
 
-[node name="RotLabel" type="Label" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000013]
+[node name="RotLabel" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1888000013]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
 text = "Rotation (deg)"
 
-[node name="RotRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000012]
+[node name="RotRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1888000012]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="RotX" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/RotRow" unique_id=1888000033]
+[node name="RotX" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/RotRow" unique_id=1888000033]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -180.0
@@ -1046,7 +1051,7 @@ max_value = 180.0
 step = 5.0
 prefix = "X"
 
-[node name="RotY" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/RotRow" unique_id=1888000014]
+[node name="RotY" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/RotRow" unique_id=1888000014]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -180.0
@@ -1054,7 +1059,7 @@ max_value = 180.0
 step = 5.0
 prefix = "Y"
 
-[node name="RotZ" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/RotRow" unique_id=1888000034]
+[node name="RotZ" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/RotRow" unique_id=1888000034]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -180.0
@@ -1062,17 +1067,17 @@ max_value = 180.0
 step = 5.0
 prefix = "Z"
 
-[node name="OffLabel" type="Label" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000035]
+[node name="OffLabel" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1888000035]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
 text = "Offset (m)"
 
-[node name="OffsetRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000015]
+[node name="OffsetRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1888000015]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="OffX" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/OffsetRow" unique_id=1888000016]
+[node name="OffX" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/OffsetRow" unique_id=1888000016]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -2.0
@@ -1080,7 +1085,7 @@ max_value = 2.0
 step = 0.05
 prefix = "X"
 
-[node name="OffY" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/OffsetRow" unique_id=1888000017]
+[node name="OffY" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/OffsetRow" unique_id=1888000017]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -2.0
@@ -1088,7 +1093,7 @@ max_value = 2.0
 step = 0.05
 prefix = "Y"
 
-[node name="OffZ" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/OffsetRow" unique_id=1888000018]
+[node name="OffZ" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/OffsetRow" unique_id=1888000018]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -2.0
@@ -1096,18 +1101,18 @@ max_value = 2.0
 step = 0.05
 prefix = "Z"
 
-[node name="ScaleRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1888000053]
+[node name="ScaleRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1888000053]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="ScaleLabel" type="Label" parent="SidePanel/VideoPosePanel/Body/ScaleRow" unique_id=1888000054]
+[node name="ScaleLabel" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body/ScaleRow" unique_id=1888000054]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
 text = "Scale"
 
-[node name="ScaleSpin" type="SpinBox" parent="SidePanel/VideoPosePanel/Body/ScaleRow" unique_id=1888000055]
+[node name="ScaleSpin" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/ScaleRow" unique_id=1888000055]
 layout_mode = 2
 custom_minimum_size = Vector2(72, 0)
 min_value = 0.1
@@ -1115,18 +1120,18 @@ max_value = 5.0
 step = 0.05
 value = 1.0
 
-[node name="ResultRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000018]
+[node name="ResultRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000018]
 layout_mode = 2
 theme_override_constants/separation = 8
 visible = false
 
-[node name="ResultLabel" type="Label" parent="SidePanel/VideoPosePanel/Body/ResultRow" unique_id=1333000019]
+[node name="ResultLabel" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body/ResultRow" unique_id=1333000019]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.2, 0.55, 0.3, 1)
 text = ""
 
-[node name="ApplyButton" type="Button" parent="SidePanel/VideoPosePanel/Body/ResultRow" unique_id=1333000020]
+[node name="ApplyButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body/ResultRow" unique_id=1333000020]
 layout_mode = 2
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
@@ -1136,10 +1141,10 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
 text = "Apply to timeline"
 
-[node name="HSeparator" type="HSeparator" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000031]
+[node name="HSeparator" type="HSeparator" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000031]
 layout_mode = 2
 
-[node name="CalibrationButton" type="Button" parent="SidePanel/VideoPosePanel/Body" unique_id=1444000080]
+[node name="CalibrationButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1444000080]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 20)
 theme_override_font_sizes/font_size = 10
@@ -1192,7 +1197,7 @@ layout_mode = 2
 theme_override_font_sizes/font_size = 10
 text = "X"
 
-[node name="Body" type="VBoxContainer" parent="SidePanel/ImagePosePanel" unique_id=1777000005]
+[node name="Scroll" type="ScrollContainer" parent="SidePanel/ImagePosePanel" unique_id=2100000002]
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
@@ -1203,45 +1208,50 @@ offset_right = -8.0
 offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 2
+horizontal_scroll_mode = 0
+
+[node name="Body" type="VBoxContainer" parent="SidePanel/ImagePosePanel/Scroll" unique_id=1777000005]
+layout_mode = 2
+size_flags_horizontal = 3
 theme_override_constants/separation = 4
 
-[node name="ImageRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000006]
+[node name="ImageRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1777000006]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="ImagePathLabel" type="Label" parent="SidePanel/ImagePosePanel/Body/ImageRow" unique_id=1777000007]
+[node name="ImagePathLabel" type="Label" parent="SidePanel/ImagePosePanel/Scroll/Body/ImageRow" unique_id=1777000007]
 layout_mode = 2
 size_flags_horizontal = 3
 text = "No image selected"
 clip_text = true
 
-[node name="BrowseButton" type="Button" parent="SidePanel/ImagePosePanel/Body/ImageRow" unique_id=1777000008]
+[node name="BrowseButton" type="Button" parent="SidePanel/ImagePosePanel/Scroll/Body/ImageRow" unique_id=1777000008]
 layout_mode = 2
 text = "Browse..."
 
-[node name="GroundCheck" type="CheckBox" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000020]
+[node name="GroundCheck" type="CheckBox" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1777000020]
 layout_mode = 2
 button_pressed = true
 tooltip_text = "Shift the pose down so the lowest foot touches the floor. The green preview updates live so you can compare before applying."
 text = "Ground to floor"
 
-[node name="XformHeader" type="Label" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000001]
+[node name="XformHeader" type="Label" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1888000001]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 9
 text = "SOURCE TRANSFORM"
 
-[node name="RotLabel" type="Label" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000003]
+[node name="RotLabel" type="Label" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1888000003]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
 text = "Rotation (deg)"
 
-[node name="RotRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000002]
+[node name="RotRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1888000002]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="RotX" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/RotRow" unique_id=1888000030]
+[node name="RotX" type="SpinBox" parent="SidePanel/ImagePosePanel/Scroll/Body/RotRow" unique_id=1888000030]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -180.0
@@ -1249,7 +1259,7 @@ max_value = 180.0
 step = 5.0
 prefix = "X"
 
-[node name="RotY" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/RotRow" unique_id=1888000004]
+[node name="RotY" type="SpinBox" parent="SidePanel/ImagePosePanel/Scroll/Body/RotRow" unique_id=1888000004]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -180.0
@@ -1257,7 +1267,7 @@ max_value = 180.0
 step = 5.0
 prefix = "Y"
 
-[node name="RotZ" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/RotRow" unique_id=1888000031]
+[node name="RotZ" type="SpinBox" parent="SidePanel/ImagePosePanel/Scroll/Body/RotRow" unique_id=1888000031]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -180.0
@@ -1265,17 +1275,17 @@ max_value = 180.0
 step = 5.0
 prefix = "Z"
 
-[node name="OffLabel" type="Label" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000032]
+[node name="OffLabel" type="Label" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1888000032]
 layout_mode = 2
 theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
 text = "Offset (m)"
 
-[node name="OffsetRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000005]
+[node name="OffsetRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1888000005]
 layout_mode = 2
 theme_override_constants/separation = 4
 
-[node name="OffX" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/OffsetRow" unique_id=1888000006]
+[node name="OffX" type="SpinBox" parent="SidePanel/ImagePosePanel/Scroll/Body/OffsetRow" unique_id=1888000006]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -2.0
@@ -1283,7 +1293,7 @@ max_value = 2.0
 step = 0.05
 prefix = "X"
 
-[node name="OffY" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/OffsetRow" unique_id=1888000007]
+[node name="OffY" type="SpinBox" parent="SidePanel/ImagePosePanel/Scroll/Body/OffsetRow" unique_id=1888000007]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -2.0
@@ -1291,7 +1301,7 @@ max_value = 2.0
 step = 0.05
 prefix = "Y"
 
-[node name="OffZ" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/OffsetRow" unique_id=1888000008]
+[node name="OffZ" type="SpinBox" parent="SidePanel/ImagePosePanel/Scroll/Body/OffsetRow" unique_id=1888000008]
 layout_mode = 2
 size_flags_horizontal = 3
 min_value = -2.0
@@ -1299,18 +1309,18 @@ max_value = 2.0
 step = 0.05
 prefix = "Z"
 
-[node name="ScaleRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Body" unique_id=1888000050]
+[node name="ScaleRow" type="HBoxContainer" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1888000050]
 layout_mode = 2
 theme_override_constants/separation = 6
 
-[node name="ScaleLabel" type="Label" parent="SidePanel/ImagePosePanel/Body/ScaleRow" unique_id=1888000051]
+[node name="ScaleLabel" type="Label" parent="SidePanel/ImagePosePanel/Scroll/Body/ScaleRow" unique_id=1888000051]
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 10
 theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
 text = "Scale"
 
-[node name="ScaleSpin" type="SpinBox" parent="SidePanel/ImagePosePanel/Body/ScaleRow" unique_id=1888000052]
+[node name="ScaleSpin" type="SpinBox" parent="SidePanel/ImagePosePanel/Scroll/Body/ScaleRow" unique_id=1888000052]
 layout_mode = 2
 custom_minimum_size = Vector2(72, 0)
 min_value = 0.1
@@ -1318,7 +1328,7 @@ max_value = 5.0
 step = 0.05
 value = 1.0
 
-[node name="ApplyPoseButton" type="Button" parent="SidePanel/ImagePosePanel/Body" unique_id=1111000004]
+[node name="ApplyPoseButton" type="Button" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1111000004]
 layout_mode = 2
 disabled = true
 theme_override_colors/font_color = Color(1, 1, 1, 1)
@@ -1329,10 +1339,10 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
 text = "Apply pose"
 
-[node name="HSeparator" type="HSeparator" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000010]
+[node name="HSeparator" type="HSeparator" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1777000010]
 layout_mode = 2
 
-[node name="BulkButton" type="Button" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000011]
+[node name="BulkButton" type="Button" parent="SidePanel/ImagePosePanel/Scroll/Body" unique_id=1777000011]
 layout_mode = 2
 custom_minimum_size = Vector2(0, 20)
 theme_override_font_sizes/font_size = 10

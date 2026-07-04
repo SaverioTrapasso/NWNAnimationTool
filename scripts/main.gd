@@ -1628,35 +1628,35 @@ func _setup_video_pose_panel() -> void:
 	var panel := _video_panel
 	panel.get_node("TitleRow/CloseButton").pressed.connect(func(): panel.visible = false)
 
-	var load_btn: Button = panel.get_node("Body/VideoRow/LoadVideoButton")
+	var load_btn: Button = panel.get_node("Scroll/Body/VideoRow/LoadVideoButton")
 	var video_dialog: FileDialog = panel.get_node("VideoDialog")
 	load_btn.pressed.connect(func(): video_dialog.popup_centered_ratio(0.7))
 	video_dialog.file_selected.connect(_on_video_selected)
 
-	panel.get_node("Body/ExtractButton").pressed.connect(_on_video_extract_pressed)
-	panel.get_node("Body/CalibrationButton").pressed.connect(func(): side_panel.motion_config_panel.toggle_visible())
-	panel.get_node("Body/ResultRow/ApplyButton").pressed.connect(_on_video_apply_to_timeline)
+	panel.get_node("Scroll/Body/ExtractButton").pressed.connect(_on_video_extract_pressed)
+	panel.get_node("Scroll/Body/CalibrationButton").pressed.connect(func(): side_panel.motion_config_panel.toggle_visible())
+	panel.get_node("Scroll/Body/ResultRow/ApplyButton").pressed.connect(_on_video_apply_to_timeline)
 
 func _on_video_pose_open() -> void:
 	_video_panel.visible = true
 
 func _on_video_selected(path: String) -> void:
-	_video_panel.get_node("Body/VideoRow/VideoPathLabel").text = path.get_file()
-	_video_panel.get_node("Body/VideoRow/VideoPathLabel").set_meta("full_path", path)
-	_video_panel.get_node("Body/ExtractButton").disabled = false
-	_video_panel.get_node("Body/ResultRow").visible = false
+	_video_panel.get_node("Scroll/Body/VideoRow/VideoPathLabel").text = path.get_file()
+	_video_panel.get_node("Scroll/Body/VideoRow/VideoPathLabel").set_meta("full_path", path)
+	_video_panel.get_node("Scroll/Body/ExtractButton").disabled = false
+	_video_panel.get_node("Scroll/Body/ResultRow").visible = false
 	side_panel.set_status("Video loaded: %s" % path.get_file())
 
 func _on_video_extract_pressed() -> void:
-	var path_label: Label = _video_panel.get_node("Body/VideoRow/VideoPathLabel")
+	var path_label: Label = _video_panel.get_node("Scroll/Body/VideoRow/VideoPathLabel")
 	if not path_label.has_meta("full_path"):
 		return
 	var video_path: String = path_label.get_meta("full_path")
-	var sample_fps: float = _video_panel.get_node("Body/FpsRow/FpsSpin").value
-	var smooth_window: int = int(_video_panel.get_node("Body/SmoothRow/SmoothSpin").value)
+	var sample_fps: float = _video_panel.get_node("Scroll/Body/FpsRow/FpsSpin").value
+	var smooth_window: int = int(_video_panel.get_node("Scroll/Body/SmoothRow/SmoothSpin").value)
 
-	_video_panel.get_node("Body/ExtractButton").disabled = true
-	_video_panel.get_node("Body/ResultRow").visible = false
+	_video_panel.get_node("Scroll/Body/ExtractButton").disabled = true
+	_video_panel.get_node("Scroll/Body/ResultRow").visible = false
 	side_panel.set_status("Extracting poses from video... this may take a moment.")
 	_video_extracted_frames = []
 
@@ -1668,9 +1668,9 @@ func _on_video_extraction_done(frames: Array, duration: float) -> void:
 	_ai_overlay_calibrated = false
 	_ai_wizard = "video"
 	var n := frames.size()
-	_video_panel.get_node("Body/ExtractButton").disabled = false
-	_video_panel.get_node("Body/ResultRow/ResultLabel").text = "%d poses detected (%.1fs)" % [n, duration]
-	_video_panel.get_node("Body/ResultRow").visible = true
+	_video_panel.get_node("Scroll/Body/ExtractButton").disabled = false
+	_video_panel.get_node("Scroll/Body/ResultRow/ResultLabel").text = "%d poses detected (%.1fs)" % [n, duration]
+	_video_panel.get_node("Scroll/Body/ResultRow").visible = true
 	# The animation duration follows the video as soon as it's known — the
 	# user shouldn't have to wait for Apply to see the timeline match.
 	_anim_length = duration
@@ -1682,7 +1682,7 @@ func _on_video_extraction_done(frames: Array, duration: float) -> void:
 
 func _on_video_extraction_failed(error: String) -> void:
 	side_panel.set_status("Video extraction error: %s" % error)
-	_video_panel.get_node("Body/ExtractButton").disabled = false
+	_video_panel.get_node("Scroll/Body/ExtractButton").disabled = false
 
 func _on_video_apply_to_timeline() -> void:
 	if _video_extracted_frames.is_empty():
