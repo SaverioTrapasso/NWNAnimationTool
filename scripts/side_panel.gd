@@ -78,7 +78,6 @@ var _anim_name: String = ""
 @onready var ai_load_image_button: Button = $ImagePosePanel/Body/ImageRow/BrowseButton
 @onready var ai_apply_pose_button: Button = $ImagePosePanel/Body/ApplyPoseButton
 @onready var ai_ground_check: CheckBox = $ImagePosePanel/Body/GroundCheck
-@onready var ai_server_status_label: Label = $ImagePosePanel/Body/StatusLabel
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
 @onready var ai_bulk_input_dialog: FileDialog = $BulkInputDialog
 @onready var ai_bulk_output_dialog: FileDialog = $BulkOutputDialog
@@ -350,12 +349,9 @@ func _on_bulk_input_selected(dir: String) -> void:
 func _on_bulk_output_selected(dir: String) -> void:
 	ai_bulk_requested.emit(_bulk_input_dir, dir)
 
-## Bulk progress shows inside the image wizard panel (bulk is an image-batch
-## feature) and echoes to the status bar so it's visible panel-closed too.
+## ALL user notifications go through the single status bar at the bottom of
+## the Edit sidebar — one consistent place the user learns to watch.
 func set_bulk_progress(text: String) -> void:
-	var label: Label = image_pose_panel.get_node("Body/BulkProgressLabel")
-	label.text = text
-	label.visible = text != ""
 	status_label.text = text
 
 func set_bulk_running(running: bool) -> void:
@@ -368,12 +364,12 @@ func set_bulk_running(running: bool) -> void:
 func _on_ai_image_selected(path: String) -> void:
 	image_pose_panel.get_node("Body/ImageRow/ImagePathLabel").text = path.get_file()
 	set_image_panel_open(true)
-	ai_server_status_label.text = "Image loaded: %s" % path.get_file()
+	status_label.text = "Image loaded: %s" % path.get_file()
 	ai_apply_pose_button.disabled = false
 	ai_pose_image_selected.emit(path)
 
 func set_ai_server_status(text: String) -> void:
-	ai_server_status_label.text = text
+	status_label.text = text
 
 func set_ai_apply_enabled(enabled: bool) -> void:
 	ai_apply_pose_button.disabled = not enabled

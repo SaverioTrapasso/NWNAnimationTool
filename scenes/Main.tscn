@@ -723,7 +723,7 @@ layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
 offset_left = 14.0
-offset_top = 14.0
+offset_top = 12.0
 offset_right = -14.0
 offset_bottom = 34.0
 grow_horizontal = 2
@@ -746,7 +746,7 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 offset_left = 14.0
-offset_top = 42.0
+offset_top = 40.0
 offset_right = -14.0
 offset_bottom = -14.0
 grow_horizontal = 2
@@ -803,23 +803,10 @@ max_value = 15.0
 step = 2.0
 value = 3.0
 
-[node name="CalibrationButton" type="Button" parent="SidePanel/VideoPosePanel/Body" unique_id=1444000080]
-layout_mode = 2
-tooltip_text = "Tune tilt correction, hand/foot rotation offsets, feet height and scale used by the bake"
-text = "Motion calibration..."
-
 [node name="ExtractButton" type="Button" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000016]
 layout_mode = 2
 disabled = true
-text = "Extract Poses"
-
-[node name="ProgressLabel" type="Label" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000017]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
-theme_override_font_sizes/font_size = 11
-text = ""
-autowrap_mode = 3
-visible = false
+text = "Extract poses"
 
 [node name="ResultRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000018]
 layout_mode = 2
@@ -840,7 +827,17 @@ theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
-text = "Apply to Timeline"
+text = "Apply to timeline"
+
+[node name="HSeparator" type="HSeparator" parent="SidePanel/VideoPosePanel/Body" unique_id=1333000031]
+layout_mode = 2
+
+[node name="CalibrationButton" type="Button" parent="SidePanel/VideoPosePanel/Body" unique_id=1444000080]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+theme_override_font_sizes/font_size = 10
+tooltip_text = "Tune tilt correction, hand/foot rotation offsets, feet height and scale used by the bake"
+text = "Motion calibration..."
 
 [node name="VideoDialog" type="FileDialog" parent="SidePanel/VideoPosePanel" unique_id=1333000021]
 title = "Load Video"
@@ -912,13 +909,6 @@ clip_text = true
 layout_mode = 2
 text = "Browse..."
 
-[node name="StatusLabel" type="Label" parent="SidePanel/ImagePosePanel/Body" unique_id=1111000005]
-layout_mode = 2
-theme_override_font_sizes/font_size = 11
-theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
-text = "Load an image to detect a pose"
-autowrap_mode = 3
-
 [node name="GroundCheck" type="CheckBox" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000020]
 layout_mode = 2
 button_pressed = true
@@ -945,14 +935,6 @@ custom_minimum_size = Vector2(0, 20)
 theme_override_font_sizes/font_size = 10
 tooltip_text = "Detect every image in a folder and export one MDL file each"
 text = "Bulk: image folder..."
-
-[node name="BulkProgressLabel" type="Label" parent="SidePanel/ImagePosePanel/Body" unique_id=1111000009]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-theme_override_colors/font_color = Color(0.2, 0.55, 0.3, 1)
-text = ""
-autowrap_mode = 3
-visible = false
 
 [node name="MotionConfigPanel" type="Panel" parent="SidePanel" unique_id=1444000001]
 layout_mode = 1

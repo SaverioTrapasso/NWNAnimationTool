@@ -1607,8 +1607,7 @@ func _on_video_selected(path: String) -> void:
 	_video_panel.get_node("Body/VideoRow/VideoPathLabel").set_meta("full_path", path)
 	_video_panel.get_node("Body/ExtractButton").disabled = false
 	_video_panel.get_node("Body/ResultRow").visible = false
-	_video_panel.get_node("Body/ProgressLabel").text = ""
-	_video_panel.get_node("Body/ProgressLabel").visible = false
+	side_panel.set_status("Video loaded: %s" % path.get_file())
 
 func _on_video_extract_pressed() -> void:
 	var path_label: Label = _video_panel.get_node("Body/VideoRow/VideoPathLabel")
@@ -1620,8 +1619,7 @@ func _on_video_extract_pressed() -> void:
 
 	_video_panel.get_node("Body/ExtractButton").disabled = true
 	_video_panel.get_node("Body/ResultRow").visible = false
-	_video_panel.get_node("Body/ProgressLabel").text = "Extracting poses... this may take a moment."
-	_video_panel.get_node("Body/ProgressLabel").visible = true
+	side_panel.set_status("Extracting poses from video... this may take a moment.")
 	_video_extracted_frames = []
 
 	_video_client.extract(video_path, sample_fps, smooth_window)
@@ -1631,13 +1629,13 @@ func _on_video_extraction_done(frames: Array, duration: float) -> void:
 	_video_extracted_duration = duration
 	_ai_overlay_calibrated = false
 	var n := frames.size()
-	_video_panel.get_node("Body/ProgressLabel").visible = false
 	_video_panel.get_node("Body/ExtractButton").disabled = false
 	_video_panel.get_node("Body/ResultRow/ResultLabel").text = "%d poses detected (%.1fs)" % [n, duration]
 	_video_panel.get_node("Body/ResultRow").visible = true
+	side_panel.set_status("Video: %d poses detected (%.1fs)." % [n, duration])
 
 func _on_video_extraction_failed(error: String) -> void:
-	_video_panel.get_node("Body/ProgressLabel").text = "Error: %s" % error
+	side_panel.set_status("Video extraction error: %s" % error)
 	_video_panel.get_node("Body/ExtractButton").disabled = false
 
 func _on_video_apply_to_timeline() -> void:
