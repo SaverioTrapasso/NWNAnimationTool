@@ -24,6 +24,7 @@ signal ai_pose_apply_requested()
 signal ai_pose_offset_requested()
 signal ai_pose_overlay_toggled(visible: bool)
 signal ai_bulk_requested(input_dir: String, output_dir: String)
+signal video_pose_open_requested()
 
 @export var rig_root: Node3D
 @export var rig_controller: Node3D
@@ -83,6 +84,7 @@ signal ai_bulk_requested(input_dir: String, output_dir: String)
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
 @onready var ai_bulk_input_dialog: FileDialog = $BulkInputDialog
 @onready var ai_bulk_output_dialog: FileDialog = $BulkOutputDialog
+@onready var ai_video_button: Button = _sidebar.get_node("AIPose/VideoButton")
 
 ## The female model (a_fa.glb) names its cloak mesh "Cloak_g" (capital C)
 ## instead of the male model's "cloak_g" -- both are listed so the hide
@@ -137,6 +139,7 @@ func _ready() -> void:
 	ai_apply_offset_button.pressed.connect(func(): ai_pose_offset_requested.emit())
 	ai_pose_overlay_button.toggled.connect(func(v): ai_pose_overlay_toggled.emit(v))
 	ai_bulk_button.pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
+	ai_video_button.pressed.connect(func(): video_pose_open_requested.emit())
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 

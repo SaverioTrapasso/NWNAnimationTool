@@ -4,6 +4,7 @@ const DragHandleScript = preload("res://scripts/drag_handle.gd")
 const TranslationGizmoScript = preload("res://scripts/translation_gizmo.gd")
 const AIPoseClientScript = preload("res://scripts/ai_pose_client.gd")
 const AIPoseApplier = preload("res://scripts/ai_pose_applier.gd")
+const VideoPoseClientScript = preload("res://scripts/video_pose_client.gd")
 
 @onready var rig_controller: Node3D = $RigController
 @onready var gizmo: Node3D = $RotationGizmo
@@ -121,6 +122,8 @@ func _ready() -> void:
 	side_panel.ai_bulk_requested.connect(_on_ai_bulk_requested)
 	side_panel.pose_memory_save_requested.connect(_on_pose_memory_save)
 	side_panel.pose_memory_load_requested.connect(_on_pose_memory_load)
+	side_panel.video_pose_open_requested.connect(_on_video_pose_open)
+	_setup_video_pose_panel()
 
 	red_visualizer.camera = $Camera3D
 	side_panel.bone_config_panel.set_bone_map(RetargetConfig.NWN_NODES, {}) # rows visible immediately, dropdowns filled in once a config/animation is loaded
@@ -1499,6 +1502,134 @@ func _on_retarget_save_config_requested() -> void:
 func _on_retarget_save_as_chosen(path: String) -> void:
 	_retarget_config_path = path
 	_save_retarget_config_to(path)
+
+# ---------------------------------------------------------------------------
+# Video pose extraction
+# ---------------------------------------------------------------------------
+var _video_client: Node = null
+var _video_panel: Panel = null
+var _video_extracted_frames: Array = []
+var _video_extracted_duration: float = 0.0
+
+func _setup_video_pose_panel() -> void:
+	_video_panel = $SidePanel/VideoPosePanel
+	_video_client = VideoPoseClientScript.new()
+	_video_client.name = "VideoPoseClient"
+	add_child(_video_client)
+	_video_client.extraction_done.connect(_on_video_extraction_done)
+	_video_client.extraction_failed.connect(_on_video_extraction_failed)
+
+	var panel := _video_panel
+	panel.get_node("TitleRow/CloseButton").pressed.connect(func(): panel.visible = false)
+
+	var load_btn: Button = panel.get_node("Body/VideoRow/LoadVideoButton")
+	var video_dialog: FileDialog = panel.get_node("VideoDialog")
+	load_btn.pressed.connect(func(): video_dialog.popup_centered_ratio(0.7))
+	video_dialog.file_selected.connect(_on_video_selected)
+
+	panel.get_node("Body/ExtractButton").pressed.connect(_on_video_extract_pressed)
+	panel.get_node("Body/ResultRow/ApplyButton").pressed.connect(_on_video_apply_to_timeline)
+
+func _on_video_pose_open() -> void:
+	_video_panel.visible = true
+
+func _on_video_selected(path: String) -> void:
+	_video_panel.get_node("Body/VideoRow/VideoPathLabel").text = path.get_file()
+	_video_panel.get_node("Body/VideoRow/VideoPathLabel").set_meta("full_path", path)
+	_video_panel.get_node("Body/ExtractButton").disabled = false
+	_video_panel.get_node("Body/ResultRow").visible = false
+	_video_panel.get_node("Body/ProgressLabel").text = ""
+	_video_panel.get_node("Body/ProgressLabel").visible = false
+
+func _on_video_extract_pressed() -> void:
+	var path_label: Label = _video_panel.get_node("Body/VideoRow/VideoPathLabel")
+	if not path_label.has_meta("full_path"):
+		return
+	var video_path: String = path_label.get_meta("full_path")
+	var sample_fps: float = _video_panel.get_node("Body/OptionsRow/FpsBox/FpsSpin").value
+	var smooth_window: int = int(_video_panel.get_node("Body/OptionsRow/SmoothBox/SmoothSpin").value)
+
+	_video_panel.get_node("Body/ExtractButton").disabled = true
+	_video_panel.get_node("Body/ResultRow").visible = false
+	_video_panel.get_node("Body/ProgressLabel").text = "Extracting poses... this may take a moment."
+	_video_panel.get_node("Body/ProgressLabel").visible = true
+	_video_extracted_frames = []
+
+	_video_client.extract(video_path, sample_fps, smooth_window)
+
+func _on_video_extraction_done(frames: Array, duration: float) -> void:
+	_video_extracted_frames = frames
+	_video_extracted_duration = duration
+	var n := frames.size()
+	_video_panel.get_node("Body/ProgressLabel").visible = false
+	_video_panel.get_node("Body/ExtractButton").disabled = false
+	_video_panel.get_node("Body/ResultRow/ResultLabel").text = "%d poses detected (%.1fs)" % [n, duration]
+	_video_panel.get_node("Body/ResultRow").visible = true
+
+func _on_video_extraction_failed(error: String) -> void:
+	_video_panel.get_node("Body/ProgressLabel").text = "Error: %s" % error
+	_video_panel.get_node("Body/ExtractButton").disabled = false
+
+func _on_video_apply_to_timeline() -> void:
+	if _video_extracted_frames.is_empty():
+		return
+	_push_undo_snapshot()
+
+	# Resize the animation to match the video duration
+	side_panel.set_duration(_video_extracted_duration)
+
+	# Compute scale once from the first well-detected frame
+	var rig_hip_center := Vector3.ZERO
+	var lthigh: Node3D = rig_controller.find_node("lthigh_g")
+	var rthigh: Node3D = rig_controller.find_node("rthigh_g")
+	if lthigh and rthigh:
+		rig_hip_center = (lthigh.global_position + rthigh.global_position) * 0.5
+
+	var scale_factor := _ai_scale_factor if _ai_scale_factor > 0.01 else 1.0
+	var origin := _ai_origin if _ai_origin != Vector3.ZERO else rig_hip_center
+
+	# Apply each frame as a keyframe
+	for frame_data in _video_extracted_frames:
+		var t: float = frame_data["time"]
+		var landmarks: Array = frame_data["world_landmarks"]
+
+		# Reset rig to rest before computing each frame's pose
+		for node in _rest_transforms.keys():
+			if is_instance_valid(node):
+				node.transform = _rest_transforms[node]
+		_init_default_limb_targets()
+
+		var data := AIPoseApplier.compute(landmarks, $Rig, scale_factor, origin)
+		if data.is_empty():
+			continue
+
+		var ik_targets: Dictionary = data.get("ik_targets", {})
+		for comp_id in ik_targets:
+			if _limb_targets.has(comp_id):
+				_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
+				_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
+
+		var fk_rotations: Dictionary = data.get("fk_rotations", {})
+		for bone_name in fk_rotations:
+			var node: Node3D = rig_controller.find_node(bone_name)
+			if node != null:
+				node.quaternion = fk_rotations[bone_name]
+
+		var root_pos: Variant = data.get("root_position", null)
+		if root_pos != null:
+			var rootdummy: Node3D = rig_controller.find_node("rootdummy")
+			if rootdummy != null:
+				rootdummy.global_position = root_pos
+
+		# Let the IK solver run for one frame before capturing
+		await get_tree().process_frame
+
+		# Save keyframe at time t
+		var snapshot := MdlExporter.capture_pose($Rig)
+		_upsert_keyframe(t, snapshot)
+
+	_video_panel.visible = false
+	side_panel.set_status("Applied %d keyframes from video (%.1fs)." % [_video_extracted_frames.size(), _video_extracted_duration])
 
 func _save_retarget_config_to(path: String) -> void:
 	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()
