@@ -1230,7 +1230,7 @@ func _on_retarget_bake_requested() -> void:
 		side_panel.bone_config_panel.get_root_scale(),
 		_retarget_lock,
 		_retarget_flip_180,
-		side_panel.get_source_rot_y("glb"),
+		side_panel.get_source_rotation("glb"),
 		side_panel.get_source_xform("glb").origin
 	)
 	if result.has("error"):
@@ -1283,9 +1283,10 @@ func _on_source_xform_changed(kind: String) -> void:
 func _apply_glb_source_xform() -> void:
 	if _retarget_anim_scene == null:
 		return
-	var xf: Transform3D = side_panel.get_source_xform("glb")
-	_retarget_anim_scene.rotation.y = (PI if _retarget_flip_180 else 0.0) + side_panel.get_source_rot_y("glb")
-	_retarget_anim_scene.position = xf.origin
+	var rot: Vector3 = side_panel.get_source_rotation("glb")
+	rot.y += PI if _retarget_flip_180 else 0.0
+	_retarget_anim_scene.rotation = rot
+	_retarget_anim_scene.position = side_panel.get_source_xform("glb").origin
 	_sync_retarget_overlay(side_panel.timeline.current_time)
 
 # Pose memory slots (3 session-only snapshots)
