@@ -887,7 +887,7 @@ func _euler_degrees_to_basis(v: Vector3) -> Basis:
 ## Keeps the panel's fields in sync with whatever the gizmo/handles are
 ## doing live, unless the user is actively typing in one of them.
 func _refresh_transform_panel() -> void:
-	var panel: Panel = side_panel.transform_panel
+	var panel: VBoxContainer = side_panel.transform_panel
 	if not panel.visible or panel.any_field_focused():
 		return
 	var component_id: String = rig_controller.selected_component

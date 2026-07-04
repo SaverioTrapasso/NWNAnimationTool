@@ -1,24 +1,25 @@
-extends Panel
+extends VBoxContainer
 
-## Always-visible (while something is selected) readout/editor for the
-## current component's position and rotation, since grabbing the exact
-## angle/offset with the gizmo alone is fiddly. Two-way synced: dragging the
-## gizmo updates these fields, and typing in a field moves the gizmo/rig.
+## Contextual "Selection" section of the Edit sidebar (shown while a
+## component is selected): readout/editor for the current component's
+## position and rotation, since grabbing the exact angle/offset with the
+## gizmo alone is fiddly. Two-way synced: dragging the gizmo updates these
+## fields, and typing in a field moves the gizmo/rig.
 
 signal position_changed(v: Vector3)
 signal rotation_changed(v: Vector3) # degrees
 signal copy_selection_requested()
 signal paste_selection_requested()
 
-@onready var component_label: Label = $HBox/ComponentLabel
-@onready var copy_selection_button: Button = $HBox/CopySelectionButton
-@onready var paste_selection_button: Button = $HBox/PasteSelectionButton
-@onready var pos_x: SpinBox = $HBox/PosBox/PosRow/PosX
-@onready var pos_y: SpinBox = $HBox/PosBox/PosRow/PosY
-@onready var pos_z: SpinBox = $HBox/PosBox/PosRow/PosZ
-@onready var rot_x: SpinBox = $HBox/RotBox/RotRow/RotX
-@onready var rot_y: SpinBox = $HBox/RotBox/RotRow/RotY
-@onready var rot_z: SpinBox = $HBox/RotBox/RotRow/RotZ
+@onready var component_label: Label = $ComponentLabel
+@onready var copy_selection_button: Button = $ButtonsRow/CopySelectionButton
+@onready var paste_selection_button: Button = $ButtonsRow/PasteSelectionButton
+@onready var pos_x: SpinBox = $PosBox/PosRow/PosX
+@onready var pos_y: SpinBox = $PosBox/PosRow/PosY
+@onready var pos_z: SpinBox = $PosBox/PosRow/PosZ
+@onready var rot_x: SpinBox = $RotBox/RotRow/RotX
+@onready var rot_y: SpinBox = $RotBox/RotRow/RotY
+@onready var rot_z: SpinBox = $RotBox/RotRow/RotZ
 
 var _updating: bool = false
 
@@ -62,7 +63,7 @@ func set_position_enabled(enabled: bool) -> void:
 	pos_x.editable = enabled
 	pos_y.editable = enabled
 	pos_z.editable = enabled
-	$HBox/PosBox.modulate.a = 1.0 if enabled else 0.35
+	$PosBox.modulate.a = 1.0 if enabled else 0.35
 
 ## True if the user is actively typing in one of the fields — used to avoid
 ## stomping their input with the per-frame live-sync from the gizmo.

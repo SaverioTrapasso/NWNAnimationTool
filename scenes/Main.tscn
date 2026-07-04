@@ -415,6 +415,122 @@ tooltip_text = "Recall pose from slot 3"
 disabled = true
 text = "Load"
 
+[node name="Selection" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=412347528]
+layout_mode = 2
+theme_override_constants/separation = 3
+script = ExtResource("8")
+
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=1999000001]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "SELECTION"
+
+[node name="ComponentLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=1622436880]
+layout_mode = 2
+text = "-"
+
+[node name="ButtonsRow" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=1999000002]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="CopySelectionButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/ButtonsRow" unique_id=671509775]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Copy the current selection's pose"
+text = "Copy"
+
+[node name="PasteSelectionButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/ButtonsRow" unique_id=1448101965]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Paste the copied pose onto the current selection"
+text = "Paste"
+
+[node name="PosBox" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=929444439]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="PosLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox" unique_id=345880488]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "POSITION (M)"
+
+[node name="PosRow" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox" unique_id=1174147310]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="PosX" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox/PosRow" unique_id=1105688337]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "X"
+
+[node name="PosY" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox/PosRow" unique_id=1206631584]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "Y"
+
+[node name="PosZ" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox/PosRow" unique_id=1462703184]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -10.0
+max_value = 10.0
+step = 0.01
+allow_greater = true
+allow_lesser = true
+prefix = "Z"
+
+[node name="RotBox" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=78617432]
+layout_mode = 2
+theme_override_constants/separation = 2
+
+[node name="RotLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox" unique_id=1192490671]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "ROTATION (DEG)"
+
+[node name="RotRow" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox" unique_id=1938505101]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="RotX" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox/RotRow" unique_id=101833136]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -360.0
+max_value = 360.0
+allow_greater = true
+allow_lesser = true
+prefix = "X"
+
+[node name="RotY" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox/RotRow" unique_id=5912484]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -360.0
+max_value = 360.0
+allow_greater = true
+allow_lesser = true
+prefix = "Y"
+
+[node name="RotZ" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox/RotRow" unique_id=2080844036]
+layout_mode = 2
+size_flags_horizontal = 3
+min_value = -360.0
+max_value = 360.0
+allow_greater = true
+allow_lesser = true
+prefix = "Z"
+
 [node name="AIImageDialog" type="FileDialog" parent="SidePanel" unique_id=1111000006]
 title = "Load Reference Image"
 initial_position = 1
@@ -556,8 +672,8 @@ value = 1.0
 [node name="Flip180Button" type="Button" parent="SidePanel/BoneConfigPanel/ScaleRow" unique_id=1855271995]
 layout_mode = 2
 toggle_mode = true
-tooltip_text = "Rotate the loaded source glb 180Â° before you start posing â€” feeds directly into Lock and Bake, so it compensates left/right-handed source animations in one step instead of re-posing every limb"
-text = "Flip source 180Â°"
+tooltip_text = "Rotate the loaded source glb 180 degrees before you start posing - feeds directly into Lock and Bake, so it compensates left/right-handed source animations in one step instead of re-posing every limb"
+text = "Flip source 180"
 
 [node name="XformRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=1888000020]
 layout_mode = 1
@@ -706,7 +822,7 @@ theme_override_constants/separation = 4
 [node name="CfgButton" type="Button" parent="SidePanel/BoneConfigPanel/ConfigRow" unique_id=577259376]
 layout_mode = 2
 size_flags_horizontal = 3
-tooltip_text = "Load a bone-map config (.cfg) â€” fully portable, no glb pinned to it"
+tooltip_text = "Load a bone-map config (.cfg) - fully portable, no glb pinned to it"
 text = "Load config"
 
 [node name="SaveConfigButton" type="Button" parent="SidePanel/BoneConfigPanel/ConfigRow" unique_id=20712060]
@@ -1436,141 +1552,6 @@ grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 1
 theme_override_constants/separation = 8
-
-[node name="TransformPanel" type="Panel" parent="SidePanel" unique_id=412347528]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 208.0
-offset_top = 8.0
-offset_right = -8.0
-offset_bottom = 66.0
-grow_horizontal = 2
-mouse_filter = 1
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-script = ExtResource("8")
-
-[node name="HBox" type="HBoxContainer" parent="SidePanel/TransformPanel" unique_id=1037986193]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 10.0
-offset_top = 8.0
-offset_right = -10.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 2
-theme_override_constants/separation = 10
-alignment = 1
-
-[node name="ComponentLabel" type="Label" parent="SidePanel/TransformPanel/HBox" unique_id=1622436880]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 15
-text = "â€”"
-vertical_alignment = 1
-
-[node name="CopySelectionButton" type="Button" parent="SidePanel/TransformPanel/HBox" unique_id=671509775]
-layout_mode = 2
-tooltip_text = "Copy the current selection's pose"
-text = "Copy sel."
-
-[node name="PasteSelectionButton" type="Button" parent="SidePanel/TransformPanel/HBox" unique_id=1448101965]
-layout_mode = 2
-tooltip_text = "Paste the copied pose onto the current selection"
-text = "Paste sel."
-
-[node name="VSeparator" type="VSeparator" parent="SidePanel/TransformPanel/HBox" unique_id=762877606]
-layout_mode = 2
-
-[node name="PosBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox" unique_id=929444439]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-[node name="PosLabel" type="Label" parent="SidePanel/TransformPanel/HBox/PosBox" unique_id=345880488]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "POSITION (M)"
-
-[node name="PosRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/PosBox" unique_id=1174147310]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="PosX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow" unique_id=1105688337]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -10.0
-max_value = 10.0
-step = 0.01
-allow_greater = true
-allow_lesser = true
-prefix = "X"
-
-[node name="PosY" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow" unique_id=1206631584]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -10.0
-max_value = 10.0
-step = 0.01
-allow_greater = true
-allow_lesser = true
-prefix = "Y"
-
-[node name="PosZ" type="SpinBox" parent="SidePanel/TransformPanel/HBox/PosBox/PosRow" unique_id=1462703184]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -10.0
-max_value = 10.0
-step = 0.01
-allow_greater = true
-allow_lesser = true
-prefix = "Z"
-
-[node name="VSeparator2" type="VSeparator" parent="SidePanel/TransformPanel/HBox" unique_id=230056475]
-layout_mode = 2
-
-[node name="RotBox" type="VBoxContainer" parent="SidePanel/TransformPanel/HBox" unique_id=78617432]
-layout_mode = 2
-theme_override_constants/separation = 2
-
-[node name="RotLabel" type="Label" parent="SidePanel/TransformPanel/HBox/RotBox" unique_id=1192490671]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "ROTATION (DEG)"
-
-[node name="RotRow" type="HBoxContainer" parent="SidePanel/TransformPanel/HBox/RotBox" unique_id=1938505101]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="RotX" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow" unique_id=101833136]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -360.0
-max_value = 360.0
-allow_greater = true
-allow_lesser = true
-prefix = "X"
-
-[node name="RotY" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow" unique_id=5912484]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -360.0
-max_value = 360.0
-allow_greater = true
-allow_lesser = true
-prefix = "Y"
-
-[node name="RotZ" type="SpinBox" parent="SidePanel/TransformPanel/HBox/RotBox/RotRow" unique_id=2080844036]
-custom_minimum_size = Vector2(80, 0)
-layout_mode = 2
-min_value = -360.0
-max_value = 360.0
-allow_greater = true
-allow_lesser = true
-prefix = "Z"
 
 [node name="Timeline" type="Panel" parent="SidePanel/TimelineRow" unique_id=1626451945]
 custom_minimum_size = Vector2(100, 0)

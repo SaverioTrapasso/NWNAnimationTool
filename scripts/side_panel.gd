@@ -75,7 +75,7 @@ var _anim_name: String = ""
 
 @onready var play_button: Button = _sidebar.get_node("Keyframe/PlayButton")
 @onready var timeline: Control = $TimelineRow/Timeline
-@onready var transform_panel: Panel = $TransformPanel
+@onready var transform_panel: VBoxContainer = _sidebar.get_node("Selection")
 
 @onready var _pose_memory_load_buttons: Array[Button] = []
 
