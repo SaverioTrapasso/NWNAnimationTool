@@ -154,7 +154,7 @@ func _ready() -> void:
 		save_btn.pressed.connect(pose_memory_save_requested.emit.bind(i))
 		load_btn.pressed.connect(pose_memory_load_requested.emit.bind(i))
 
-	image_pose_panel.get_node("TitleRow/CloseButton").pressed.connect(func(): image_pose_panel.visible = false)
+	image_pose_panel.get_node("TitleRow/CloseButton").pressed.connect(func(): set_image_panel_open(false))
 	image_pose_panel.get_node("Body/BulkButton").pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
@@ -192,10 +192,19 @@ func _on_file_menu_pressed(id: int) -> void:
 
 func _on_utility_menu_pressed(id: int) -> void:
 	match id:
-		UTIL_ID_IMAGE: image_pose_panel.visible = true
+		UTIL_ID_IMAGE: set_image_panel_open(true)
 		UTIL_ID_VIDEO: video_pose_open_requested.emit()
 		UTIL_ID_GLB: load_animation_dialog.popup_centered_ratio(0.6)
 		UTIL_ID_BULK: ai_bulk_input_dialog.popup_centered_ratio(0.6)
+
+## The green debug skeleton is tied to the image panel's lifecycle: opening
+## the panel turns the Pose overlay on, closing it turns it off. Apply pose
+## must NOT touch it — the overlay stays up for comparison while iterating.
+func set_image_panel_open(open: bool) -> void:
+	image_pose_panel.visible = open
+	ai_pose_overlay_button.disabled = false
+	ai_pose_overlay_button.set_pressed_no_signal(open)
+	ai_pose_overlay_toggled.emit(open)
 
 func get_anim_name() -> String:
 	return _anim_name
@@ -358,7 +367,7 @@ func set_bulk_running(running: bool) -> void:
 
 func _on_ai_image_selected(path: String) -> void:
 	image_pose_panel.get_node("Body/ImageRow/ImagePathLabel").text = path.get_file()
-	image_pose_panel.visible = true
+	set_image_panel_open(true)
 	ai_server_status_label.text = "Image loaded: %s" % path.get_file()
 	ai_apply_pose_button.disabled = false
 	ai_pose_image_selected.emit(path)
