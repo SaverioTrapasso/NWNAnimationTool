@@ -413,9 +413,10 @@ func set_ai_apply_enabled(enabled: bool) -> void:
 func is_ai_ground_enabled() -> bool:
 	return ai_ground_check.button_pressed
 
-## The six SOURCE TRANSFORM spinboxes of a wizard, ordered
-## [rotX, rotY, rotZ, offX, offY, offZ]. The glb panel splits them over
-## XformRow/XformRow2; the AI panels nest them under RotRow/OffsetRow.
+## The SOURCE TRANSFORM spinboxes of a wizard, ordered
+## [rotX, rotY, rotZ, offX, offY, offZ (, scale)]. The glb panel splits them
+## over XformRow/XformRow2 and has no scale spin (Root scale covers it); the
+## AI panels nest them under RotRow/OffsetRow/ScaleRow.
 func _source_xform_spins(container: Node, kind: String) -> Array:
 	if kind == "glb":
 		return [container.get_node("XformRow/RotX"), container.get_node("XformRow/RotY"),
@@ -423,7 +424,8 @@ func _source_xform_spins(container: Node, kind: String) -> Array:
 			container.get_node("XformRow2/OffY"), container.get_node("XformRow2/OffZ")]
 	return [container.get_node("RotRow/RotX"), container.get_node("RotRow/RotY"),
 		container.get_node("RotRow/RotZ"), container.get_node("OffsetRow/OffX"),
-		container.get_node("OffsetRow/OffY"), container.get_node("OffsetRow/OffZ")]
+		container.get_node("OffsetRow/OffY"), container.get_node("OffsetRow/OffZ"),
+		container.get_node("ScaleRow/ScaleSpin")]
 
 func _source_xform_container(kind: String) -> Node:
 	match kind:
@@ -444,6 +446,8 @@ func get_source_xform(kind: String) -> Transform3D:
 		deg_to_rad(spins[0].value),
 		deg_to_rad(spins[1].value),
 		deg_to_rad(spins[2].value)))
+	if spins.size() >= 7:
+		basis = basis.scaled(Vector3.ONE * spins[6].value)
 	var offset := Vector3(spins[3].value, spins[4].value, spins[5].value)
 	return Transform3D(basis, offset)
 
@@ -461,7 +465,7 @@ func reset_source_xform(kind: String) -> void:
 	if container == null:
 		return
 	for spin in _source_xform_spins(container, kind):
-		spin.set_value_no_signal(0.0)
+		spin.set_value_no_signal(1.0 if spin.name == "ScaleSpin" else 0.0)
 
 ## Sets the unified overlay toggle's visual state without re-emitting.
 func set_overlay_active(active: bool) -> void:
