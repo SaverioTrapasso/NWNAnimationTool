@@ -1254,6 +1254,9 @@ var _ai_pending_image_path: String = ""
 var _ai_pending_landmarks: Array = []
 var _ai_scale_factor: float = 1.0
 var _ai_origin: Vector3 = Vector3.ZERO
+# True once scale/origin were measured for the current detection; cleared on
+# every new image/video so the next overlay recalibrates from the rig.
+var _ai_overlay_calibrated: bool = false
 
 # Pose memory slots (3 session-only snapshots)
 var _pose_memory: Array = [null, null, null]  # each entry is a snapshot dict or null
@@ -1280,6 +1283,7 @@ var _bulk_done: int = 0
 func _on_ai_image_selected(path: String) -> void:
 	_ai_pending_image_path = path
 	_ai_pending_landmarks = []
+	_ai_overlay_calibrated = false
 	side_panel.set_ai_server_status("Analyzing image...")
 	side_panel.set_ai_apply_enabled(false)
 	_ai_client.detect(path)
@@ -1315,35 +1319,39 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 		green_visualizer.visible = false
 		return
 
-	# Anchor the MediaPipe skeleton to the NWN rig's hip centre so the
-	# overlay sits on top of the model rather than at the world origin.
-	var left_hip_node: Node3D = rig_controller.find_node("lthigh_g")
-	var right_hip_node: Node3D = rig_controller.find_node("rthigh_g")
-	var rig_hip_center := Vector3.ZERO
-	if left_hip_node != null and right_hip_node != null:
-		rig_hip_center = (left_hip_node.global_position + right_hip_node.global_position) * 0.5
-	elif left_hip_node != null:
-		rig_hip_center = left_hip_node.global_position
+	# Scale and anchor are measured from the rig ONCE per detection and then
+	# cached: Apply pose moves the rig (grounding lowers the hips), so
+	# re-measuring here on every render would drag the preview along with the
+	# applied pose — toggling ground/apply repeatedly made the overlay drift
+	# to the floor permanently.
+	if not _ai_overlay_calibrated:
+		var left_hip_node: Node3D = rig_controller.find_node("lthigh_g")
+		var right_hip_node: Node3D = rig_controller.find_node("rthigh_g")
+		var rig_hip_center := Vector3.ZERO
+		if left_hip_node != null and right_hip_node != null:
+			rig_hip_center = (left_hip_node.global_position + right_hip_node.global_position) * 0.5
+		elif left_hip_node != null:
+			rig_hip_center = left_hip_node.global_position
 
-	# Estimate scale: MediaPipe shoulder width in metres vs NWN shoulder width
-	var mp_left_shoulder := Vector3(-world_landmarks[11]["x"], -world_landmarks[11]["y"], world_landmarks[11]["z"])
-	var mp_right_shoulder := Vector3(-world_landmarks[12]["x"], -world_landmarks[12]["y"], world_landmarks[12]["z"])
-	var mp_shoulder_width: float = (mp_left_shoulder - mp_right_shoulder).length()
+		# Estimate scale: MediaPipe shoulder width in metres vs NWN shoulder width
+		var mp_left_shoulder := Vector3(-world_landmarks[11]["x"], -world_landmarks[11]["y"], world_landmarks[11]["z"])
+		var mp_right_shoulder := Vector3(-world_landmarks[12]["x"], -world_landmarks[12]["y"], world_landmarks[12]["z"])
+		var mp_shoulder_width: float = (mp_left_shoulder - mp_right_shoulder).length()
 
-	var nwn_left: Node3D = rig_controller.find_node("lbicep_g")
-	var nwn_right: Node3D = rig_controller.find_node("rbicep_g")
-	var nwn_shoulder_width: float = 0.3  # fallback
-	if nwn_left != null and nwn_right != null:
-		nwn_shoulder_width = (nwn_left.global_position - nwn_right.global_position).length()
+		var nwn_left: Node3D = rig_controller.find_node("lbicep_g")
+		var nwn_right: Node3D = rig_controller.find_node("rbicep_g")
+		var nwn_shoulder_width: float = 0.3  # fallback
+		if nwn_left != null and nwn_right != null:
+			nwn_shoulder_width = (nwn_left.global_position - nwn_right.global_position).length()
 
-	var scale_factor: float = nwn_shoulder_width / max(mp_shoulder_width, 0.001)
-	_ai_scale_factor = scale_factor
-	_ai_origin = rig_hip_center
+		_ai_scale_factor = nwn_shoulder_width / max(mp_shoulder_width, 0.001)
+		_ai_origin = rig_hip_center
+		_ai_overlay_calibrated = true
 
 	# Convert landmarks to world positions
 	var positions: Array[Vector3] = []
 	for lm in world_landmarks:
-		var p := Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + rig_hip_center
+		var p := Vector3(-lm["x"], -lm["y"], lm["z"]) * _ai_scale_factor + _ai_origin
 		positions.append(p)
 
 	# Preview honesty: when "Ground to floor" is on, shift the overlay by the
@@ -1621,6 +1629,7 @@ func _on_video_extract_pressed() -> void:
 func _on_video_extraction_done(frames: Array, duration: float) -> void:
 	_video_extracted_frames = frames
 	_video_extracted_duration = duration
+	_ai_overlay_calibrated = false
 	var n := frames.size()
 	_video_panel.get_node("Body/ProgressLabel").visible = false
 	_video_panel.get_node("Body/ExtractButton").disabled = false
