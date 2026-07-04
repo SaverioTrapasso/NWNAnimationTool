@@ -442,7 +442,7 @@ text = "Load"
 
 [node name="Selection" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=412347528]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 script = ExtResource("8")
 
 [node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=1999000001]
@@ -453,6 +453,7 @@ text = "SELECTION"
 
 [node name="ComponentLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=1622436880]
 layout_mode = 2
+theme_override_font_sizes/font_size = 10
 text = "-"
 
 [node name="ButtonsRow" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=1999000002]
@@ -462,18 +463,22 @@ theme_override_constants/separation = 3
 [node name="CopySelectionButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/ButtonsRow" unique_id=671509775]
 layout_mode = 2
 size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 20)
+theme_override_font_sizes/font_size = 10
 tooltip_text = "Copy the current selection's pose"
 text = "Copy"
 
 [node name="PasteSelectionButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/ButtonsRow" unique_id=1448101965]
 layout_mode = 2
 size_flags_horizontal = 3
+custom_minimum_size = Vector2(0, 20)
+theme_override_font_sizes/font_size = 10
 tooltip_text = "Paste the copied pose onto the current selection"
 text = "Paste"
 
 [node name="PosBox" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=929444439]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 1
 
 [node name="PosLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox" unique_id=345880488]
 layout_mode = 2
@@ -483,11 +488,12 @@ text = "POSITION (M)"
 
 [node name="PosRow" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox" unique_id=1174147310]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
 [node name="PosX" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox/PosRow" unique_id=1105688337]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
 min_value = -10.0
 max_value = 10.0
 step = 0.01
@@ -498,6 +504,7 @@ prefix = "X"
 [node name="PosY" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox/PosRow" unique_id=1206631584]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
 min_value = -10.0
 max_value = 10.0
 step = 0.01
@@ -508,6 +515,7 @@ prefix = "Y"
 [node name="PosZ" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/PosBox/PosRow" unique_id=1462703184]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
 min_value = -10.0
 max_value = 10.0
 step = 0.01
@@ -517,7 +525,7 @@ prefix = "Z"
 
 [node name="RotBox" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection" unique_id=78617432]
 layout_mode = 2
-theme_override_constants/separation = 2
+theme_override_constants/separation = 1
 
 [node name="RotLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox" unique_id=1192490671]
 layout_mode = 2
@@ -527,11 +535,12 @@ text = "ROTATION (DEG)"
 
 [node name="RotRow" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox" unique_id=1938505101]
 layout_mode = 2
-theme_override_constants/separation = 3
+theme_override_constants/separation = 2
 
 [node name="RotX" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox/RotRow" unique_id=101833136]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
 min_value = -360.0
 max_value = 360.0
 allow_greater = true
@@ -541,6 +550,7 @@ prefix = "X"
 [node name="RotY" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox/RotRow" unique_id=5912484]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
 min_value = -360.0
 max_value = 360.0
 allow_greater = true
@@ -550,6 +560,7 @@ prefix = "Y"
 [node name="RotZ" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Selection/RotBox/RotRow" unique_id=2080844036]
 layout_mode = 2
 size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 10
 min_value = -360.0
 max_value = 360.0
 allow_greater = true
