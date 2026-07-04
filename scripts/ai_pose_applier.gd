@@ -274,9 +274,16 @@ static func _apply_end_bone_fk(rig_root: Node3D, result: Dictionary,
 
 
 ## Computes the corrective rotation that levels MediaPipe's estimated world
-## using the FIRST frame of a grounded animation: the line between the two
-## feet and the average heel→toe direction must both be horizontal.
+## using the FIRST frame of a grounded animation. Fits a plane through the
+## four foot contact points (both heels + both toes, via the diagonals of
+## the contact quad) and rotates that plane's normal onto world UP — one
+## robust measurement instead of trusting any single heel→toe direction,
+## which is noisy enough to tip the whole body over.
+## Corrections beyond MAX_CORRECTION_DEG are distrusted (the first frame is
+## probably not flat-footed) and identity is returned instead.
 ## Apply the result as compute()'s pre_rotation for every frame.
+const MAX_CORRECTION_DEG := 25.0
+
 static func compute_ground_alignment(world_landmarks: Array) -> Quaternion:
 	if world_landmarks.size() < 33:
 		return Quaternion.IDENTITY
@@ -284,25 +291,28 @@ static func compute_ground_alignment(world_landmarks: Array) -> Quaternion:
 	for lm in world_landmarks:
 		pts.append(Vector3(-lm["x"], -lm["y"], lm["z"]))
 
-	var q := Quaternion.IDENTITY
+	var l_heel: Vector3 = pts[MP_LEFT_HEEL]
+	var l_toe: Vector3  = pts[MP_LEFT_FOOT_INDEX]
+	var r_heel: Vector3 = pts[MP_RIGHT_HEEL]
+	var r_toe: Vector3  = pts[MP_RIGHT_FOOT_INDEX]
 
-	# Roll: line between left and right foot contact midpoints → horizontal
-	var l_mid: Vector3 = (pts[MP_LEFT_HEEL] + pts[MP_LEFT_FOOT_INDEX]) * 0.5
-	var r_mid: Vector3 = (pts[MP_RIGHT_HEEL] + pts[MP_RIGHT_FOOT_INDEX]) * 0.5
-	var v: Vector3 = r_mid - l_mid
-	var v_flat := Vector3(v.x, 0.0, v.z)
-	if v.length() > 0.001 and v_flat.length() > 0.001:
-		q = Quaternion(v.normalized(), v_flat.normalized())
+	# Plane normal from the diagonals of the contact quad — uses all four
+	# points at once, so a single noisy landmark can't dominate the fit.
+	var normal: Vector3 = (r_toe - l_heel).cross(l_toe - r_heel)
+	if normal.length() < 0.0001:
+		print("[GroundAlign] contact points degenerate, skipping correction")
+		return Quaternion.IDENTITY
+	normal = normal.normalized()
+	if normal.y < 0.0:
+		normal = -normal
 
-	# Pitch: average heel→toe direction (already roll-corrected) → horizontal
-	var f: Vector3 = (pts[MP_LEFT_FOOT_INDEX] - pts[MP_LEFT_HEEL]) \
-		+ (pts[MP_RIGHT_FOOT_INDEX] - pts[MP_RIGHT_HEEL])
-	f = q * f
-	var f_flat := Vector3(f.x, 0.0, f.z)
-	if f.length() > 0.001 and f_flat.length() > 0.001:
-		q = Quaternion(f.normalized(), f_flat.normalized()) * q
+	var angle_deg := rad_to_deg(normal.angle_to(Vector3.UP))
+	if angle_deg > MAX_CORRECTION_DEG:
+		print("[GroundAlign] correction %.1f° exceeds %.0f° limit — first frame not flat? Skipping." % [angle_deg, MAX_CORRECTION_DEG])
+		return Quaternion.IDENTITY
 
-	return q
+	print("[GroundAlign] applying %.1f° world-tilt correction" % angle_deg)
+	return Quaternion(normal, Vector3.UP)
 
 
 ## Measures the constant offset between the MediaPipe hand/foot convention
