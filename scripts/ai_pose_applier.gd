@@ -79,6 +79,7 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	var result := {
 		"ik_targets": {},
 		"fk_rotations": {},
+		"end_world_bases": {},
 		"root_position": null,
 	}
 
@@ -173,9 +174,9 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	#   axis_z (fingers) = wrist → index_knuckle, orthogonalised vs axis_x
 	#   axis_y (dorsal)  = axis_z.cross(axis_x)
 	# ------------------------------------------------------------------
-	_apply_end_bone_fk(rig_root, result, calibration, "rhand_g",
+	_apply_end_bone_fk(result, calibration, "rhand_g",
 		_hand_conv_basis(pts, vis, MP_RIGHT_WRIST, MP_RIGHT_INDEX, MP_RIGHT_PINKY, true))
-	_apply_end_bone_fk(rig_root, result, calibration, "lhand_g",
+	_apply_end_bone_fk(result, calibration, "lhand_g",
 		_hand_conv_basis(pts, vis, MP_LEFT_WRIST, MP_LEFT_INDEX, MP_LEFT_PINKY, false))
 
 	# ------------------------------------------------------------------
@@ -186,9 +187,9 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	#   axis_x (lateral) = axis_z.cross(shin_ref), orthogonalised
 	#   axis_y (dorsal)  = axis_x.cross(axis_z)
 	# ------------------------------------------------------------------
-	_apply_end_bone_fk(rig_root, result, calibration, "rfoot_g",
+	_apply_end_bone_fk(result, calibration, "rfoot_g",
 		_foot_conv_basis(pts, vis, MP_RIGHT_HEEL, MP_RIGHT_FOOT_INDEX, MP_RIGHT_KNEE, MP_RIGHT_ANKLE))
-	_apply_end_bone_fk(rig_root, result, calibration, "lfoot_g",
+	_apply_end_bone_fk(result, calibration, "lfoot_g",
 		_foot_conv_basis(pts, vis, MP_LEFT_HEEL, MP_LEFT_FOOT_INDEX, MP_LEFT_KNEE, MP_LEFT_ANKLE))
 
 	# ------------------------------------------------------------------
@@ -256,33 +257,34 @@ static func _foot_conv_basis(pts: Array, vis: Array,
 	return Basis(axis_x, axis_y, axis_z)
 
 
-## Applies a convention basis to an end bone, routing through the per-bone
-## calibration offset when one is available.
-static func _apply_end_bone_fk(rig_root: Node3D, result: Dictionary,
+## Converts a convention basis into the end bone's desired WORLD-space
+## orientation and stores it in end_world_bases. The caller must pin this
+## into _limb_targets[...]["end_basis"] — writing the bone's quaternion
+## directly is useless, since the IK loop in main._process re-pins the
+## hand/foot to end_basis every frame and would overwrite it.
+## With a first-frame calibration offset, world = conv * offset makes
+## frame 1 land exactly on the bone's rest orientation and later frames
+## apply the relative motion, cancelling any axis-convention mismatch.
+static func _apply_end_bone_fk(result: Dictionary,
 		calibration: Dictionary, bone_name: String, conv_basis: Variant) -> void:
 	if not (conv_basis is Basis):
 		return
-	var bone: Node3D = _find(rig_root, bone_name)
-	if bone == null:
-		return
-	var parent := bone.get_parent()
-	var parent_global_basis: Basis = parent.global_basis if parent is Node3D else Basis.IDENTITY
-	var local := Quaternion(parent_global_basis.inverse() * (conv_basis as Basis))
+	var world: Basis = conv_basis as Basis
 	if calibration.has(bone_name):
-		local = local * calibration[bone_name]
-	result["fk_rotations"][bone_name] = local
+		world = world * Basis(calibration[bone_name] as Quaternion)
+	result["end_world_bases"][bone_name] = world
 
 
 ## Computes the corrective rotation that levels MediaPipe's estimated world
-## using the FIRST frame of a grounded animation. Fits a plane through the
-## four foot contact points (both heels + both toes, via the diagonals of
-## the contact quad) and rotates that plane's normal onto world UP — one
-## robust measurement instead of trusting any single heel→toe direction,
-## which is noisy enough to tip the whole body over.
+## using the FIRST frame of a grounded, standing animation. Instead of the
+## small (and noisy) foot-contact plane, it uses the tallest baseline the
+## body offers: the feet-midpoint → hip-midpoint → head-midpoint chain.
+## On a grounded standing frame that chain must point straight up, and at
+## ~1.7 m of baseline a few cm of landmark noise barely moves the estimate.
 ## Corrections beyond MAX_CORRECTION_DEG are distrusted (the first frame is
-## probably not flat-footed) and identity is returned instead.
+## probably not standing) and identity is returned instead.
 ## Apply the result as compute()'s pre_rotation for every frame.
-const MAX_CORRECTION_DEG := 25.0
+const MAX_CORRECTION_DEG := 35.0
 
 static func compute_ground_alignment(world_landmarks: Array) -> Quaternion:
 	if world_landmarks.size() < 33:
@@ -291,28 +293,27 @@ static func compute_ground_alignment(world_landmarks: Array) -> Quaternion:
 	for lm in world_landmarks:
 		pts.append(Vector3(-lm["x"], -lm["y"], lm["z"]))
 
-	var l_heel: Vector3 = pts[MP_LEFT_HEEL]
-	var l_toe: Vector3  = pts[MP_LEFT_FOOT_INDEX]
-	var r_heel: Vector3 = pts[MP_RIGHT_HEEL]
-	var r_toe: Vector3  = pts[MP_RIGHT_FOOT_INDEX]
+	var feet_mid: Vector3 = (pts[MP_LEFT_HEEL] + pts[MP_LEFT_FOOT_INDEX]
+		+ pts[MP_RIGHT_HEEL] + pts[MP_RIGHT_FOOT_INDEX]) * 0.25
+	var hip_mid: Vector3  = (pts[MP_LEFT_HIP] + pts[MP_RIGHT_HIP]) * 0.5
+	var head_mid: Vector3 = (pts[MP_LEFT_EAR] + pts[MP_RIGHT_EAR]) * 0.5
 
-	# Plane normal from the diagonals of the contact quad — uses all four
-	# points at once, so a single noisy landmark can't dominate the fit.
-	var normal: Vector3 = (r_toe - l_heel).cross(l_toe - r_heel)
-	if normal.length() < 0.0001:
-		print("[GroundAlign] contact points degenerate, skipping correction")
+	# Average of the two segment directions so both halves of the body
+	# weigh in equally regardless of their different lengths.
+	var up_lower: Vector3 = (hip_mid - feet_mid).normalized()
+	var up_upper: Vector3 = (head_mid - hip_mid).normalized()
+	var up_est: Vector3 = (up_lower + up_upper).normalized()
+	if up_est.length() < 0.5:
+		print("[GroundAlign] degenerate body axis, skipping correction")
 		return Quaternion.IDENTITY
-	normal = normal.normalized()
-	if normal.y < 0.0:
-		normal = -normal
 
-	var angle_deg := rad_to_deg(normal.angle_to(Vector3.UP))
+	var angle_deg := rad_to_deg(up_est.angle_to(Vector3.UP))
 	if angle_deg > MAX_CORRECTION_DEG:
-		print("[GroundAlign] correction %.1f° exceeds %.0f° limit — first frame not flat? Skipping." % [angle_deg, MAX_CORRECTION_DEG])
+		print("[GroundAlign] correction %.1f° exceeds %.0f° limit — first frame not standing? Skipping." % [angle_deg, MAX_CORRECTION_DEG])
 		return Quaternion.IDENTITY
 
 	print("[GroundAlign] applying %.1f° world-tilt correction" % angle_deg)
-	return Quaternion(normal, Vector3.UP)
+	return Quaternion(up_est, Vector3.UP)
 
 
 ## Measures the constant offset between the MediaPipe hand/foot convention
@@ -348,11 +349,8 @@ static func compute_rest_calibration(world_landmarks: Array, rig_root: Node3D,
 		var bone: Node3D = _find(rig_root, bone_name)
 		if bone == null:
 			continue
-		var parent := bone.get_parent()
-		var parent_global_basis: Basis = parent.global_basis if parent is Node3D else Basis.IDENTITY
-		var raw_local := Quaternion(parent_global_basis.inverse() * (conv as Basis))
-		# offset such that: raw_local(frame 1) * offset == bone's rest local
-		calibration[bone_name] = raw_local.inverse() * bone.quaternion
+		# offset such that: conv(frame 1) * offset == bone's rest WORLD basis
+		calibration[bone_name] = Quaternion((conv as Basis).inverse() * bone.global_basis)
 	return calibration
 
 

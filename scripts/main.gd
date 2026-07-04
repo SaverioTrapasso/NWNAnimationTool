@@ -1364,8 +1364,12 @@ func _on_ai_apply_pose() -> void:
 			_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
 			_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
 
-	# Apply FK rotations (pelvis, torso, head, hands, feet) directly onto the bone nodes
-	# Hands and feet now come from the applier instead of being zeroed.
+	# NOTE: end_world_bases is intentionally NOT applied here — without the
+	# first-frame calibration the raw MediaPipe convention basis would spin
+	# hands/feet arbitrarily. Single-image poses keep the rest orientation;
+	# only the video flow (which calibrates on frame 1) pins hand/foot bases.
+
+	# Apply FK rotations (pelvis, torso, head) directly onto the bone nodes
 	var fk_rotations: Dictionary = data.get("fk_rotations", {})
 	for bone_name in fk_rotations:
 		var node: Node3D = rig_controller.find_node(bone_name)
@@ -1390,6 +1394,15 @@ func _on_ai_apply_pose() -> void:
 	side_panel.set_status("AI pose applied (%d IK targets, %d FK bones)." % [n_ik, n_fk])
 
 const AI_FOOT_OFFSET := 0.14
+
+# Maps the AI applier's end-bone names onto the IK component whose end_basis
+# pin controls that bone's world orientation.
+const END_BONE_COMPONENT := {
+	"rhand_g": "right_arm",
+	"lhand_g": "left_arm",
+	"rfoot_g": "right_leg",
+	"lfoot_g": "left_leg",
+}
 const BULK_IMAGE_EXTENSIONS := ["png", "jpg", "jpeg"]
 
 func _on_ai_bulk_requested(input_dir: String, output_dir: String) -> void:
@@ -1648,6 +1661,15 @@ func _on_video_apply_to_timeline() -> void:
 			if _limb_targets.has(comp_id):
 				_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
 				_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
+
+		# Hand/foot orientations go into the end_basis PIN, not onto the node:
+		# the IK loop in _process re-pins chain[2] to end_basis every frame,
+		# so that's the only write that survives.
+		var end_bases: Dictionary = data.get("end_world_bases", {})
+		for bone_name in end_bases:
+			var comp_id: String = END_BONE_COMPONENT.get(bone_name, "")
+			if comp_id != "" and _limb_targets.has(comp_id):
+				_limb_targets[comp_id]["end_basis"] = end_bases[bone_name]
 
 		var fk_rotations: Dictionary = data.get("fk_rotations", {})
 		for bone_name in fk_rotations:
