@@ -743,7 +743,7 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 13
-text = "Video Pose Extraction"
+text = "Motion capture from video"
 
 [node name="CloseButton" type="Button" parent="SidePanel/VideoPosePanel/TitleRow" unique_id=1333000004]
 layout_mode = 2
@@ -938,6 +938,24 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
 text = "Apply pose"
+
+[node name="HSeparator" type="HSeparator" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000010]
+layout_mode = 2
+
+[node name="BulkButton" type="Button" parent="SidePanel/ImagePosePanel/Body" unique_id=1777000011]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
+theme_override_font_sizes/font_size = 10
+tooltip_text = "Detect every image in a folder and export one MDL file each"
+text = "Bulk: image folder..."
+
+[node name="BulkProgressLabel" type="Label" parent="SidePanel/ImagePosePanel/Body" unique_id=1111000009]
+layout_mode = 2
+theme_override_font_sizes/font_size = 10
+theme_override_colors/font_color = Color(0.2, 0.55, 0.3, 1)
+text = ""
+autowrap_mode = 3
+visible = false
 
 [node name="MotionConfigPanel" type="Panel" parent="SidePanel" unique_id=1444000001]
 layout_mode = 1

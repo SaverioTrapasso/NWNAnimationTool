@@ -155,6 +155,7 @@ func _ready() -> void:
 		load_btn.pressed.connect(pose_memory_load_requested.emit.bind(i))
 
 	image_pose_panel.get_node("TitleRow/CloseButton").pressed.connect(func(): image_pose_panel.visible = false)
+	image_pose_panel.get_node("Body/BulkButton").pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
@@ -340,14 +341,20 @@ func _on_bulk_input_selected(dir: String) -> void:
 func _on_bulk_output_selected(dir: String) -> void:
 	ai_bulk_requested.emit(_bulk_input_dir, dir)
 
-## Bulk progress goes to the always-visible status bar at the bottom of the
-## Edit sidebar — the bulk flow has no panel of its own anymore.
+## Bulk progress shows inside the image wizard panel (bulk is an image-batch
+## feature) and echoes to the status bar so it's visible panel-closed too.
 func set_bulk_progress(text: String) -> void:
+	var label: Label = image_pose_panel.get_node("Body/BulkProgressLabel")
+	label.text = text
+	label.visible = text != ""
 	status_label.text = text
 
 func set_bulk_running(running: bool) -> void:
+	if running:
+		image_pose_panel.visible = true
 	utility_menu.disabled = running
 	ai_load_image_button.disabled = running
+	image_pose_panel.get_node("Body/BulkButton").disabled = running
 
 func _on_ai_image_selected(path: String) -> void:
 	image_pose_panel.get_node("Body/ImageRow/ImagePathLabel").text = path.get_file()
