@@ -13,21 +13,31 @@ extends RefCounted
 # ---------------------------------------------------------------------------
 # MediaPipe landmark indices
 # ---------------------------------------------------------------------------
-const MP_NOSE           := 0
-const MP_LEFT_EAR       := 7
-const MP_RIGHT_EAR      := 8
-const MP_LEFT_SHOULDER  := 11
-const MP_RIGHT_SHOULDER := 12
-const MP_LEFT_ELBOW     := 13
-const MP_RIGHT_ELBOW    := 14
-const MP_LEFT_WRIST     := 15
-const MP_RIGHT_WRIST    := 16
-const MP_LEFT_HIP       := 23
-const MP_RIGHT_HIP      := 24
-const MP_LEFT_KNEE      := 25
-const MP_RIGHT_KNEE     := 26
-const MP_LEFT_ANKLE     := 27
-const MP_RIGHT_ANKLE    := 28
+const MP_NOSE             := 0
+const MP_LEFT_EAR         := 7
+const MP_RIGHT_EAR        := 8
+const MP_LEFT_SHOULDER    := 11
+const MP_RIGHT_SHOULDER   := 12
+const MP_LEFT_ELBOW       := 13
+const MP_RIGHT_ELBOW      := 14
+const MP_LEFT_WRIST       := 15
+const MP_RIGHT_WRIST      := 16
+const MP_LEFT_PINKY       := 17
+const MP_RIGHT_PINKY      := 18
+const MP_LEFT_INDEX       := 19
+const MP_RIGHT_INDEX      := 20
+const MP_LEFT_THUMB       := 21
+const MP_RIGHT_THUMB      := 22
+const MP_LEFT_HIP         := 23
+const MP_RIGHT_HIP        := 24
+const MP_LEFT_KNEE        := 25
+const MP_RIGHT_KNEE       := 26
+const MP_LEFT_ANKLE       := 27
+const MP_RIGHT_ANKLE      := 28
+const MP_LEFT_HEEL        := 29
+const MP_RIGHT_HEEL       := 30
+const MP_LEFT_FOOT_INDEX  := 31
+const MP_RIGHT_FOOT_INDEX := 32
 
 # ---------------------------------------------------------------------------
 # Public result structure returned by compute()
@@ -150,6 +160,32 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 			result["root_position"] = rootdummy.global_position + (support_hip - rig_hip_center)
 
 	# ------------------------------------------------------------------
+	# FK: hands — build Basis from wrist + index knuckle + pinky knuckle
+	#
+	# For each hand:
+	#   axis_x (across) = pinky_knuckle → index_knuckle (right = thumb side)
+	#   axis_z (fingers) = wrist → index_knuckle, orthogonalised vs axis_x
+	#   axis_y (dorsal)  = axis_z.cross(axis_x)
+	# ------------------------------------------------------------------
+	_compute_hand_fk(rig_root, pts, vis, result,
+		MP_RIGHT_WRIST, MP_RIGHT_INDEX, MP_RIGHT_PINKY, "rhand_g", true)
+	_compute_hand_fk(rig_root, pts, vis, result,
+		MP_LEFT_WRIST, MP_LEFT_INDEX, MP_LEFT_PINKY, "lhand_g", false)
+
+	# ------------------------------------------------------------------
+	# FK: feet — build Basis from heel + foot_index (toe) + knee for "up"
+	#
+	#   axis_z (forward) = heel → foot_index (toe direction)
+	#   axis_y reference = knee → ankle (shin direction, down leg)
+	#   axis_x (lateral) = axis_z.cross(shin_ref), orthogonalised
+	#   axis_y (dorsal)  = axis_x.cross(axis_z)
+	# ------------------------------------------------------------------
+	_compute_foot_fk(rig_root, pts, vis, result,
+		MP_RIGHT_HEEL, MP_RIGHT_FOOT_INDEX, MP_RIGHT_KNEE, MP_RIGHT_ANKLE, "rfoot_g")
+	_compute_foot_fk(rig_root, pts, vis, result,
+		MP_LEFT_HEEL, MP_LEFT_FOOT_INDEX, MP_LEFT_KNEE, MP_LEFT_ANKLE, "lfoot_g")
+
+	# ------------------------------------------------------------------
 	# FK: head — ear midpoint up toward shoulder midpoint
 	# ------------------------------------------------------------------
 	if vis[MP_LEFT_EAR] >= 0.4 and vis[MP_RIGHT_EAR] >= 0.4 and \
@@ -168,6 +204,58 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 			result["fk_rotations"]["head_g"] = Quaternion(parent_global_basis.inverse() * target_head_basis)
 
 	return result
+
+
+static func _compute_hand_fk(rig_root: Node3D, pts: Array, vis: Array,
+		result: Dictionary, wrist_idx: int, index_idx: int, pinky_idx: int,
+		bone_name: String, is_right: bool) -> void:
+	var VIS_THRESH := 0.4
+	if vis[wrist_idx] < VIS_THRESH or vis[index_idx] < VIS_THRESH or vis[pinky_idx] < VIS_THRESH:
+		return
+
+	# Fingers direction: wrist → index knuckle
+	var axis_z := (pts[index_idx] - pts[wrist_idx]).normalized()
+	# Across knuckles: for right hand pinky→index = +X (thumb side); mirror for left
+	var across := (pts[index_idx] - pts[pinky_idx]).normalized()
+	if not is_right:
+		across = -across
+	# Gram-Schmidt: orthogonalise across vs fingers
+	var axis_x := (across - axis_z * axis_z.dot(across)).normalized()
+	var axis_y := axis_z.cross(axis_x).normalized()
+	var target_basis := Basis(axis_x, axis_y, axis_z)
+
+	var bone: Node3D = _find(rig_root, bone_name)
+	if bone == null:
+		return
+	var parent := bone.get_parent()
+	var parent_global_basis: Basis = parent.global_basis if parent is Node3D else Basis.IDENTITY
+	result["fk_rotations"][bone_name] = Quaternion(parent_global_basis.inverse() * target_basis)
+
+
+static func _compute_foot_fk(rig_root: Node3D, pts: Array, vis: Array,
+		result: Dictionary, heel_idx: int, toe_idx: int,
+		knee_idx: int, ankle_idx: int, bone_name: String) -> void:
+	var VIS_THRESH := 0.35
+	if vis[heel_idx] < VIS_THRESH or vis[toe_idx] < VIS_THRESH or vis[ankle_idx] < VIS_THRESH:
+		return
+
+	# Foot forward: heel → toe
+	var axis_z := (pts[toe_idx] - pts[heel_idx]).normalized()
+	# Shin reference for lateral: knee → ankle points down the leg
+	var shin_ref := (pts[ankle_idx] - pts[knee_idx]).normalized() if vis[knee_idx] >= VIS_THRESH \
+		else Vector3(0.0, -1.0, 0.0)
+	# Lateral axis: perpendicular to both forward and shin, then orthogonalised
+	var axis_x := axis_z.cross(shin_ref).normalized()
+	axis_x = (axis_x - axis_z * axis_z.dot(axis_x)).normalized()
+	var axis_y := axis_x.cross(axis_z).normalized()
+	var target_basis := Basis(axis_x, axis_y, axis_z)
+
+	var bone: Node3D = _find(rig_root, bone_name)
+	if bone == null:
+		return
+	var parent := bone.get_parent()
+	var parent_global_basis: Basis = parent.global_basis if parent is Node3D else Basis.IDENTITY
+	result["fk_rotations"][bone_name] = Quaternion(parent_global_basis.inverse() * target_basis)
 
 
 static func _find(node: Node, target: String) -> Node3D:

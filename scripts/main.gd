@@ -1364,16 +1364,8 @@ func _on_ai_apply_pose() -> void:
 			_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
 			_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
 
-	# Zero out hand rotations and keep them zeroed every frame (the IK
-	# solver runs in _process and would otherwise overwrite them).
-	_zero_basis_overrides.clear()
-	for hand_name in ["rhand_g", "lhand_g"]:
-		var hand: Node3D = rig_controller.find_node(hand_name)
-		if hand != null:
-			hand.basis = Basis.IDENTITY
-			_zero_basis_overrides.append(hand)
-
-	# Apply FK rotations (torso, head) directly onto the bone nodes
+	# Apply FK rotations (pelvis, torso, head, hands, feet) directly onto the bone nodes
+	# Hands and feet now come from the applier instead of being zeroed.
 	var fk_rotations: Dictionary = data.get("fk_rotations", {})
 	for bone_name in fk_rotations:
 		var node: Node3D = rig_controller.find_node(bone_name)
