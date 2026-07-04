@@ -15,13 +15,14 @@ signal remove_key_requested()
 signal new_requested()
 signal retarget_load_animation_requested(path: String)
 signal retarget_bake_requested()
-signal retarget_overlay_toggled(enabled: bool)
+## Single reference-skeleton toggle: main.gd routes it to the red (glb) or
+## green (AI) visualizer depending on which motion source is active.
+signal overlay_toggled(enabled: bool)
 signal gender_selected(model_path: String)
 signal pose_memory_save_requested(slot: int)
 signal pose_memory_load_requested(slot: int)
 signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
-signal ai_pose_overlay_toggled(visible: bool)
 signal ai_bulk_requested(input_dir: String, output_dir: String)
 signal video_pose_open_requested()
 
@@ -64,8 +65,7 @@ var _anim_name: String = ""
 @onready var left_hand_weapon_button: Button = viewport_toolbar.get_node("LeftHandWeaponButton")
 @onready var left_shield_button: Button = viewport_toolbar.get_node("LeftShieldButton")
 @onready var pole_vectors_button: Button = viewport_toolbar.get_node("PoleVectorsToggleButton")
-@onready var skeleton_overlay_button: Button = viewport_toolbar.get_node("SkeletonOverlayButton")
-@onready var ai_pose_overlay_button: Button = viewport_toolbar.get_node("AIPoseOverlayButton")
+@onready var overlay_button: Button = viewport_toolbar.get_node("SkeletonOverlayButton")
 
 @onready var play_button: Button = _sidebar.get_node("Keyframe/PlayButton")
 @onready var timeline: Control = $TimelineRow/Timeline
@@ -137,7 +137,7 @@ func _ready() -> void:
 	left_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("lhand", "left_weapon", Color(1.0, 0.2, 0.2)))
 	left_shield_button.toggled.connect(_on_weapon_toggled.bind("lforearm", "shield", Color(0.5, 1.0, 0.3)))
 	pole_vectors_button.toggled.connect(_on_pole_vectors_toggled)
-	skeleton_overlay_button.toggled.connect(func(v): retarget_overlay_toggled.emit(v))
+	overlay_button.toggled.connect(func(v): overlay_toggled.emit(v))
 
 	# glb wizard: picking the file opens the Bone Config panel right away —
 	# it IS the configure step of that flow, and Bake now lives inside it.
@@ -159,7 +159,6 @@ func _ready() -> void:
 	ai_load_image_button.pressed.connect(func(): ai_image_dialog.popup_centered_ratio(0.6))
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
-	ai_pose_overlay_button.toggled.connect(func(v): ai_pose_overlay_toggled.emit(v))
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 
@@ -176,7 +175,7 @@ func set_status(text: String) -> void:
 ## is the odd one out: its neutral/default state is HIDDEN, not shown, so
 ## it's reset to pressed=true instead of being lumped in with the others.
 func reset_display_toggles() -> void:
-	for button in [right_hand_weapon_button, left_hand_weapon_button, left_shield_button, pole_vectors_button, skeleton_overlay_button, play_button]:
+	for button in [right_hand_weapon_button, left_hand_weapon_button, left_shield_button, pole_vectors_button, overlay_button, play_button]:
 		if button.button_pressed:
 			button.button_pressed = false
 	if not cloak_button.button_pressed:
@@ -202,9 +201,8 @@ func _on_utility_menu_pressed(id: int) -> void:
 ## must NOT touch it — the overlay stays up for comparison while iterating.
 func set_image_panel_open(open: bool) -> void:
 	image_pose_panel.visible = open
-	ai_pose_overlay_button.disabled = false
-	ai_pose_overlay_button.set_pressed_no_signal(open)
-	ai_pose_overlay_toggled.emit(open)
+	overlay_button.set_pressed_no_signal(open)
+	overlay_toggled.emit(open)
 
 func get_anim_name() -> String:
 	return _anim_name
@@ -378,10 +376,9 @@ func set_ai_server_status(text: String) -> void:
 func set_ai_apply_enabled(enabled: bool) -> void:
 	ai_apply_pose_button.disabled = not enabled
 
-func set_ai_pose_overlay_available(available: bool) -> void:
-	ai_pose_overlay_button.disabled = not available
-	if not available:
-		ai_pose_overlay_button.set_pressed_no_signal(false)
+## Sets the unified overlay toggle's visual state without re-emitting.
+func set_overlay_active(active: bool) -> void:
+	overlay_button.set_pressed_no_signal(active)
 
 func _find(node: Node, target_name: String) -> Node3D:
 	if node == null:

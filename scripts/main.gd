@@ -101,7 +101,7 @@ func _ready() -> void:
 
 	side_panel.retarget_load_animation_requested.connect(_on_retarget_load_animation_requested)
 	side_panel.retarget_bake_requested.connect(_on_retarget_bake_requested)
-	side_panel.retarget_overlay_toggled.connect(_on_retarget_overlay_toggled)
+	side_panel.overlay_toggled.connect(_on_overlay_toggled)
 	side_panel.bone_config_panel.cfg_import_requested.connect(_on_retarget_cfg_import_requested)
 	side_panel.bone_config_panel.save_requested.connect(_on_retarget_save_config_requested)
 	side_panel.bone_config_panel.save_as_chosen.connect(_on_retarget_save_as_chosen)
@@ -117,7 +117,6 @@ func _ready() -> void:
 	_ai_client.pose_failed.connect(_on_ai_pose_failed)
 	side_panel.ai_pose_image_selected.connect(_on_ai_image_selected)
 	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
-	side_panel.ai_pose_overlay_toggled.connect(func(v): green_visualizer.visible = v)
 	side_panel.ai_bulk_requested.connect(_on_ai_bulk_requested)
 	side_panel.pose_memory_save_requested.connect(_on_pose_memory_save)
 	side_panel.pose_memory_load_requested.connect(_on_pose_memory_load)
@@ -1038,11 +1037,36 @@ func _on_retarget_load_animation_requested(path: String) -> void:
 	# away instead of making the user remember to flip the toggle. Set the
 	# button's visual state without relying on the toggled signal firing,
 	# then drive the actual show/sync logic directly.
-	side_panel.skeleton_overlay_button.set_pressed_no_signal(true)
+	_set_overlay_source("retarget")
+	side_panel.set_overlay_active(true)
 	_on_retarget_overlay_toggled(true)
 	side_panel.set_status("Animation loaded: %s (%d bones)." % [path.get_file(), skeleton.get_bone_count()])
 
-## Viewport toolbar toggle: show/hide the red skeleton overlay.
+## Which motion source currently owns the reference-skeleton overlay:
+## "" (none yet), "retarget" (red glb skeleton) or "ai" (green landmarks).
+## The unified Skel toggle routes here.
+var _overlay_source: String = ""
+
+func _set_overlay_source(source: String) -> void:
+	_overlay_source = source
+	# Only one reference skeleton on screen at a time
+	if source == "ai":
+		_show_retarget_overlay = false
+		red_visualizer.visible = false
+	elif source == "retarget":
+		green_visualizer.visible = false
+
+func _on_overlay_toggled(enabled: bool) -> void:
+	match _overlay_source:
+		"ai":
+			green_visualizer.visible = enabled
+		"retarget":
+			_on_retarget_overlay_toggled(enabled)
+		_:
+			if enabled:
+				side_panel.set_status("Load a motion source first (Utility menu).")
+
+## Show/hide the red skeleton overlay (retarget source).
 func _on_retarget_overlay_toggled(enabled: bool) -> void:
 	_show_retarget_overlay = enabled
 	if not enabled:
@@ -1250,9 +1274,9 @@ func _on_ai_pose_received(world_landmarks: Array) -> void:
 	_ai_pending_landmarks = world_landmarks
 	side_panel.set_ai_server_status("Pose detected. Press Apply Pose.")
 	side_panel.set_ai_apply_enabled(true)
+	_set_overlay_source("ai")
 	_show_ai_landmark_overlay(world_landmarks)
-	side_panel.set_ai_pose_overlay_available(true)
-	side_panel.ai_pose_overlay_button.set_pressed_no_signal(true)
+	side_panel.set_overlay_active(true)
 
 # MediaPipe skeleton connections (from_idx, to_idx) — the standard 33-point
 # pose topology, enough to draw a recognizable body outline as a debug overlay.
@@ -1342,7 +1366,6 @@ func _on_ai_pose_failed(error: String) -> void:
 		return
 	side_panel.set_ai_server_status("Error: %s" % error)
 	side_panel.set_ai_apply_enabled(false)
-	side_panel.set_ai_pose_overlay_available(false)
 	green_visualizer.visible = false
 
 func _on_ai_apply_pose() -> void:
@@ -1717,8 +1740,8 @@ func _on_video_apply_to_timeline() -> void:
 
 	_video_panel.visible = false
 	side_panel.set_status("Applied %d keyframes from video (%.1fs)." % [_video_extracted_frames.size(), _video_extracted_duration])
-	side_panel.set_ai_pose_overlay_available(true)
-	side_panel.ai_pose_overlay_button.set_pressed_no_signal(true)
+	_set_overlay_source("ai")
+	side_panel.set_overlay_active(true)
 	green_visualizer.visible = true
 	_sync_video_pose_overlay(0.0)
 
