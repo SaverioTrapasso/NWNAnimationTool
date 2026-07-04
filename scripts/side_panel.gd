@@ -48,7 +48,7 @@ signal ai_bulk_requested(input_dir: String, output_dir: String)
 @onready var bone_config_panel: Panel = $BoneConfigPanel
 
 @onready var name_edit: LineEdit = _sidebar.get_node("AnimationInfo/AnimNameEdit")
-@onready var duration_edit: SpinBox = _sidebar.get_node("AnimationInfo/DurationSpinBox")
+@onready var duration_edit: SpinBox = _sidebar.get_node("AnimationInfo/DurationRow/DurationSpinBox")
 
 @onready var save_to_timeline_button: Button = _sidebar.get_node("Keyframe/KeyframeGrid/SetButton")
 @onready var copy_key_button: Button = _sidebar.get_node("Keyframe/KeyframeGrid/CopyKeyButton")

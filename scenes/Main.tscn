@@ -163,16 +163,16 @@ script = ExtResource("6")
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_bottom = 30.0
+offset_bottom = 26.0
 grow_horizontal = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 3
 
 [node name="Margin" type="MarginContainer" parent="SidePanel/TopBar" unique_id=1613073795]
 layout_mode = 2
-theme_override_constants/margin_left = 8
-theme_override_constants/margin_top = 4
-theme_override_constants/margin_right = 8
-theme_override_constants/margin_bottom = 4
+theme_override_constants/margin_left = 6
+theme_override_constants/margin_top = 3
+theme_override_constants/margin_right = 6
+theme_override_constants/margin_bottom = 3
 
 [node name="Row" type="HBoxContainer" parent="SidePanel/TopBar/Margin" unique_id=1001484438]
 layout_mode = 2
@@ -224,10 +224,10 @@ text = "Female"
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 220.0
-offset_top = 34.0
-offset_right = -12.0
-offset_bottom = 58.0
+offset_left = 200.0
+offset_top = 26.0
+offset_right = -8.0
+offset_bottom = 50.0
 grow_horizontal = 2
 theme_override_constants/separation = 4
 alignment = 1
@@ -304,8 +304,8 @@ text = "Pose"
 layout_mode = 1
 anchors_preset = 9
 anchor_bottom = 1.0
-offset_top = 30.0
-offset_right = 220.0
+offset_top = 26.0
+offset_right = 200.0
 grow_vertical = 2
 mouse_filter = 1
 
@@ -314,7 +314,7 @@ layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_bottom = -32.0
+offset_bottom = -28.0
 grow_horizontal = 2
 grow_vertical = 2
 horizontal_scroll_mode = 0
@@ -322,18 +322,18 @@ horizontal_scroll_mode = 0
 [node name="Margin" type="MarginContainer" parent="SidePanel/Sidebar/Scroll" unique_id=1948779755]
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/margin_left = 10
-theme_override_constants/margin_top = 10
-theme_override_constants/margin_right = 10
-theme_override_constants/margin_bottom = 8
+theme_override_constants/margin_left = 7
+theme_override_constants/margin_top = 7
+theme_override_constants/margin_right = 7
+theme_override_constants/margin_bottom = 6
 
 [node name="Sections" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin" unique_id=959555677]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 8
 
 [node name="AnimationInfo" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1674928077]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 3
 
 [node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=318005209]
 layout_mode = 2
@@ -341,20 +341,22 @@ theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 9
 text = "ANIMATION"
 
-[node name="NameLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1957801417]
-layout_mode = 2
-text = "Name"
-
 [node name="AnimNameEdit" type="LineEdit" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1051052711]
 layout_mode = 2
-placeholder_text = "e.g. fencing_stance"
+placeholder_text = "Animation name"
 
-[node name="DurationLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=536189110]
+[node name="DurationRow" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1674000010]
 layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="DurationLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo/DurationRow" unique_id=536189110]
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Duration (s)"
 
-[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=2017674164]
+[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo/DurationRow" unique_id=2017674164]
 layout_mode = 2
+custom_minimum_size = Vector2(72, 0)
 min_value = 0.5
 max_value = 60.0
 step = 0.5
@@ -362,7 +364,7 @@ value = 5.0
 
 [node name="Keyframe" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1932247017]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 3
 
 [node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=2006408810]
 layout_mode = 2
@@ -502,7 +504,7 @@ text = "Load"
 
 [node name="Retarget" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=2046610014]
 layout_mode = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 3
 
 [node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=94540799]
 layout_mode = 2
@@ -607,10 +609,10 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 14.0
-offset_top = -34.0
-offset_right = -14.0
-offset_bottom = -8.0
+offset_left = 7.0
+offset_top = -26.0
+offset_right = -7.0
+offset_bottom = -6.0
 grow_horizontal = 2
 grow_vertical = 0
 theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
@@ -825,10 +827,10 @@ anchors_preset = 12
 anchor_top = 1.0
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 232.0
-offset_top = -58.0
-offset_right = -12.0
-offset_bottom = -10.0
+offset_left = 208.0
+offset_top = -54.0
+offset_right = -8.0
+offset_bottom = -8.0
 grow_horizontal = 2
 grow_vertical = 0
 mouse_filter = 1
@@ -838,10 +840,10 @@ theme_override_constants/separation = 8
 layout_mode = 1
 anchors_preset = 10
 anchor_right = 1.0
-offset_left = 232.0
-offset_top = 10.0
-offset_right = -12.0
-offset_bottom = 72.0
+offset_left = 208.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = 66.0
 grow_horizontal = 2
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
