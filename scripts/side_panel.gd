@@ -172,6 +172,21 @@ func _ready() -> void:
 	for kind in ["image", "video", "glb"]:
 		for spin in _source_xform_spins(_source_xform_container(kind), kind):
 			spin.value_changed.connect(func(_v): source_xform_changed.emit(kind))
+
+	# Wizard panels are mutually exclusive: opening one closes whichever was
+	# open. Motion calibration is a companion of the video wizard, so it only
+	# survives when the video panel is the one being opened.
+	var wizard_panels: Array = [image_pose_panel, video_pose_panel, bone_config_panel]
+	for panel in wizard_panels:
+		var this_panel: Panel = panel
+		this_panel.visibility_changed.connect(func():
+			if not this_panel.visible:
+				return
+			for other in wizard_panels:
+				if other != this_panel and other.visible:
+					other.visible = false
+			if this_panel != video_pose_panel and motion_config_panel.visible:
+				motion_config_panel.visible = false)
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 

@@ -1,4 +1,4 @@
-[gd_scene format=3 uid="uid://b1q7x8f3wq8nk"]
+﻿[gd_scene format=3 uid="uid://b1q7x8f3wq8nk"]
 
 [ext_resource type="PackedScene" uid="uid://bk5top5rlti6i" path="res://assets/nwn/a_ba.glb" id="1"]
 [ext_resource type="Script" uid="uid://daq1neut88g00" path="res://scripts/orbit_camera.gd" id="2"]
@@ -33,10 +33,6 @@ content_margin_top = 3.0
 content_margin_right = 7.0
 content_margin_bottom = 3.0
 bg_color = Color(0.85, 0.45, 0.13, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_orange_hover"]
 content_margin_left = 7.0
@@ -44,10 +40,6 @@ content_margin_top = 3.0
 content_margin_right = 7.0
 content_margin_bottom = 3.0
 bg_color = Color(0.93, 0.54, 0.2, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_remove_normal"]
 content_margin_left = 7.0
@@ -55,10 +47,6 @@ content_margin_top = 3.0
 content_margin_right = 7.0
 content_margin_bottom = 3.0
 bg_color = Color(0.82, 0.27, 0.24, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_remove_hover"]
 content_margin_left = 7.0
@@ -66,10 +54,6 @@ content_margin_top = 3.0
 content_margin_right = 7.0
 content_margin_bottom = 3.0
 bg_color = Color(0.89, 0.34, 0.31, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_card"]
 bg_color = Color(0.97, 0.965, 0.95, 0.92)
@@ -78,10 +62,6 @@ border_width_top = 1
 border_width_right = 1
 border_width_bottom = 1
 border_color = Color(0.78, 0.77, 0.73, 1)
-corner_radius_top_left = 8
-corner_radius_top_right = 8
-corner_radius_bottom_right = 8
-corner_radius_bottom_left = 8
 shadow_color = Color(0, 0, 0, 0.08)
 shadow_size = 4
 
@@ -91,10 +71,6 @@ content_margin_top = 3.0
 content_margin_right = 7.0
 content_margin_bottom = 3.0
 bg_color = Color(0.31, 0.58, 0.78, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_blue_hover"]
 content_margin_left = 7.0
@@ -102,10 +78,6 @@ content_margin_top = 3.0
 content_margin_right = 7.0
 content_margin_bottom = 3.0
 bg_color = Color(0.4, 0.66, 0.86, 1)
-corner_radius_top_left = 5
-corner_radius_top_right = 5
-corner_radius_bottom_right = 5
-corner_radius_bottom_left = 5
 
 [node name="Main" type="Node3D" unique_id=1626622027]
 script = ExtResource("3")
@@ -584,8 +556,8 @@ value = 1.0
 [node name="Flip180Button" type="Button" parent="SidePanel/BoneConfigPanel/ScaleRow" unique_id=1855271995]
 layout_mode = 2
 toggle_mode = true
-tooltip_text = "Rotate the loaded source glb 180° before you start posing — feeds directly into Lock and Bake, so it compensates left/right-handed source animations in one step instead of re-posing every limb"
-text = "Flip source 180°"
+tooltip_text = "Rotate the loaded source glb 180Â° before you start posing â€” feeds directly into Lock and Bake, so it compensates left/right-handed source animations in one step instead of re-posing every limb"
+text = "Flip source 180Â°"
 
 [node name="XformRow" type="HBoxContainer" parent="SidePanel/BoneConfigPanel" unique_id=1888000020]
 layout_mode = 1
@@ -734,7 +706,7 @@ theme_override_constants/separation = 4
 [node name="CfgButton" type="Button" parent="SidePanel/BoneConfigPanel/ConfigRow" unique_id=577259376]
 layout_mode = 2
 size_flags_horizontal = 3
-tooltip_text = "Load a bone-map config (.cfg) — fully portable, no glb pinned to it"
+tooltip_text = "Load a bone-map config (.cfg) â€” fully portable, no glb pinned to it"
 text = "Load config"
 
 [node name="SaveConfigButton" type="Button" parent="SidePanel/BoneConfigPanel/ConfigRow" unique_id=20712060]
@@ -1496,7 +1468,7 @@ alignment = 1
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_font_sizes/font_size = 15
-text = "—"
+text = "â€”"
 vertical_alignment = 1
 
 [node name="CopySelectionButton" type="Button" parent="SidePanel/TransformPanel/HBox" unique_id=671509775]
