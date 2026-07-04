@@ -47,16 +47,18 @@ const MP_RIGHT_FOOT_INDEX := 32
 #   root_position: Vector3 (world) or null
 # ---------------------------------------------------------------------------
 
-static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: float, origin: Vector3) -> Dictionary:
+static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY, calibration: Dictionary = {}) -> Dictionary:
 	if world_landmarks.size() < 33:
 		return {}
 
 	# Convert all 33 landmarks to world-space Vector3 using the same
 	# coordinate transform as the overlay (180° Y: negate X, keep Z).
+	# pre_rotation levels out MediaPipe's estimated-world tilt (computed
+	# once from the first frame via compute_ground_alignment).
+	var pre_basis := Basis(pre_rotation)
 	var pts: Array[Vector3] = []
 	for lm in world_landmarks:
-		var vis: float = lm.get("visibility", 1.0)
-		var p := Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + origin
+		var p := pre_basis * Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + origin
 		pts.append(p)
 
 	var vis: Array = []
@@ -171,10 +173,10 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	#   axis_z (fingers) = wrist → index_knuckle, orthogonalised vs axis_x
 	#   axis_y (dorsal)  = axis_z.cross(axis_x)
 	# ------------------------------------------------------------------
-	_compute_hand_fk(rig_root, pts, vis, result,
-		MP_RIGHT_WRIST, MP_RIGHT_INDEX, MP_RIGHT_PINKY, "rhand_g", true)
-	_compute_hand_fk(rig_root, pts, vis, result,
-		MP_LEFT_WRIST, MP_LEFT_INDEX, MP_LEFT_PINKY, "lhand_g", false)
+	_apply_end_bone_fk(rig_root, result, calibration, "rhand_g",
+		_hand_conv_basis(pts, vis, MP_RIGHT_WRIST, MP_RIGHT_INDEX, MP_RIGHT_PINKY, true))
+	_apply_end_bone_fk(rig_root, result, calibration, "lhand_g",
+		_hand_conv_basis(pts, vis, MP_LEFT_WRIST, MP_LEFT_INDEX, MP_LEFT_PINKY, false))
 
 	# ------------------------------------------------------------------
 	# FK: feet — build Basis from heel + foot_index (toe) + knee for "up"
@@ -184,10 +186,10 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	#   axis_x (lateral) = axis_z.cross(shin_ref), orthogonalised
 	#   axis_y (dorsal)  = axis_x.cross(axis_z)
 	# ------------------------------------------------------------------
-	_compute_foot_fk(rig_root, pts, vis, result,
-		MP_RIGHT_HEEL, MP_RIGHT_FOOT_INDEX, MP_RIGHT_KNEE, MP_RIGHT_ANKLE, "rfoot_g")
-	_compute_foot_fk(rig_root, pts, vis, result,
-		MP_LEFT_HEEL, MP_LEFT_FOOT_INDEX, MP_LEFT_KNEE, MP_LEFT_ANKLE, "lfoot_g")
+	_apply_end_bone_fk(rig_root, result, calibration, "rfoot_g",
+		_foot_conv_basis(pts, vis, MP_RIGHT_HEEL, MP_RIGHT_FOOT_INDEX, MP_RIGHT_KNEE, MP_RIGHT_ANKLE))
+	_apply_end_bone_fk(rig_root, result, calibration, "lfoot_g",
+		_foot_conv_basis(pts, vis, MP_LEFT_HEEL, MP_LEFT_FOOT_INDEX, MP_LEFT_KNEE, MP_LEFT_ANKLE))
 
 	# ------------------------------------------------------------------
 	# FK: head — ear midpoint up toward shoulder midpoint
@@ -210,12 +212,19 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	return result
 
 
-static func _compute_hand_fk(rig_root: Node3D, pts: Array, vis: Array,
-		result: Dictionary, wrist_idx: int, index_idx: int, pinky_idx: int,
-		bone_name: String, is_right: bool) -> void:
+# ---------------------------------------------------------------------------
+# Convention-basis builders — return a world-space Basis describing the hand/
+# foot orientation in a FIXED convention (X across, Y dorsal, Z along), or
+# null when the landmarks aren't visible enough. The convention itself is
+# arbitrary: any constant mismatch with the rig bone's own axes cancels out
+# through the first-frame calibration offset (see compute_rest_calibration).
+# ---------------------------------------------------------------------------
+
+static func _hand_conv_basis(pts: Array, vis: Array,
+		wrist_idx: int, index_idx: int, pinky_idx: int, is_right: bool) -> Variant:
 	var VIS_THRESH := 0.4
 	if vis[wrist_idx] < VIS_THRESH or vis[index_idx] < VIS_THRESH or vis[pinky_idx] < VIS_THRESH:
-		return
+		return null
 
 	# Fingers direction: wrist → index knuckle
 	var axis_z: Vector3 = (pts[index_idx] - pts[wrist_idx]).normalized()
@@ -226,22 +235,14 @@ static func _compute_hand_fk(rig_root: Node3D, pts: Array, vis: Array,
 	# Gram-Schmidt: orthogonalise across vs fingers
 	var axis_x: Vector3 = (across - axis_z * axis_z.dot(across)).normalized()
 	var axis_y: Vector3 = axis_z.cross(axis_x).normalized()
-	var target_basis := Basis(axis_x, axis_y, axis_z)
-
-	var bone: Node3D = _find(rig_root, bone_name)
-	if bone == null:
-		return
-	var parent := bone.get_parent()
-	var parent_global_basis: Basis = parent.global_basis if parent is Node3D else Basis.IDENTITY
-	result["fk_rotations"][bone_name] = Quaternion(parent_global_basis.inverse() * target_basis)
+	return Basis(axis_x, axis_y, axis_z)
 
 
-static func _compute_foot_fk(rig_root: Node3D, pts: Array, vis: Array,
-		result: Dictionary, heel_idx: int, toe_idx: int,
-		knee_idx: int, ankle_idx: int, bone_name: String) -> void:
+static func _foot_conv_basis(pts: Array, vis: Array,
+		heel_idx: int, toe_idx: int, knee_idx: int, ankle_idx: int) -> Variant:
 	var VIS_THRESH := 0.35
 	if vis[heel_idx] < VIS_THRESH or vis[toe_idx] < VIS_THRESH or vis[ankle_idx] < VIS_THRESH:
-		return
+		return null
 
 	# Foot forward: heel → toe
 	var axis_z: Vector3 = (pts[toe_idx] - pts[heel_idx]).normalized()
@@ -252,14 +253,97 @@ static func _compute_foot_fk(rig_root: Node3D, pts: Array, vis: Array,
 	var axis_x: Vector3 = axis_z.cross(shin_ref).normalized()
 	axis_x = (axis_x - axis_z * axis_z.dot(axis_x)).normalized()
 	var axis_y: Vector3 = axis_x.cross(axis_z).normalized()
-	var target_basis := Basis(axis_x, axis_y, axis_z)
+	return Basis(axis_x, axis_y, axis_z)
 
+
+## Applies a convention basis to an end bone, routing through the per-bone
+## calibration offset when one is available.
+static func _apply_end_bone_fk(rig_root: Node3D, result: Dictionary,
+		calibration: Dictionary, bone_name: String, conv_basis: Variant) -> void:
+	if not (conv_basis is Basis):
+		return
 	var bone: Node3D = _find(rig_root, bone_name)
 	if bone == null:
 		return
 	var parent := bone.get_parent()
 	var parent_global_basis: Basis = parent.global_basis if parent is Node3D else Basis.IDENTITY
-	result["fk_rotations"][bone_name] = Quaternion(parent_global_basis.inverse() * target_basis)
+	var local := Quaternion(parent_global_basis.inverse() * (conv_basis as Basis))
+	if calibration.has(bone_name):
+		local = local * calibration[bone_name]
+	result["fk_rotations"][bone_name] = local
+
+
+## Computes the corrective rotation that levels MediaPipe's estimated world
+## using the FIRST frame of a grounded animation: the line between the two
+## feet and the average heel→toe direction must both be horizontal.
+## Apply the result as compute()'s pre_rotation for every frame.
+static func compute_ground_alignment(world_landmarks: Array) -> Quaternion:
+	if world_landmarks.size() < 33:
+		return Quaternion.IDENTITY
+	var pts: Array[Vector3] = []
+	for lm in world_landmarks:
+		pts.append(Vector3(-lm["x"], -lm["y"], lm["z"]))
+
+	var q := Quaternion.IDENTITY
+
+	# Roll: line between left and right foot contact midpoints → horizontal
+	var l_mid: Vector3 = (pts[MP_LEFT_HEEL] + pts[MP_LEFT_FOOT_INDEX]) * 0.5
+	var r_mid: Vector3 = (pts[MP_RIGHT_HEEL] + pts[MP_RIGHT_FOOT_INDEX]) * 0.5
+	var v: Vector3 = r_mid - l_mid
+	var v_flat := Vector3(v.x, 0.0, v.z)
+	if v.length() > 0.001 and v_flat.length() > 0.001:
+		q = Quaternion(v.normalized(), v_flat.normalized())
+
+	# Pitch: average heel→toe direction (already roll-corrected) → horizontal
+	var f: Vector3 = (pts[MP_LEFT_FOOT_INDEX] - pts[MP_LEFT_HEEL]) \
+		+ (pts[MP_RIGHT_FOOT_INDEX] - pts[MP_RIGHT_HEEL])
+	f = q * f
+	var f_flat := Vector3(f.x, 0.0, f.z)
+	if f.length() > 0.001 and f_flat.length() > 0.001:
+		q = Quaternion(f.normalized(), f_flat.normalized()) * q
+
+	return q
+
+
+## Measures the constant offset between the MediaPipe hand/foot convention
+## and each rig bone's own axes, using the first frame of the video while
+## the RIG IS STILL AT REST. Assumes the first frame shows hands/feet in a
+## roughly neutral orientation (true for grounded combat-stance videos).
+## Returns { bone_name: Quaternion } to pass as compute()'s calibration.
+static func compute_rest_calibration(world_landmarks: Array, rig_root: Node3D,
+		scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY) -> Dictionary:
+	if world_landmarks.size() < 33:
+		return {}
+
+	var pre_basis := Basis(pre_rotation)
+	var pts: Array[Vector3] = []
+	for lm in world_landmarks:
+		pts.append(pre_basis * Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + origin)
+	var vis: Array = []
+	for lm in world_landmarks:
+		vis.append(lm.get("visibility", 1.0))
+
+	var conv_bases := {
+		"rhand_g": _hand_conv_basis(pts, vis, MP_RIGHT_WRIST, MP_RIGHT_INDEX, MP_RIGHT_PINKY, true),
+		"lhand_g": _hand_conv_basis(pts, vis, MP_LEFT_WRIST, MP_LEFT_INDEX, MP_LEFT_PINKY, false),
+		"rfoot_g": _foot_conv_basis(pts, vis, MP_RIGHT_HEEL, MP_RIGHT_FOOT_INDEX, MP_RIGHT_KNEE, MP_RIGHT_ANKLE),
+		"lfoot_g": _foot_conv_basis(pts, vis, MP_LEFT_HEEL, MP_LEFT_FOOT_INDEX, MP_LEFT_KNEE, MP_LEFT_ANKLE),
+	}
+
+	var calibration := {}
+	for bone_name in conv_bases:
+		var conv: Variant = conv_bases[bone_name]
+		if not (conv is Basis):
+			continue
+		var bone: Node3D = _find(rig_root, bone_name)
+		if bone == null:
+			continue
+		var parent := bone.get_parent()
+		var parent_global_basis: Basis = parent.global_basis if parent is Node3D else Basis.IDENTITY
+		var raw_local := Quaternion(parent_global_basis.inverse() * (conv as Basis))
+		# offset such that: raw_local(frame 1) * offset == bone's rest local
+		calibration[bone_name] = raw_local.inverse() * bone.quaternion
+	return calibration
 
 
 static func _find(node: Node, target: String) -> Node3D:

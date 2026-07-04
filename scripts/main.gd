@@ -1619,6 +1619,15 @@ func _on_video_apply_to_timeline() -> void:
 	# Resize the animation to match the video duration
 	side_panel.set_duration(_video_extracted_duration)
 
+	# First-frame alignment: the animation is assumed grounded at frame 1,
+	# so level MediaPipe's tilted world estimate on the feet contact points,
+	# then calibrate the hand/foot bone-axis offsets while the rig is still
+	# at rest. Both corrections are reused verbatim on every frame.
+	var first_landmarks: Array = _video_extracted_frames[0]["world_landmarks"]
+	var pre_rotation: Quaternion = AIPoseApplier.compute_ground_alignment(first_landmarks)
+	var calibration: Dictionary = AIPoseApplier.compute_rest_calibration(
+		first_landmarks, $Rig, scale_factor, origin, pre_rotation)
+
 	# Apply each frame as a keyframe
 	for frame_data in _video_extracted_frames:
 		var t: float = frame_data["time"]
@@ -1630,7 +1639,7 @@ func _on_video_apply_to_timeline() -> void:
 				node.transform = _rest_transforms[node]
 		_init_default_limb_targets()
 
-		var data := AIPoseApplier.compute(landmarks, $Rig, scale_factor, origin)
+		var data := AIPoseApplier.compute(landmarks, $Rig, scale_factor, origin, pre_rotation, calibration)
 		if data.is_empty():
 			continue
 
