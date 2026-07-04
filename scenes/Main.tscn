@@ -331,19 +331,95 @@ theme_override_constants/margin_bottom = 8
 layout_mode = 2
 theme_override_constants/separation = 12
 
-[node name="Tools" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1297613824]
+[node name="AnimationInfo" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1674928077]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
-[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Tools" unique_id=1491375162]
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=318005209]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "TOOLS"
+theme_override_font_sizes/font_size = 9
+text = "ANIMATION"
 
-[node name="ResetButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Tools" unique_id=1506300410]
+[node name="NameLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1957801417]
+layout_mode = 2
+text = "Name"
+
+[node name="AnimNameEdit" type="LineEdit" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1051052711]
+layout_mode = 2
+placeholder_text = "e.g. fencing_stance"
+
+[node name="DurationLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=536189110]
+layout_mode = 2
+text = "Duration (s)"
+
+[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=2017674164]
+layout_mode = 2
+min_value = 0.5
+max_value = 60.0
+step = 0.5
+value = 5.0
+
+[node name="Keyframe" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1932247017]
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=2006408810]
+layout_mode = 2
+theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
+theme_override_font_sizes/font_size = 9
+text = "KEYFRAME"
+
+[node name="KeyframeGrid" type="GridContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=837893384]
+layout_mode = 2
+theme_override_constants/h_separation = 3
+theme_override_constants/v_separation = 3
+columns = 2
+
+[node name="SetButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1792782017]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Drop a keyframe at the current timeline position with the rig's current pose"
+text = "Set"
+
+[node name="RemoveKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=382243868]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Delete the keyframe at the current timeline position"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_remove_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_remove_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_remove_hover")
+text = "Remove"
+
+[node name="CopyKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1217643090]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Copy the pose at the current timeline position"
+text = "Copy"
+
+[node name="PasteKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1756766582]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Overwrite the keyframe at the current timeline position with the copied pose"
+text = "Paste"
+
+[node name="ResetButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=1506300410]
 layout_mode = 2
 text = "Reset pose"
+
+[node name="PlayButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=740570703]
+layout_mode = 2
+toggle_mode = true
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
+text = "Play"
 
 [node name="PoseMemory" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1222000001]
 layout_mode = 2
@@ -426,13 +502,13 @@ text = "Load"
 
 [node name="Retarget" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=2046610014]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 4
 
 [node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=94540799]
 layout_mode = 2
 theme_override_colors/font_color = Color(0.85, 0.45, 0.13, 1)
-theme_override_font_sizes/font_size = 11
-text = "RETARGET"
+theme_override_font_sizes/font_size = 9
+text = "RETARGET ANIMATION"
 
 [node name="LoadAnimationButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Retarget" unique_id=788902617]
 layout_mode = 2
@@ -455,94 +531,14 @@ theme_override_styles/pressed = SubResource("StyleBoxFlat_orange_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_orange_hover")
 text = "Bake"
 
-[node name="AnimationInfo" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1674928077]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=318005209]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "ANIMATION"
-
-[node name="NameLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1957801417]
-layout_mode = 2
-text = "Animation name"
-
-[node name="AnimNameEdit" type="LineEdit" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=1051052711]
-layout_mode = 2
-placeholder_text = "e.g. fencing_stance"
-
-[node name="DurationLabel" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=536189110]
-layout_mode = 2
-text = "Duration (s)"
-
-[node name="DurationSpinBox" type="SpinBox" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AnimationInfo" unique_id=2017674164]
-layout_mode = 2
-min_value = 0.5
-max_value = 60.0
-step = 0.5
-value = 5.0
-
-[node name="Keyframe" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1932247017]
-layout_mode = 2
-theme_override_constants/separation = 6
-
-[node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=2006408810]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "KEYFRAME"
-
-[node name="KeyframeGrid" type="GridContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=837893384]
-layout_mode = 2
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 4
-columns = 2
-
-[node name="SetButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1792782017]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Drop a keyframe at the current timeline position with the rig's current pose"
-text = "Set"
-
-[node name="CopyKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1217643090]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Copy the pose at the current timeline position"
-text = "Copy"
-
-[node name="PasteKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=1756766582]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Overwrite the keyframe at the current timeline position with the copied pose"
-text = "Paste"
-
-[node name="RemoveKeyButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe/KeyframeGrid" unique_id=382243868]
-layout_mode = 2
-size_flags_horizontal = 3
-tooltip_text = "Delete the keyframe at the current timeline position"
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
-theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
-theme_override_styles/normal = SubResource("StyleBoxFlat_remove_normal")
-theme_override_styles/pressed = SubResource("StyleBoxFlat_remove_hover")
-theme_override_styles/hover = SubResource("StyleBoxFlat_remove_hover")
-text = "Remove"
-
-[node name="PlayButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/Keyframe" unique_id=740570703]
-layout_mode = 2
-toggle_mode = true
-text = "Play"
-
 [node name="AIPose" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections" unique_id=1111000001]
 layout_mode = 2
 
 [node name="Header" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000002]
 layout_mode = 2
-theme_override_font_sizes/font_size = 11
-theme_override_colors/font_color = Color(0.6, 0.6, 0.6, 1)
-text = "AI POSE"
+theme_override_font_sizes/font_size = 9
+theme_override_colors/font_color = Color(0.45, 0.45, 0.45, 1)
+text = "AI POSE ESTIMATION"
 
 [node name="LoadImageButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/AIPose" unique_id=1111000003]
 layout_mode = 2

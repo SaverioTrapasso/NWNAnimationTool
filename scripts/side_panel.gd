@@ -39,7 +39,7 @@ signal ai_bulk_requested(input_dir: String, output_dir: String)
 @onready var save_dialog: FileDialog = $SaveDialog
 @onready var open_dialog: FileDialog = $OpenDialog
 
-@onready var reset_button: Button = _sidebar.get_node("Tools/ResetButton")
+@onready var reset_button: Button = _sidebar.get_node("Keyframe/ResetButton")
 
 @onready var load_animation_button: Button = _sidebar.get_node("Retarget/LoadAnimationButton")
 @onready var bone_config_button: Button = _sidebar.get_node("Retarget/BoneConfigButton")
