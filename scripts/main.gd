@@ -1373,8 +1373,8 @@ func _on_ai_apply_pose() -> void:
 	if sel != "":
 		_on_component_selected(sel)
 
-	side_panel.set_ai_pose_overlay_available(false)
 	green_visualizer.visible = false
+	side_panel.set_ai_pose_overlay_available(true)
 	var n_ik := ik_targets.size()
 	var n_fk := fk_rotations.size()
 	side_panel.set_status("AI pose applied (%d IK targets, %d FK bones)." % [n_ik, n_fk])
