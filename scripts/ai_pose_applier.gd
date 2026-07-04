@@ -63,10 +63,14 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	for lm in world_landmarks:
 		vis.append(lm.get("visibility", 1.0))
 
-	# Ground the entire skeleton: shift all pts down so the lowest ankle
-	# sits at Y=0. Done here before anything else so every derived point
-	# (IK targets, midpoints, FK bases) inherits the correction.
-	var min_foot_y: float = min(pts[MP_LEFT_ANKLE].y, pts[MP_RIGHT_ANKLE].y)
+	# Ground the entire skeleton: shift all pts down so the lowest foot
+	# CONTACT point (heel or toe — not the ankle, which sits above the
+	# sole) rests at Y=0. Done here before anything else so every derived
+	# point (IK targets, midpoints, FK bases) inherits the correction.
+	var min_foot_y: float = min(
+		min(pts[MP_LEFT_HEEL].y, pts[MP_RIGHT_HEEL].y),
+		min(pts[MP_LEFT_FOOT_INDEX].y, pts[MP_RIGHT_FOOT_INDEX].y)
+	)
 	for i in range(pts.size()):
 		pts[i].y -= min_foot_y
 
