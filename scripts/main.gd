@@ -1614,8 +1614,8 @@ func _on_video_extract_pressed() -> void:
 	if not path_label.has_meta("full_path"):
 		return
 	var video_path: String = path_label.get_meta("full_path")
-	var sample_fps: float = _video_panel.get_node("Body/OptionsRow/FpsBox/FpsSpin").value
-	var smooth_window: int = int(_video_panel.get_node("Body/OptionsRow/SmoothBox/SmoothSpin").value)
+	var sample_fps: float = _video_panel.get_node("Body/FpsRow/FpsSpin").value
+	var smooth_window: int = int(_video_panel.get_node("Body/SmoothRow/SmoothSpin").value)
 
 	_video_panel.get_node("Body/ExtractButton").disabled = true
 	_video_panel.get_node("Body/ResultRow").visible = false
