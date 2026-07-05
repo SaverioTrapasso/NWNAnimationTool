@@ -11,7 +11,6 @@
 [ext_resource type="Theme" uid="uid://c1ui0theme001" path="res://scenes/ui_theme.tres" id="9"]
 [ext_resource type="Script" uid="uid://c2oqn8p4qy15" path="res://scripts/retarget_debug_panel.gd" id="11"]
 [ext_resource type="Script" uid="uid://dl4kdn6ewjrkq" path="res://scripts/bone_visualizer.gd" id="12"]
-[ext_resource type="Script" path="res://scripts/motion_config_panel.gd" id="13"]
 
 [sub_resource type="Environment" id="Environment_1"]
 background_mode = 1
@@ -1022,6 +1021,23 @@ max_value = 15.0
 step = 2.0
 value = 3.0
 
+[node name="FootRow" type="HBoxContainer" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000050]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="FootLabel" type="Label" parent="SidePanel/VideoPosePanel/Scroll/Body/FootRow" unique_id=1333000051]
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Constant vertical correction added to both feet IK targets"
+text = "Feet Y offset (m)"
+
+[node name="FootSpin" type="SpinBox" parent="SidePanel/VideoPosePanel/Scroll/Body/FootRow" unique_id=1333000052]
+layout_mode = 2
+custom_minimum_size = Vector2(72, 0)
+min_value = -0.5
+max_value = 0.5
+step = 0.01
+
 [node name="ExtractButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000016]
 layout_mode = 2
 disabled = true
@@ -1154,16 +1170,6 @@ theme_override_styles/normal = SubResource("StyleBoxFlat_orange_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_orange_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_orange_hover")
 text = "Bake"
-
-[node name="HSeparator" type="HSeparator" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000031]
-layout_mode = 2
-
-[node name="CalibrationButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1444000080]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 20)
-theme_override_font_sizes/font_size = 10
-tooltip_text = "Tune tilt correction, hand/foot rotation offsets, feet height and scale used by the bake"
-text = "Motion calibration..."
 
 [node name="VideoDialog" type="FileDialog" parent="SidePanel/VideoPosePanel" unique_id=1333000021]
 title = "Load Video"
@@ -1362,290 +1368,6 @@ custom_minimum_size = Vector2(0, 20)
 theme_override_font_sizes/font_size = 10
 tooltip_text = "Detect every image in a folder and export one MDL file each"
 text = "Bulk: image folder..."
-
-[node name="MotionConfigPanel" type="Panel" parent="SidePanel" unique_id=1444000001]
-layout_mode = 1
-anchors_preset = -1
-anchor_left = 1.0
-anchor_top = 0.63
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = -208.0
-offset_right = -8.0
-offset_bottom = -66.0
-visible = false
-mouse_filter = 1
-theme_override_styles/panel = SubResource("StyleBoxFlat_card")
-script = ExtResource("13")
-
-[node name="TitleRow" type="HBoxContainer" parent="SidePanel/MotionConfigPanel" unique_id=1444000002]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 8.0
-offset_top = 6.0
-offset_right = -8.0
-offset_bottom = 26.0
-grow_horizontal = 2
-theme_override_constants/separation = 4
-
-[node name="HeaderLabel" type="Label" parent="SidePanel/MotionConfigPanel/TitleRow" unique_id=1444000003]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 11
-text = "Motion calibration"
-
-[node name="CloseButton" type="Button" parent="SidePanel/MotionConfigPanel/TitleRow" unique_id=1444000004]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-text = "X"
-
-[node name="Scroll" type="ScrollContainer" parent="SidePanel/MotionConfigPanel" unique_id=1444000005]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 30.0
-offset_right = -8.0
-offset_bottom = -8.0
-grow_horizontal = 2
-grow_vertical = 2
-horizontal_scroll_mode = 0
-
-[node name="Rows" type="VBoxContainer" parent="SidePanel/MotionConfigPanel/Scroll" unique_id=1444000006]
-layout_mode = 2
-size_flags_horizontal = 3
-theme_override_constants/separation = 4
-
-[node name="GroundHeader" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000010]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 9
-text = "GROUND ALIGNMENT"
-
-[node name="AutoTiltCheck" type="CheckBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000011]
-layout_mode = 2
-button_pressed = true
-text = "Auto tilt correction (frame 1)"
-
-[node name="TiltRow" type="HBoxContainer" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000012]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="TiltLabel" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows/TiltRow" unique_id=1444000013]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Manual tilt (deg)"
-
-[node name="TiltX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/TiltRow" unique_id=1444000014]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -45.0
-max_value = 45.0
-step = 1.0
-prefix = "X"
-
-[node name="TiltZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/TiltRow" unique_id=1444000015]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -45.0
-max_value = 45.0
-step = 1.0
-prefix = "Z"
-
-[node name="CalibHeader" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000020]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 9
-text = "HAND / FOOT ORIENTATION"
-
-[node name="AutoCalibCheck" type="CheckBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000021]
-layout_mode = 2
-button_pressed = true
-text = "Auto calibrate on frame 1"
-
-[node name="OffsetHint" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000022]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-theme_override_colors/font_color = Color(0.5, 0.5, 0.5, 1)
-text = "Extra rotation offsets (deg):"
-
-[node name="OffsetGrid" type="GridContainer" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000023]
-layout_mode = 2
-theme_override_constants/h_separation = 4
-theme_override_constants/v_separation = 4
-columns = 4
-
-[node name="RHandLabel" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000030]
-layout_mode = 2
-text = "R hand"
-
-[node name="rhand_gX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000031]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "X"
-
-[node name="rhand_gY" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000032]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "Y"
-
-[node name="rhand_gZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000033]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "Z"
-
-[node name="LHandLabel" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000034]
-layout_mode = 2
-text = "L hand"
-
-[node name="lhand_gX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000035]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "X"
-
-[node name="lhand_gY" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000036]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "Y"
-
-[node name="lhand_gZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000037]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "Z"
-
-[node name="RFootLabel" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000038]
-layout_mode = 2
-text = "R foot"
-
-[node name="rfoot_gX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000039]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "X"
-
-[node name="rfoot_gY" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000040]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "Y"
-
-[node name="rfoot_gZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000041]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "Z"
-
-[node name="LFootLabel" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000042]
-layout_mode = 2
-text = "L foot"
-
-[node name="lfoot_gX" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000043]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "X"
-
-[node name="lfoot_gY" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000044]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "Y"
-
-[node name="lfoot_gZ" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/OffsetGrid" unique_id=1444000045]
-layout_mode = 2
-size_flags_horizontal = 3
-min_value = -180.0
-max_value = 180.0
-step = 5.0
-prefix = "Z"
-
-[node name="FeetHeader" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000050]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 9
-text = "FEET"
-
-[node name="FootRow" type="HBoxContainer" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000051]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="FootLabel" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows/FootRow" unique_id=1444000052]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Y offset (m)"
-
-[node name="FootSpin" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/FootRow" unique_id=1444000053]
-layout_mode = 2
-custom_minimum_size = Vector2(72, 0)
-min_value = -0.5
-max_value = 0.5
-step = 0.01
-
-[node name="ScaleHeader" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000060]
-layout_mode = 2
-theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
-theme_override_font_sizes/font_size = 9
-text = "SCALE"
-
-[node name="AutoScaleCheck" type="CheckBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000061]
-layout_mode = 2
-button_pressed = true
-text = "Auto from shoulder width"
-
-[node name="ScaleRow" type="HBoxContainer" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000062]
-layout_mode = 2
-theme_override_constants/separation = 4
-
-[node name="ScaleLabel" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows/ScaleRow" unique_id=1444000063]
-layout_mode = 2
-size_flags_horizontal = 3
-text = "Manual scale"
-
-[node name="ScaleSpin" type="SpinBox" parent="SidePanel/MotionConfigPanel/Scroll/Rows/ScaleRow" unique_id=1444000064]
-layout_mode = 2
-custom_minimum_size = Vector2(72, 0)
-min_value = 0.1
-max_value = 10.0
-step = 0.01
-value = 1.0
-
-[node name="ReadoutLabel" type="Label" parent="SidePanel/MotionConfigPanel/Scroll/Rows" unique_id=1444000070]
-layout_mode = 2
-theme_override_font_sizes/font_size = 10
-theme_override_colors/font_color = Color(0.45, 0.44, 0.4, 1)
-text = ""
-autowrap_mode = 3
 
 [node name="TimelineRow" type="HBoxContainer" parent="SidePanel" unique_id=740570702]
 layout_mode = 1

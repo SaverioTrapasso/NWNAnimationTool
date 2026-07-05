@@ -1634,10 +1634,12 @@ func _setup_video_pose_panel() -> void:
 	video_dialog.file_selected.connect(_on_video_selected)
 
 	panel.get_node("Scroll/Body/ExtractButton").pressed.connect(_on_video_extract_pressed)
-	panel.get_node("Scroll/Body/CalibrationButton").pressed.connect(func(): side_panel.motion_config_panel.toggle_visible())
-	side_panel.motion_config_panel.settings_changed.connect(_on_motion_calib_changed)
 	panel.get_node("Scroll/Body/ResultRow/PreviewButton").pressed.connect(func(): _preview_video_frame())
 	panel.get_node("Scroll/Body/ResultRow/BakeButton").pressed.connect(_on_video_apply_to_timeline)
+	# Re-run the preview when the feet offset changes, so the knob is live.
+	panel.get_node("Scroll/Body/FootRow/FootSpin").value_changed.connect(func(_v):
+		if _video_previewed:
+			_preview_video_frame())
 
 func _on_video_pose_open() -> void:
 	_video_panel.visible = true
@@ -1727,46 +1729,23 @@ func _compute_video_bake_params() -> Dictionary:
 			scale_factor = nwn_shoulder_width / mp_shoulder_width
 			break
 
-	var mcp: Panel = side_panel.motion_config_panel
-
-	var scale_override: float = mcp.get_scale_override()
-	if scale_override > 0.0:
-		scale_factor = scale_override
-
-	# World tilt: auto-level on frame 1 (assumed grounded/standing), or the
-	# panel's manual X/Z angles when auto is unchecked.
+	# World tilt: auto-level on frame 1 (assumed grounded/standing).
 	var first_landmarks: Array = _video_extracted_frames[0]["world_landmarks"]
-	var pre_rotation := Quaternion.IDENTITY
-	if mcp.is_auto_tilt():
-		pre_rotation = AIPoseApplier.compute_ground_alignment(first_landmarks)
-	else:
-		var tilt: Vector2 = mcp.get_manual_tilt()
-		pre_rotation = Quaternion.from_euler(Vector3(deg_to_rad(tilt.x), 0.0, deg_to_rad(tilt.y)))
+	var pre_rotation: Quaternion = AIPoseApplier.compute_ground_alignment(first_landmarks)
 
-	# Hand/foot orientation: auto first-frame calibration (optional) plus the
-	# panel's per-bone manual offsets on top, in the bone's local frame.
-	var use_end_bones: bool = mcp.is_auto_calibration()
+	# Hand/foot orientation: auto first-frame calibration. Manual fixes come
+	# from the Lock&Bake flow (Preview → adjust by hand → Bake), not knobs.
 	var user_xform: Transform3D = side_panel.get_source_xform("video")
-
-	var calibration: Dictionary = {}
-	if use_end_bones:
-		calibration = AIPoseApplier.compute_rest_calibration(
-			first_landmarks, $Rig, scale_factor, origin, pre_rotation, user_xform)
-		for bone_name in ["rhand_g", "lhand_g", "rfoot_g", "lfoot_g"]:
-			var extra: Quaternion = mcp.get_bone_offset(bone_name)
-			if not extra.is_equal_approx(Quaternion.IDENTITY):
-				calibration[bone_name] = (calibration.get(bone_name, Quaternion.IDENTITY) as Quaternion) * extra
-
-	var tilt_deg := rad_to_deg(pre_rotation.get_angle())
-	mcp.set_readout("scale %.3f, tilt %.1f°, calib %s" % [scale_factor, tilt_deg, "auto" if use_end_bones else "off"])
+	var calibration: Dictionary = AIPoseApplier.compute_rest_calibration(
+		first_landmarks, $Rig, scale_factor, origin, pre_rotation, user_xform)
 
 	return {
 		"scale": scale_factor,
 		"origin": origin,
 		"pre_rotation": pre_rotation,
 		"calibration": calibration,
-		"use_end_bones": use_end_bones,
-		"foot_y": mcp.get_foot_y_offset(),
+		"use_end_bones": true,
+		"foot_y": _video_panel.get_node("Scroll/Body/FootRow/FootSpin").value,
 		"user_xform": user_xform,
 	}
 
@@ -1853,6 +1832,10 @@ var _video_preview_data: Dictionary = {}
 func _preview_video_frame() -> void:
 	if _video_extracted_frames.is_empty():
 		return
+	# With a component still selected, _process copies the ACTIVE limb's pin
+	# FROM the node instead of applying ours — the computed pose would be
+	# silently overridden. Deselect so every pin we set actually lands.
+	rig_controller.deselect()
 	var p: Dictionary = await _compute_video_bake_params()
 	var data: Dictionary = _apply_video_frame(_nearest_video_landmarks(side_panel.timeline.current_time), p)
 	_video_preview_params = p
@@ -1916,6 +1899,11 @@ func _on_video_apply_to_timeline() -> void:
 	else:
 		p = await _compute_video_bake_params()
 
+	# Deselect BEFORE the bake loop: _process copies the ACTIVE limb's pin
+	# from the node every frame, which would override the per-frame pose we
+	# set and silently discard the user's captured corrections.
+	rig_controller.deselect()
+
 	_push_undo_snapshot()
 
 	# Resize the animation to match the video duration. _anim_length drives
@@ -1946,26 +1934,6 @@ func _on_video_apply_to_timeline() -> void:
 		side_panel.set_status("Baked %d keyframes from video (%.1fs)." % [_video_extracted_frames.size(), _video_extracted_duration])
 	green_visualizer.visible = true
 	_sync_video_pose_overlay(0.0)
-
-# Live calibration preview: while a video is loaded, any Motion Calibration
-# knob change re-runs the frame preview so the effect is visible immediately.
-# The busy/again pair coalesces rapid spinbox changes.
-var _calib_preview_busy: bool = false
-var _calib_preview_again: bool = false
-
-func _on_motion_calib_changed() -> void:
-	if _video_extracted_frames.is_empty() or _ai_wizard != "video":
-		return
-	if _calib_preview_busy:
-		_calib_preview_again = true
-		return
-	_calib_preview_busy = true
-	while true:
-		_calib_preview_again = false
-		await _preview_video_frame()
-		if not _calib_preview_again:
-			break
-	_calib_preview_busy = false
 
 func _save_retarget_config_to(path: String) -> void:
 	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()

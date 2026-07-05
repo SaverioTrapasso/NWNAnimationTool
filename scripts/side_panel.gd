@@ -88,7 +88,6 @@ var _anim_name: String = ""
 @onready var ai_image_dialog: FileDialog = $AIImageDialog
 @onready var ai_bulk_input_dialog: FileDialog = $BulkInputDialog
 @onready var ai_bulk_output_dialog: FileDialog = $BulkOutputDialog
-@onready var motion_config_panel: Panel = $MotionConfigPanel
 
 ## The female model (a_fa.glb) names its cloak mesh "Cloak_g" (capital C)
 ## instead of the male model's "cloak_g" -- both are listed so the hide
@@ -180,12 +179,11 @@ func _ready() -> void:
 	# The right-column panels are only 200px wide like the left sidebar, so
 	# every SpinBox inside them gets the same slim minimum width used by the
 	# Selection section — otherwise three-per-row layouts overflow the panel.
-	for panel in [image_pose_panel, video_pose_panel, motion_config_panel, bone_config_panel]:
+	for panel in [image_pose_panel, video_pose_panel, bone_config_panel]:
 		_shrink_spinboxes(panel)
 
 	# Wizard panels are mutually exclusive: opening one closes whichever was
-	# open. Motion calibration is a companion of the video wizard, so it only
-	# survives when the video panel is the one being opened.
+	# open.
 	var wizard_panels: Array = [image_pose_panel, video_pose_panel, bone_config_panel]
 	for panel in wizard_panels:
 		var this_panel: Panel = panel
@@ -194,9 +192,7 @@ func _ready() -> void:
 				return
 			for other in wizard_panels:
 				if other != this_panel and other.visible:
-					other.visible = false
-			if this_panel != video_pose_panel and motion_config_panel.visible:
-				motion_config_panel.visible = false)
+					other.visible = false)
 	ai_bulk_input_dialog.dir_selected.connect(_on_bulk_input_selected)
 	ai_bulk_output_dialog.dir_selected.connect(_on_bulk_output_selected)
 
