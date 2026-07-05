@@ -1133,16 +1133,27 @@ theme_override_font_sizes/font_size = 10
 clip_text = true
 text = ""
 
-[node name="ApplyButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body/ResultRow" unique_id=1333000020]
+[node name="PreviewButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body/ResultRow" unique_id=1333000040]
 layout_mode = 2
-tooltip_text = "Bake every extracted pose as a keyframe on the timeline"
+tooltip_text = "Apply the pose of the current timeline frame to the rig - adjust it by hand, then Bake"
 theme_override_colors/font_color = Color(1, 1, 1, 1)
 theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
 theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
 theme_override_styles/normal = SubResource("StyleBoxFlat_blue_normal")
 theme_override_styles/pressed = SubResource("StyleBoxFlat_blue_hover")
 theme_override_styles/hover = SubResource("StyleBoxFlat_blue_hover")
-text = "Apply"
+text = "Preview"
+
+[node name="BakeButton" type="Button" parent="SidePanel/VideoPosePanel/Scroll/Body/ResultRow" unique_id=1333000020]
+layout_mode = 2
+tooltip_text = "Bake every extracted pose as a keyframe, keeping the manual corrections you made on the previewed frame"
+theme_override_colors/font_color = Color(1, 1, 1, 1)
+theme_override_colors/font_pressed_color = Color(1, 1, 1, 1)
+theme_override_colors/font_hover_color = Color(1, 1, 1, 1)
+theme_override_styles/normal = SubResource("StyleBoxFlat_orange_normal")
+theme_override_styles/pressed = SubResource("StyleBoxFlat_orange_hover")
+theme_override_styles/hover = SubResource("StyleBoxFlat_orange_hover")
+text = "Bake"
 
 [node name="HSeparator" type="HSeparator" parent="SidePanel/VideoPosePanel/Scroll/Body" unique_id=1333000031]
 layout_mode = 2

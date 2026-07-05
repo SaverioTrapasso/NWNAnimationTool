@@ -1636,7 +1636,8 @@ func _setup_video_pose_panel() -> void:
 	panel.get_node("Scroll/Body/ExtractButton").pressed.connect(_on_video_extract_pressed)
 	panel.get_node("Scroll/Body/CalibrationButton").pressed.connect(func(): side_panel.motion_config_panel.toggle_visible())
 	side_panel.motion_config_panel.settings_changed.connect(_on_motion_calib_changed)
-	panel.get_node("Scroll/Body/ResultRow/ApplyButton").pressed.connect(_on_video_apply_to_timeline)
+	panel.get_node("Scroll/Body/ResultRow/PreviewButton").pressed.connect(func(): _preview_video_frame())
+	panel.get_node("Scroll/Body/ResultRow/BakeButton").pressed.connect(_on_video_apply_to_timeline)
 
 func _on_video_pose_open() -> void:
 	_video_panel.visible = true
@@ -1668,6 +1669,9 @@ func _on_video_extraction_done(frames: Array, duration: float) -> void:
 	_video_extracted_duration = duration
 	_ai_overlay_calibrated = false
 	_ai_wizard = "video"
+	_video_previewed = false
+	_video_preview_params = {}
+	_video_preview_data = {}
 	var n := frames.size()
 	_video_panel.get_node("Scroll/Body/ExtractButton").disabled = false
 	_video_panel.get_node("Scroll/Body/ResultRow/ResultLabel").text = "%d poses (%.1fs)" % [n, duration]
@@ -1767,8 +1771,10 @@ func _compute_video_bake_params() -> Dictionary:
 	}
 
 ## Applies one extracted video frame to the rig (IK targets, end-bone pins,
-## FK rotations, root position) using the given bake parameters.
-func _apply_video_frame(landmarks: Array, p: Dictionary) -> void:
+## FK rotations, root position) using the given bake parameters, plus the
+## optional user corrections captured from a hand-adjusted preview frame.
+## Returns the computed pose data so the preview can cache it for Lock&Bake.
+func _apply_video_frame(landmarks: Array, p: Dictionary, extras: Dictionary = {}) -> Dictionary:
 	# Reset rig to rest before computing the frame's pose
 	for node in _rest_transforms.keys():
 		if is_instance_valid(node):
@@ -1778,12 +1784,16 @@ func _apply_video_frame(landmarks: Array, p: Dictionary) -> void:
 	var data := AIPoseApplier.compute(landmarks, $Rig, p["scale"], p["origin"],
 		p["pre_rotation"], p["calibration"], true, p["user_xform"])
 	if data.is_empty():
-		return
+		return {}
+
+	var target_extra: Dictionary = extras.get("target", {})
+	var end_extra: Dictionary = extras.get("end", {})
+	var fk_extra: Dictionary = extras.get("fk", {})
 
 	var ik_targets: Dictionary = data.get("ik_targets", {})
 	for comp_id in ik_targets:
 		if _limb_targets.has(comp_id):
-			_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
+			_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"] + (target_extra.get(comp_id, Vector3.ZERO) as Vector3)
 			_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
 
 	# Panel knob: constant vertical correction on both feet targets
@@ -1802,19 +1812,23 @@ func _apply_video_frame(landmarks: Array, p: Dictionary) -> void:
 		for bone_name in end_bases:
 			var comp_id: String = END_BONE_COMPONENT.get(bone_name, "")
 			if comp_id != "" and _limb_targets.has(comp_id):
-				_limb_targets[comp_id]["end_basis"] = end_bases[bone_name]
+				_limb_targets[comp_id]["end_basis"] = (end_bases[bone_name] as Basis) \
+					* Basis(end_extra.get(bone_name, Quaternion.IDENTITY) as Quaternion)
 
 	var fk_rotations: Dictionary = data.get("fk_rotations", {})
 	for bone_name in fk_rotations:
 		var node: Node3D = rig_controller.find_node(bone_name)
 		if node != null:
-			node.quaternion = fk_rotations[bone_name]
+			node.quaternion = (fk_rotations[bone_name] as Quaternion) \
+				* (fk_extra.get(bone_name, Quaternion.IDENTITY) as Quaternion)
 
 	var root_pos: Variant = data.get("root_position", null)
 	if root_pos != null:
 		var rootdummy: Node3D = rig_controller.find_node("rootdummy")
 		if rootdummy != null:
 			rootdummy.global_position = root_pos
+
+	return data
 
 func _nearest_video_landmarks(t: float) -> Array:
 	var best_idx := 0
@@ -1826,12 +1840,83 @@ func _nearest_video_landmarks(t: float) -> Array:
 			best_idx = i
 	return _video_extracted_frames[best_idx]["world_landmarks"]
 
+# Preview state for the video Lock&Bake flow: the previewed frame's params
+# and computed pose are cached so Bake can measure the user's manual
+# corrections against exactly what the preview put on screen.
+var _video_previewed: bool = false
+var _video_preview_params: Dictionary = {}
+var _video_preview_data: Dictionary = {}
+
+## Applies the auto-computed pose of the frame nearest the timeline cursor
+## onto the rig — the "precalcolata" starting point the user then adjusts by
+## hand (gizmo, IK handles) before pressing Bake.
+func _preview_video_frame() -> void:
+	if _video_extracted_frames.is_empty():
+		return
+	var p: Dictionary = await _compute_video_bake_params()
+	var data: Dictionary = _apply_video_frame(_nearest_video_landmarks(side_panel.timeline.current_time), p)
+	_video_preview_params = p
+	_video_preview_data = data
+	_video_previewed = not data.is_empty()
+	side_panel.set_status("Preview at %.2fs — adjust components by hand, then Bake." % side_panel.timeline.current_time)
+
+## Measures the user's manual corrections on top of the previewed pose —
+## dragged IK targets, rotated hands/feet, FK tweaks — as deltas that Bake
+## then re-applies on EVERY frame. Same idea as the glb flow's Lock: pose
+## one frame by hand, the bake maintains that exact offset.
+func _capture_video_corrections() -> Dictionary:
+	var extras := {"end": {}, "fk": {}, "target": {}}
+	if _video_preview_data.is_empty():
+		return extras
+	var data: Dictionary = _video_preview_data
+	var p: Dictionary = _video_preview_params
+
+	for comp_id in data.get("ik_targets", {}):
+		if not _limb_targets.has(comp_id):
+			continue
+		var auto_target: Vector3 = data["ik_targets"][comp_id]["target"]
+		if comp_id == "right_leg" or comp_id == "left_leg":
+			auto_target.y += p["foot_y"]
+		var delta: Vector3 = _limb_targets[comp_id]["target"] - auto_target
+		if delta.length() > 0.005:
+			extras["target"][comp_id] = delta
+
+	if p["use_end_bones"]:
+		for bone_name in data.get("end_world_bases", {}):
+			var node: Node3D = rig_controller.find_node(bone_name)
+			if node == null:
+				continue
+			var auto_world: Basis = data["end_world_bases"][bone_name]
+			var extra := Quaternion(auto_world.inverse() * node.global_basis)
+			if extra.get_angle() > deg_to_rad(1.0):
+				extras["end"][bone_name] = extra
+
+	for bone_name in data.get("fk_rotations", {}):
+		var node: Node3D = rig_controller.find_node(bone_name)
+		if node == null:
+			continue
+		var extra: Quaternion = (data["fk_rotations"][bone_name] as Quaternion).inverse() * node.quaternion
+		if extra.get_angle() > deg_to_rad(1.0):
+			extras["fk"][bone_name] = extra
+
+	return extras
+
 func _on_video_apply_to_timeline() -> void:
 	if _video_extracted_frames.is_empty():
 		return
-	_push_undo_snapshot()
 
-	var p: Dictionary = await _compute_video_bake_params()
+	# Lock&Bake: if the user previewed a frame (and possibly hand-adjusted
+	# it), capture the corrections BEFORE anything resets the rig, and reuse
+	# the preview's exact parameters so the deltas stay meaningful.
+	var extras := {"end": {}, "fk": {}, "target": {}}
+	var p: Dictionary
+	if _video_previewed and not _video_preview_params.is_empty():
+		extras = _capture_video_corrections()
+		p = _video_preview_params
+	else:
+		p = await _compute_video_bake_params()
+
+	_push_undo_snapshot()
 
 	# Resize the animation to match the video duration. _anim_length drives
 	# playback wrap-around AND the exported MDL "length" — updating only the
@@ -1841,23 +1926,30 @@ func _on_video_apply_to_timeline() -> void:
 
 	# Apply each frame as a keyframe
 	for frame_data in _video_extracted_frames:
-		_apply_video_frame(frame_data["world_landmarks"], p)
+		_apply_video_frame(frame_data["world_landmarks"], p, extras)
 		# Let the IK solver run for one frame before capturing
 		await get_tree().process_frame
 		var snapshot := MdlExporter.capture_pose($Rig)
 		_upsert_keyframe(frame_data["time"], snapshot)
 
+	_video_previewed = false
+	_video_preview_params = {}
+	_video_preview_data = {}
+
 	# The panel stays open on purpose: baking is iterative (tweak calibration,
 	# re-bake) and the overlay follows the panel's lifecycle — closing it is
 	# how the user dismisses the whole debug context.
-	side_panel.set_status("Applied %d keyframes from video (%.1fs)." % [_video_extracted_frames.size(), _video_extracted_duration])
+	var n_fix: int = extras["end"].size() + extras["fk"].size() + extras["target"].size()
+	if n_fix > 0:
+		side_panel.set_status("Baked %d keyframes with %d manual corrections (%.1fs)." % [_video_extracted_frames.size(), n_fix, _video_extracted_duration])
+	else:
+		side_panel.set_status("Baked %d keyframes from video (%.1fs)." % [_video_extracted_frames.size(), _video_extracted_duration])
 	green_visualizer.visible = true
 	_sync_video_pose_overlay(0.0)
 
 # Live calibration preview: while a video is loaded, any Motion Calibration
-# knob change re-applies the pose of the frame nearest the timeline cursor
-# straight onto the rig — no keyframes touched — so the effect is visible
-# immediately. The busy/again pair coalesces rapid spinbox changes.
+# knob change re-runs the frame preview so the effect is visible immediately.
+# The busy/again pair coalesces rapid spinbox changes.
 var _calib_preview_busy: bool = false
 var _calib_preview_again: bool = false
 
@@ -1870,12 +1962,10 @@ func _on_motion_calib_changed() -> void:
 	_calib_preview_busy = true
 	while true:
 		_calib_preview_again = false
-		var p: Dictionary = await _compute_video_bake_params()
-		_apply_video_frame(_nearest_video_landmarks(side_panel.timeline.current_time), p)
+		await _preview_video_frame()
 		if not _calib_preview_again:
 			break
 	_calib_preview_busy = false
-	side_panel.set_status("Calibration preview at %.2fs — Apply bakes all frames." % side_panel.timeline.current_time)
 
 func _save_retarget_config_to(path: String) -> void:
 	var bone_map: Dictionary = side_panel.bone_config_panel.get_bone_map()
