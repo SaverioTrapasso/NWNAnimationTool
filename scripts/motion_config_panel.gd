@@ -7,6 +7,10 @@
 ## default; unchecking it hands control to the manual fields next to it.
 extends Panel
 
+## Fired on ANY knob change (spinbox or checkbox) so main.gd can live-preview
+## the calibration on the current timeline frame without waiting for a bake.
+signal settings_changed()
+
 const BONES := ["rhand_g", "lhand_g", "rfoot_g", "lfoot_g"]
 
 @onready var _auto_tilt: CheckBox = $Scroll/Rows/AutoTiltCheck
@@ -30,6 +34,15 @@ func _ready() -> void:
 			_offset_grid.get_node("%sY" % bone),
 			_offset_grid.get_node("%sZ" % bone),
 		]
+	_wire_change_signals(self)
+
+func _wire_change_signals(node: Node) -> void:
+	if node is SpinBox:
+		node.value_changed.connect(func(_v): settings_changed.emit())
+	elif node is CheckBox:
+		node.toggled.connect(func(_v): settings_changed.emit())
+	for child in node.get_children():
+		_wire_change_signals(child)
 
 func toggle_visible() -> void:
 	visible = not visible
