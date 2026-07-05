@@ -1358,9 +1358,10 @@ anchors_preset = -1
 anchor_left = 1.0
 anchor_top = 0.63
 anchor_right = 1.0
-anchor_bottom = 0.98
+anchor_bottom = 1.0
 offset_left = -208.0
 offset_right = -8.0
+offset_bottom = -66.0
 visible = false
 mouse_filter = 1
 theme_override_styles/panel = SubResource("StyleBoxFlat_card")
@@ -1667,7 +1668,7 @@ alignment = 1
 layout_mode = 2
 theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 9
-text = "DURATA (S)"
+text = "DURATION (S)"
 horizontal_alignment = 1
 
 [node name="DurationSpinBox" type="SpinBox" parent="SidePanel/TimelineRow/DurationBox" unique_id=2017674164]
