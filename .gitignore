@@ -25,3 +25,4 @@ ai_pose/pose_landmarker.task
 
 # Build outputs
 /build/
+/Pose_Test.png.import
