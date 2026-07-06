@@ -22,3 +22,6 @@
 
 # Auto-downloaded MediaPipe model (detect_pose.py fetches it on first run)
 ai_pose/pose_landmarker.task
+
+# Build outputs
+/build/

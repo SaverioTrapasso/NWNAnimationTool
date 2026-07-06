@@ -7,6 +7,7 @@ signal extraction_failed(error: String)
 signal extraction_progress(message: String)
 
 const SCRIPT_PATH := "res://ai_pose/extract_video_poses.py"
+const AIPoseClient = preload("res://scripts/ai_pose_client.gd")
 
 var _thread: Thread = null
 var _result: Dictionary = {}
@@ -20,9 +21,9 @@ func extract(video_path: String, sample_fps: float, smooth_window: int) -> void:
 		extraction_failed.emit("Already processing — please wait.")
 		return
 
-	var script_abs := ProjectSettings.globalize_path(SCRIPT_PATH)
-	if not FileAccess.file_exists(script_abs):
-		extraction_failed.emit("extract_video_poses.py not found at: %s" % script_abs)
+	var script_abs: String = AIPoseClient.extract_to_disk(SCRIPT_PATH)
+	if script_abs == "" or not FileAccess.file_exists(script_abs):
+		extraction_failed.emit("extract_video_poses.py could not be prepared (%s)" % SCRIPT_PATH)
 		return
 
 	_thread = Thread.new()
@@ -74,12 +75,4 @@ func _on_thread_done() -> void:
 	_result = {}
 
 static func _find_python() -> String:
-	var candidates := [
-		"C:/Users/saver/AppData/Local/Programs/Python/Python312/python.exe",
-		"python", "python3", "py",
-	]
-	for candidate in candidates:
-		var output: Array = []
-		if OS.execute(candidate, ["--version"], output, true, true) == 0:
-			return candidate
-	return ""
+	return AIPoseClient._find_python()

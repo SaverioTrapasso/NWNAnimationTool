@@ -15,11 +15,28 @@ func _exit_tree() -> void:
 	if _thread != null and _thread.is_started():
 		_thread.wait_to_finish()
 
+## Resolves a res:// script to a real on-disk path that OS.execute can run.
+## In the editor res:// is a real folder, so the path maps directly; in an
+## exported build the file lives INSIDE the .pck where no external process
+## can reach it, so it gets copied to user:// (writable, real path) first.
+static func extract_to_disk(res_path: String) -> String:
+	if OS.has_feature("editor"):
+		return ProjectSettings.globalize_path(res_path)
+	var bytes := FileAccess.get_file_as_bytes(res_path)
+	if bytes.is_empty():
+		return ""
+	var dest := "user://" + res_path.get_file()
+	var f := FileAccess.open(dest, FileAccess.WRITE)
+	if f == null:
+		return ""
+	f.store_buffer(bytes)
+	f.close()
+	return ProjectSettings.globalize_path(dest)
+
 ## Find a working Python executable on this machine.
-## Tries the known install path first, then common names in PATH.
+## Tries common names in PATH, then the Windows launcher.
 static func _find_python() -> String:
 	var candidates := [
-		"C:/Users/saver/AppData/Local/Programs/Python/Python312/python.exe",
 		"python",
 		"python3",
 		"py",
@@ -38,9 +55,9 @@ func detect(image_path: String) -> void:
 		pose_failed.emit("Already processing an image — please wait.")
 		return
 
-	var script_abs: String = ProjectSettings.globalize_path(SCRIPT_PATH)
-	if not FileAccess.file_exists(script_abs):
-		pose_failed.emit("detect_pose.py not found at: %s" % script_abs)
+	var script_abs: String = extract_to_disk(SCRIPT_PATH)
+	if script_abs == "" or not FileAccess.file_exists(script_abs):
+		pose_failed.emit("detect_pose.py could not be prepared (%s)" % SCRIPT_PATH)
 		return
 
 	_thread = Thread.new()

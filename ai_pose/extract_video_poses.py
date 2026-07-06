@@ -30,7 +30,7 @@ def run(video_path: str, sample_fps: float = 10.0, smooth_window: int = 3) -> di
         from mediapipe.tasks import python as mp_python
         from mediapipe.tasks.python import vision as mp_vision
     except ImportError:
-        return {"error": "mediapipe not installed. Run ai_pose/install.bat"}
+        return {"error": "mediapipe not installed. Run: pip install mediapipe opencv-python"}
 
     model_path = os.path.join(os.path.dirname(__file__), "pose_landmarker.task")
     if not os.path.exists(model_path):
