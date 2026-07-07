@@ -31,9 +31,10 @@ static func parse(text: String, rig_root: Node3D) -> Variant:
 			var parts := line.split(" ", false)
 			if parts.size() >= 3:
 				current_node_name = parts[2]
-		elif line == "positionkey":
+		elif line.begins_with("positionkey"):
+			# Both stock format ("positionkey 3") and countless variant
 			reading_mode = "position"
-		elif line == "orientationkey":
+		elif line.begins_with("orientationkey"):
 			reading_mode = "orientation"
 		elif line == "endlist":
 			reading_mode = ""

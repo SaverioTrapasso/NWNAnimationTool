@@ -103,19 +103,26 @@ static func _emit_subtree(rig_root: Node3D, node_name: String, children: Diction
 		push_warning("MdlExporter: node '%s' not found in rig, skipping" % node_name)
 		return
 
-	var node_type := "trimesh" if ref_node is MeshInstance3D else "dummy"
+	# Match the node types Bioware's own animation blocks use: the deforming
+	# skeleton (rootdummy + *_g bones) is trimesh, attachment dummies (impact,
+	# lhand, rhand, ...) are dummy. Deriving the type from the Godot node kind
+	# produced "node dummy rootdummy", which differs from every stock block.
+	var node_type := "trimesh" if (node_name == "rootdummy" or node_name.ends_with("_g")) else "dummy"
 	lines.append("    node %s %s" % [node_type, node_name])
 	lines.append("        parent %s" % parent_name)
 
 	if is_root_dummy:
-		lines.append("        positionkey")
+		# The key count after positionkey/orientationkey is part of the stock
+		# MDL ASCII format — parsers read exactly N rows, so omitting it can
+		# break loading even though our own importer tolerated it.
+		lines.append("        positionkey %d" % keyframes.size())
 		for kf in keyframes:
 			var transform: Transform3D = kf["transforms"].get(node_name, Transform3D.IDENTITY)
 			var pos := _to_nwn_space(transform.origin)
 			lines.append("            %s %s %s %s" % [_fmt(kf["time"]), _fmt(pos.x), _fmt(pos.y), _fmt(pos.z)])
 		lines.append("        endlist")
 
-	lines.append("        orientationkey")
+	lines.append("        orientationkey %d" % keyframes.size())
 	for kf in keyframes:
 		var transform: Transform3D = kf["transforms"].get(node_name, Transform3D.IDENTITY)
 		var axis_angle := _basis_to_axis_angle(transform.basis)
@@ -134,7 +141,10 @@ static func _basis_to_axis_angle(basis: Basis) -> Vector4:
 	var quat := basis.get_rotation_quaternion().normalized()
 	var angle := quat.get_angle()
 	if angle < 0.0001:
-		return Vector4(0.0, 0.0, 0.0, 0.0)
+		# Identity rotation still needs a UNIT axis: stock blocks write
+		# "0 1 0 0", and a zero-length axis can break tools that normalize
+		# or convert the axis-angle back to a quaternion.
+		return Vector4(0.0, 1.0, 0.0, 0.0)
 	var axis := quat.get_axis()
 	return Vector4(axis.x, axis.y, axis.z, angle)
 
