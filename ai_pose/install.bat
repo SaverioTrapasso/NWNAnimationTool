@@ -8,5 +8,5 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 echo.
-echo Done! Run start_server.bat to launch the pose server.
+echo Done! You can now use the pose-from-image and motion capture tools.
 pause

@@ -13,6 +13,44 @@ to paste into an NWN `.mdl` file.
 
 No build step is needed: GDScript is interpreted directly by the engine.
 
+### Extra requirements for pose from image / motion capture from video
+
+Everything above works with Godot alone. The **Utility → Pose from
+image...**, **Bulk: image folder...** and **Motion capture from video...**
+tools additionally rely on external resources that are *not* bundled:
+
+- **Python 3.10–3.12** (64-bit), reachable from `PATH` as `python`,
+  `python3` or the Windows `py` launcher — the tool looks for those three
+  names in that order and runs the scripts in [ai_pose/](ai_pose/) as a
+  subprocess. On Windows, tick "Add python.exe to PATH" in the installer.
+  Check the Python versions supported by the current MediaPipe release on
+  [PyPI](https://pypi.org/project/mediapipe/) before picking a newer one.
+- **Python packages** listed in
+  [ai_pose/requirements.txt](ai_pose/requirements.txt):
+  [MediaPipe](https://pypi.org/project/mediapipe/) (pose detection) and
+  [OpenCV](https://pypi.org/project/opencv-python/) (image/video decoding;
+  NumPy comes along with them). Install them with:
+
+  ```
+  pip install -r ai_pose/requirements.txt
+  ```
+
+  or, on Windows, run [ai_pose/install.bat](ai_pose/install.bat) from
+  inside the `ai_pose` folder.
+- **MediaPipe Pose Landmarker model** (`pose_landmarker.task`, the "lite"
+  float16 variant, a few MB). It is *not* in the repository: the scripts
+  download it automatically from
+  [Google's MediaPipe model storage](https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/latest/pose_landmarker_lite.task)
+  the first time you detect a pose, so that first run needs an internet
+  connection. It is saved next to the scripts — `ai_pose/` when running
+  from the editor, the app's `user://` folder in an exported build (on
+  Windows `%APPDATA%\Godot\app_userdata\NWNAnimationTool\`). To work
+  offline, download it from that link yourself and place it there as
+  `pose_landmarker.task`.
+
+Supported inputs: `.png`/`.jpg`/`.jpeg` images, and `.mp4`/`.mov`/`.avi`/
+`.mkv`/`.webm` videos (any codec your OpenCV build can decode).
+
 ## Quick usage guide
 
 The window is laid out in three zones: a **top bar** (New/Open/Save), a
@@ -106,8 +144,7 @@ tools as above, not a separate mini-editor.
 - The `SDK/` folder (Godot executables) isn't included in this repository
   due to its size: download Godot 4.7 separately as described above.
 - The dummy model (`assets/nwn/a_ba.glb`) must use the exact NWN node names
-  (`rootdummy`, `torso_g`, `pelvis_g`, etc.) — see [CLAUDE.md](CLAUDE.md)
-  for details on the export format.
+  (`rootdummy`, `torso_g`, `pelvis_g`, etc.).
 - `assets/` only holds the NWN dummy itself (`nwn/`) — retargeting sources
   are imported live at runtime, not bundled in the repo. `configs/` holds
   portable bone-map `.cfg` files you can load via "Load config".
