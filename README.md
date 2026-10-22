@@ -13,6 +13,18 @@ to paste into an NWN `.mdl` file.
 
 No build step is needed: GDScript is interpreted directly by the engine.
 
+### Animation Workshop and complete MDL banks
+
+The **Workshop** panel adds document undo/redo and recovery, named timeline keys,
+pose-library thumbnails, synchronized comparisons, grip/foot constraints, weapon
+trails and lightsaber/DoubleStaff previews. Pose-memory slots display the animation
+name saved in each slot. **File → Open MDL bank** opens a full NWN1 model for
+per-animation editing and validated binary export using an optional local compiler.
+
+See [Workshop setup and usage](docs/workshop.md) for local paths, reference import,
+compiler requirements, export behavior and tests. Game animation files and compiler
+binaries are not bundled.
+
 ## Quick usage guide
 
 The window is laid out in three zones: a **top bar** (New/Open/Save), a

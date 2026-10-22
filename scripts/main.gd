@@ -57,6 +57,9 @@ var _play_time: float = 0.0
 # (gizmo/handle) starts, plus before Reset/Open. Ctrl+Z pops back one step.
 const UNDO_MAX_SIZE := 20
 var _undo_stack: Array = []
+var _redo_stack: Array = []
+var qol: Node = null
+var mdl_bank: Node = null
 
 # Clipboard for "Copy key" / "Paste key": lets you grab the pose at one point
 # on the timeline and stamp it onto another keyframe, overwriting it.
@@ -66,9 +69,22 @@ var _copied_pose: Dictionary = {}
 # component's pose, independent of the timeline.
 var _copied_component_pose: Dictionary = {}
 
+var _nwn_skeleton := MeshInstance3D.new()
+var _nwn_skeleton_mesh := ImmediateMesh.new()
+
 func _ready() -> void:
+	_nwn_skeleton.mesh = _nwn_skeleton_mesh
+	var skeleton_material := StandardMaterial3D.new()
+	skeleton_material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	skeleton_material.no_depth_test = true
+	skeleton_material.albedo_color = Color(1.0, .85, .15)
+	_nwn_skeleton.material_override = skeleton_material
+	_nwn_skeleton.visible = false
+	add_child(_nwn_skeleton)
+	get_window().title = "NWNAnimationTool"
 	rig_controller.camera = $Camera3D
 	rig_controller.rig_root = $Rig
+	preload("res://scripts/game_staff_preview.gd").apply_hands($Rig,_current_model_path.ends_with("a_fa.glb"))
 	rig_controller.setup()
 	rig_controller.component_selected.connect(_on_component_selected)
 	rig_controller.component_deselected.connect(_on_component_deselected)
@@ -79,10 +95,13 @@ func _ready() -> void:
 	side_panel.reset_pressed.connect(_on_reset_pressed)
 	side_panel.pole_vectors_toggled.connect(_on_pole_vectors_toggled)
 	side_panel.save_file_requested.connect(_on_save_file_requested)
+	side_panel.save_pose_requested.connect(func(path, name): _on_save_file_requested(path, name, true))
 	side_panel.open_file_requested.connect(_on_open_file_requested)
 	side_panel.save_to_timeline_requested.connect(_on_save_to_timeline_requested)
 	side_panel.duration_changed.connect(_on_duration_changed)
 	side_panel.timeline.time_changed.connect(_on_timeline_scrubbed)
+	side_panel.timeline.key_move_started.connect(_push_undo_snapshot)
+	side_panel.timeline.key_moved.connect(_move_single_key)
 	side_panel.timeline.shift_drag_started.connect(_on_timeline_shift_drag_started)
 	side_panel.timeline.shift_drag_moved.connect(_on_timeline_shift_drag_moved)
 	side_panel.timeline.shift_drag_ended.connect(_on_timeline_shift_drag_ended)
@@ -93,6 +112,7 @@ func _ready() -> void:
 	side_panel.set_duration(_anim_length)
 	side_panel.transform_panel.position_changed.connect(_on_panel_position_changed)
 	side_panel.transform_panel.rotation_changed.connect(_on_panel_rotation_changed)
+	gizmo.rotation_requested.connect(_rotate_selection)
 	side_panel.transform_panel.copy_selection_requested.connect(_on_copy_selection_requested)
 	side_panel.transform_panel.paste_selection_requested.connect(_on_paste_selection_requested)
 	side_panel.undo_requested.connect(_undo)
@@ -116,6 +136,7 @@ func _ready() -> void:
 	add_child(_ai_client)
 	_ai_client.pose_received.connect(_on_ai_pose_received)
 	_ai_client.pose_failed.connect(_on_ai_pose_failed)
+	_ai_client.pose_notice.connect(side_panel.set_ai_server_status)
 	side_panel.ai_pose_image_selected.connect(_on_ai_image_selected)
 	side_panel.ai_pose_apply_requested.connect(_on_ai_apply_pose)
 	side_panel.ai_ground_toggled.connect(func(_v: bool):
@@ -123,8 +144,10 @@ func _ready() -> void:
 			_show_ai_landmark_overlay(_ai_pending_landmarks))
 	side_panel.source_xform_changed.connect(_on_source_xform_changed)
 	side_panel.ai_bulk_requested.connect(_on_ai_bulk_requested)
+	side_panel.timeline.delete_selected_requested.connect(_on_remove_key_requested)
 	side_panel.pose_memory_save_requested.connect(_on_pose_memory_save)
 	side_panel.pose_memory_load_requested.connect(_on_pose_memory_load)
+	side_panel.pose_memory_open_requested.connect(_on_pose_memory_open)
 	side_panel.video_pose_open_requested.connect(_on_video_pose_open)
 	_setup_video_pose_panel()
 
@@ -143,11 +166,36 @@ func _ready() -> void:
 	_apply_component_materials($Rig)
 	_capture_rest_transforms($Rig)
 	_init_default_limb_targets()
+	_apply_nwn_idle()
+	qol = preload("res://scripts/workshop.gd").new()
+	qol.name = "Workshop"
+	add_child(qol)
+	mdl_bank = preload("res://scripts/mdl_bank.gd").new()
+	mdl_bank.name = "MdlBank"
+	add_child(mdl_bank)
+	mdl_bank.dialog.canceled.connect(func(): _pose_memory_pending_slot = -1)
+	mdl_bank.dialog.confirmed.connect(func(): _pose_memory_pending_slot = -1)
+	var all_button := Button.new()
+	all_button.text = "All"
+	all_button.focus_mode = Control.FOCUS_NONE
+	all_button.tooltip_text = "Select all body parts (Ctrl+A)"
+	all_button.pressed.connect(rig_controller.select_all_body)
+	side_panel.viewport_toolbar.add_child(all_button)
 
 func _unhandled_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed:
-		if event.keycode == KEY_Z and event.is_command_or_control_pressed():
-			_undo()
+		if _nudge_selection(event):
+			get_viewport().set_input_as_handled()
+			return
+		if event.keycode == KEY_A and event.is_command_or_control_pressed() and get_viewport().gui_get_focus_owner() == null:
+			rig_controller.select_all_body()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_Z and event.is_command_or_control_pressed():
+			if event.shift_pressed: _redo()
+			else: _undo()
+			get_viewport().set_input_as_handled()
+		elif event.keycode == KEY_Y and event.is_command_or_control_pressed():
+			_redo()
 			get_viewport().set_input_as_handled()
 		elif event.keycode == KEY_F:
 			_on_focus_pressed()
@@ -179,17 +227,47 @@ func _on_focus_pressed() -> void:
 
 	camera.focus_on(pos)
 
+func _document_state() -> Dictionary:
+	return {"pose": MdlExporter.capture_pose($Rig), "keys": _keyframes.duplicate(true),
+		"length": _anim_length, "time": side_panel.timeline.current_time,
+		"name": side_panel.get_anim_name(), "model": _current_model_path,
+		"bank_clip": mdl_bank.active_clip if mdl_bank != null else "",
+		"bank_session": mdl_bank.session if mdl_bank != null else ""}
+
+func _restore_document(state: Dictionary) -> void:
+	if mdl_bank != null and (state.get("bank_clip", "") != mdl_bank.active_clip or state.get("bank_session", "") != mdl_bank.session):
+		mdl_bank.active_clip = ""
+	_on_play_toggled(false)
+	if state.get("model", _current_model_path) != _current_model_path:
+		_on_gender_selected(state.model)
+	_keyframes = state["keys"].duplicate(true)
+	_anim_length = state.length
+	side_panel.set_anim_name(state.name)
+	side_panel.set_duration(_anim_length)
+	_refresh_timeline_markers()
+	side_panel.timeline.set_current_time(state.time)
+	_apply_transforms(state.pose)
+	if qol != null: qol.release_constraints()
+
 func _push_undo_snapshot() -> void:
-	_undo_stack.append(MdlExporter.capture_pose($Rig))
-	if _undo_stack.size() > UNDO_MAX_SIZE:
-		_undo_stack.pop_front()
+	_undo_stack.append(_document_state())
+	_redo_stack.clear()
+	if qol != null: qol.dirty = true
+	if _undo_stack.size() > 80: _undo_stack.pop_front()
 
 func _undo() -> void:
-	if _undo_stack.is_empty():
-		return
-	var snapshot: Dictionary = _undo_stack.pop_back()
-	_apply_transforms(snapshot)
-	side_panel.set_status("Undo.")
+	if _undo_stack.is_empty(): return
+	_redo_stack.append(_document_state())
+	_restore_document(_undo_stack.pop_back())
+	if qol != null: qol.dirty = true
+	side_panel.set_status("Undo (Ctrl+Z).")
+
+func _redo() -> void:
+	if _redo_stack.is_empty(): return
+	_undo_stack.append(_document_state())
+	_restore_document(_redo_stack.pop_back())
+	if qol != null: qol.dirty = true
+	side_panel.set_status("Redo (Ctrl+Y / Ctrl+Shift+Z).")
 
 func _capture_rest_transforms(node: Node) -> void:
 	if node is Node3D:
@@ -197,12 +275,33 @@ func _capture_rest_transforms(node: Node) -> void:
 	for child in node.get_children():
 		_capture_rest_transforms(child)
 
+func _set_t_pose() -> void:
+	_push_undo_snapshot()
+	_playing = false
+	side_panel.set_playing(false)
+	if qol != null: qol.release_constraints()
+	for node in _rest_transforms:
+		if is_instance_valid(node): node.transform = _rest_transforms[node]
+	# Straighten each arm out from its shoulder, retaining native bone lengths.
+	for id in ["left_arm", "right_arm"]:
+		var chain: Array = rig_controller.get_chain_nodes(id)
+		var direction := Vector3.LEFT if id == "left_arm" else Vector3.RIGHT
+		for i in range(2):
+			var current: Vector3 = (chain[i + 1].global_position - chain[i].global_position).normalized()
+			chain[i].global_basis = Basis(Quaternion(current, direction)) * chain[i].global_basis
+	_resync_limb_targets_from_current_pose()
+	if rig_controller.selected_component != "":
+		_on_component_selected(rig_controller.selected_component)
+	_refresh_all_pole_handles()
+	side_panel.set_status("T-pose applied. Set a key to add it to the animation; Ctrl+Z to undo.")
+
 func _on_reset_pressed() -> void:
 	_push_undo_snapshot()
 	for node in _rest_transforms.keys():
 		if is_instance_valid(node):
 			node.transform = _rest_transforms[node]
 	_init_default_limb_targets()
+	_apply_nwn_idle()
 	var current_selection: String = rig_controller.selected_component
 	if current_selection != "":
 		_on_component_selected(current_selection)
@@ -242,6 +341,7 @@ func _on_gender_selected(model_path: String) -> void:
 	parent.add_child(new_rig)
 	parent.move_child(new_rig, idx)
 
+	preload("res://scripts/game_staff_preview.gd").apply_hands(new_rig,model_path.ends_with("a_fa.glb"))
 	rig_controller.rebuild(new_rig)
 	side_panel.rig_root = new_rig
 
@@ -256,16 +356,18 @@ func _on_gender_selected(model_path: String) -> void:
 	# actually re-apply the current frame against the new nodes.
 	if not _keyframes.is_empty():
 		_apply_pose_at_time(side_panel.timeline.current_time)
+	else:
+		_apply_nwn_idle()
 
 	_current_model_path = model_path
 	side_panel.set_active_gender(model_path)
 	side_panel.set_status("Model switched to %s" % model_path.get_file())
 
-## "New": a harder reset than "Reset pose" — wipes the timeline, undo
-## history, clipboards, retarget import state, and display toggles too,
-## not just the pose. Confirmed via a dialog in side_panel.gd since it
-## can't be undone (it clears the undo stack itself).
+## New resets the document and preview tools. The animation is recoverable with Undo.
 func _on_new_requested() -> void:
+	_push_undo_snapshot()
+	if mdl_bank != null: mdl_bank.active_clip = ""
+	if qol != null: qol.release_constraints()
 	for node in _rest_transforms.keys():
 		if is_instance_valid(node):
 			node.transform = _rest_transforms[node]
@@ -285,7 +387,6 @@ func _on_new_requested() -> void:
 	_refresh_timeline_markers()
 	side_panel.timeline.set_current_time(0.0)
 
-	_undo_stack.clear()
 	_copied_pose = {}
 	_copied_component_pose = {}
 
@@ -307,7 +408,17 @@ func _on_new_requested() -> void:
 	green_visualizer.transform = Transform3D.IDENTITY
 
 	side_panel.reset_display_toggles()
+	_apply_nwn_idle()
 	side_panel.set_status("New project started.")
+
+func _apply_nwn_idle() -> void:
+	var path: String = WorkshopSettings.path_value("idle")
+	if path.is_empty() or not FileAccess.file_exists(path): return
+	var source := FileAccess.get_file_as_string(path)
+	var idle: Variant = MdlImporter.parse(source, $Rig)
+	if idle != null:
+		_apply_transforms(idle.keyframes[0].transforms)
+		if _keyframes.is_empty(): side_panel.set_anim_name("pause1")
 
 func _on_pole_vectors_toggled(show_all: bool) -> void:
 	_show_all_poles = show_all
@@ -421,7 +532,7 @@ func _apply_component_materials_recursive(node: Node, node_to_component: Diction
 		var color := COLOR_NEUTRAL
 		if ik_tip_names.has(node.name):
 			color = COLOR_IK
-		elif node_to_component.has(node.name) and fk_component_ids.has(node_to_component[node.name]):
+		elif node_to_component.has(node.name) and node_to_component[node.name] in ["head", "torso", "pelvis"]:
 			color = COLOR_FK
 		var mat := StandardMaterial3D.new()
 		mat.albedo_color = color
@@ -442,6 +553,7 @@ func _process(delta: float) -> void:
 		_sync_video_pose_overlay(_play_time)
 
 	for component_id in _limb_targets.keys():
+		if rig_controller.has_fk_selection_in(rig_controller.get_component_chain(component_id)): continue
 		var chain: Array[Node3D] = rig_controller.get_chain_nodes(component_id)
 		if chain.size() != 3:
 			continue
@@ -460,7 +572,10 @@ func _process(delta: float) -> void:
 	for node in _zero_basis_overrides:
 		if is_instance_valid(node):
 			node.basis = Basis.IDENTITY
+	if _attachment_translate_handle != null and gizmo.target != null:
+		_attachment_translate_handle.global_position = gizmo.target.global_position
 	_refresh_transform_panel()
+	if _nwn_skeleton.visible: _update_nwn_skeleton()
 
 func _on_play_toggled(playing: bool) -> void:
 	if playing and _keyframes.is_empty():
@@ -495,13 +610,17 @@ func _sync_video_pose_overlay(t: float) -> void:
 	_show_ai_landmark_overlay(_video_extracted_frames[best_idx]["world_landmarks"])
 
 func _on_component_selected(component_id: String) -> void:
+	_resync_limb_targets_from_current_pose()
 	_clear_handles()
 	var is_ik := false
 	for comp in RigComponents.definitions():
 		if comp.id == component_id:
 			is_ik = comp.is_ik
 			break
-	if is_ik:
+	if rig_controller.selected_components.size() > 1:
+		gizmo.attach_to(rig_controller.selection_roots()[0])
+		_setup_attachment_translate_handle(component_id)
+	elif is_ik:
 		_setup_ik_handles(component_id)
 		var chain: Array[Node3D] = rig_controller.get_chain_nodes(component_id)
 		if chain.size() == 3:
@@ -512,15 +631,16 @@ func _on_component_selected(component_id: String) -> void:
 		gizmo.attach_to(rig_controller.get_component_root_node(component_id))
 		if component_id == "pelvis":
 			_setup_root_height_handle()
-		elif component_id in ATTACHMENT_COMPONENT_IDS:
+		else:
 			_setup_attachment_translate_handle(component_id)
 	_refresh_all_pole_handles()
 
 	side_panel.transform_panel.visible = true
-	side_panel.transform_panel.set_label(component_id)
-	side_panel.transform_panel.set_position_enabled(is_ik or component_id == "pelvis" or component_id in ATTACHMENT_COMPONENT_IDS)
+	side_panel.transform_panel.set_label("All — whole character" if rig_controller.all_body_selected() else ", ".join(rig_controller.selected_components))
+	side_panel.transform_panel.set_position_enabled(is_ik or _can_translate_selection())
 
 func _on_component_deselected() -> void:
+	_resync_limb_targets_from_current_pose()
 	gizmo.detach()
 	_clear_handles()
 	_refresh_all_pole_handles()
@@ -578,6 +698,7 @@ func _on_root_height_moved(pos: Vector3) -> void:
 ## useful to reposition too, e.g. nudging a weapon's grip point or a
 ## shield's offset without disturbing the limb that's holding it.
 func _setup_attachment_translate_handle(component_id: String) -> void:
+	if not _can_translate_selection(): return
 	var node: Node3D = rig_controller.get_component_root_node(component_id)
 	if node == null:
 		return
@@ -585,14 +706,69 @@ func _setup_attachment_translate_handle(component_id: String) -> void:
 	_attachment_translate_handle.color = Color(1.0, 0.6, 0.9)
 	add_child(_attachment_translate_handle)
 	_attachment_translate_handle.camera = $Camera3D
-	_attachment_translate_handle.global_position = node.global_position
+	_attachment_translate_handle.global_position = _translation_anchor()
 	_attachment_translate_handle.moved.connect(_on_attachment_translate_moved.bind(component_id))
 	_attachment_translate_handle.drag_started.connect(_push_undo_snapshot)
+	_attachment_translate_handle.drag_started.connect(_begin_selection_translation)
 
-func _on_attachment_translate_moved(pos: Vector3, component_id: String) -> void:
-	var node: Node3D = rig_controller.get_component_root_node(component_id)
-	if node != null:
-		node.global_position = pos
+func _on_attachment_translate_moved(pos: Vector3, _component_id: String) -> void:
+	_translate_selection(pos)
+
+func _translation_chain(node: Node3D) -> Array[Node3D]:
+	for id in ["right_arm", "left_arm", "right_leg", "left_leg"]:
+		if str(node.name) in rig_controller.get_component_chain(id):
+			return rig_controller.get_chain_nodes(id)
+	return []
+
+func _joint_tip(node: Node3D) -> Node3D:
+	var chain := _translation_chain(node)
+	if chain.size() == 3: return chain[2]
+	return rig_controller.find_node("rootdummy") if node.name == "pelvis_g" else node
+
+func _translation_anchor() -> Vector3:
+	return gizmo.target.global_position
+
+func _can_translate_selection() -> bool:
+	for node in rig_controller.selection_roots():
+		if node.name in ["head_g", "torso_g"]: return false
+	return not rig_controller.selected_components.is_empty()
+
+var _selection_translation_pose: Dictionary = {}
+var _selection_translation_poles: Dictionary = {}
+var _selection_translation_origin := Vector3.ZERO
+
+func _begin_selection_translation() -> void:
+	_selection_translation_origin = _translation_anchor()
+	_selection_translation_pose = MdlExporter.capture_pose($Rig)
+	_selection_translation_poles = _limb_targets.duplicate(true)
+
+func _translate_selection(pos: Vector3) -> void:
+	if not _can_translate_selection(): return
+	if _selection_translation_pose.is_empty(): _begin_selection_translation()
+	# Every drag event starts from the same pose; do not accumulate cursor deltas.
+	for name in _selection_translation_pose:
+		rig_controller.find_node(name).transform = _selection_translation_pose[name]
+	var offset := pos - _selection_translation_origin
+	var nodes: Array[Node3D] = rig_controller.selection_roots()
+	var targets: Array[Vector3] = []
+	for node in nodes: targets.append(_joint_tip(node).global_position + offset)
+	for i in nodes.size():
+		var node := nodes[i]
+		var tip := _joint_tip(node)
+		var target := targets[i]
+		if node.name in ["pelvis_g", "rootdummy"]:
+			tip.global_position = target
+		elif not _translation_chain(node).is_empty():
+			var chain := _translation_chain(node)
+			var limb_id := ""
+			for id in ["right_arm", "left_arm", "right_leg", "left_leg"]:
+				if str(node.name) in rig_controller.get_component_chain(id): limb_id = id
+			IKSolver.solve_two_bone(chain[0], chain[1], chain[2], target, _selection_translation_poles[limb_id]["pole"])
+		elif node.name in ["rhand", "lhand", "lforearm"]:
+			node.global_position = target
+	_resync_limb_targets_from_current_pose()
+	if _attachment_translate_handle != null: _attachment_translate_handle.global_position = _translation_anchor()
+
 
 ## queue_free() only removes the node at the end of this frame — until then
 ## it's still in the tree and would still react to the very same click that's
@@ -607,6 +783,7 @@ func _retire_handle(handle: Node) -> void:
 	handle.queue_free()
 
 func _clear_handles() -> void:
+	_selection_translation_pose.clear()
 	_active_ik_component = ""
 	if _target_handle != null:
 		_retire_handle(_target_handle)
@@ -626,9 +803,16 @@ func _clear_handles() -> void:
 # ---------------------------------------------------------------------------
 
 func _on_duration_changed(value: float) -> void:
+	_push_undo_snapshot()
+	var ratio: float = value / max(_anim_length, 0.001)
+	for key in _keyframes: key["time"] *= ratio
+	_play_time *= ratio
 	_anim_length = value
+	_refresh_timeline_markers()
+	side_panel.set_duration(value)
 
 func _on_save_to_timeline_requested() -> void:
+	_push_undo_snapshot()
 	var transforms: Dictionary = MdlExporter.capture_pose($Rig)
 	var t: float = side_panel.timeline.current_time
 	_upsert_keyframe(t, transforms)
@@ -648,6 +832,16 @@ func _upsert_keyframe(t: float, transforms: Dictionary) -> void:
 ## this there was no way to get rid of a bad keyframe short of starting the
 ## whole animation over.
 func _on_remove_key_requested() -> void:
+	var selected: Array = side_panel.timeline.selected_times.duplicate()
+	if not selected.is_empty():
+		_push_undo_snapshot()
+		_on_play_toggled(false)
+		_keyframes = _keyframes.filter(func(key): return not selected.has(key.time))
+		side_panel.timeline.clear_selection()
+		_refresh_timeline_markers()
+		_apply_pose_at_time(side_panel.timeline.current_time)
+		side_panel.set_status("Removed %d selected keyframes. Undo restores them." % selected.size())
+		return
 	var t: float = side_panel.timeline.current_time
 	for i in range(_keyframes.size()):
 		if abs(_keyframes[i]["time"] - t) < 0.005:
@@ -663,6 +857,8 @@ func _refresh_timeline_markers() -> void:
 	for kf in _keyframes:
 		times.append(kf["time"])
 	side_panel.timeline.set_keyframe_times(times)
+	side_panel.timeline.key_labels.clear()
+	for key in _keyframes: side_panel.timeline.key_labels[key.time] = key.get("label", "")
 
 # ---------------------------------------------------------------------------
 # Shift+drag a keyframe: rigidly slides it and every keyframe to its right
@@ -680,7 +876,7 @@ func _on_timeline_shift_drag_started(_anchor_time: float) -> void:
 	_push_undo_snapshot()
 	_shift_drag_snapshot = []
 	for kf in _keyframes:
-		_shift_drag_snapshot.append({"time": kf["time"], "transforms": kf["transforms"]})
+		_shift_drag_snapshot.append(kf.duplicate(true))
 
 func _on_timeline_shift_drag_moved(anchor_time: float, delta_time: float) -> void:
 	if _shift_drag_snapshot.is_empty():
@@ -710,7 +906,9 @@ func _on_timeline_shift_drag_moved(anchor_time: float, delta_time: float) -> voi
 	for i in range(_shift_drag_snapshot.size()):
 		var kf: Dictionary = _shift_drag_snapshot[i]
 		var new_time: float = kf["time"] + clamped_delta if i >= anchor_idx else kf["time"]
-		new_keyframes.append({"time": new_time, "transforms": kf["transforms"]})
+		var moved_key: Dictionary = kf.duplicate(true)
+		moved_key["time"] = new_time
+		new_keyframes.append(moved_key)
 	_keyframes = new_keyframes
 
 	_refresh_timeline_markers()
@@ -860,18 +1058,23 @@ func _apply_transforms(transforms: Dictionary) -> void:
 		_on_component_selected(current_selection)
 	_refresh_all_pole_handles()
 
-func _on_save_file_requested(path: String, anim_name: String) -> void:
+func _on_save_file_requested(path: String, anim_name: String, pose_only: bool = false) -> void:
 	var content: String
-	if _keyframes.is_empty():
+	if pose_only or _keyframes.is_empty():
 		content = MdlExporter.export_pose($Rig, anim_name)
 	else:
 		content = MdlExporter.export_animation($Rig, anim_name, _anim_length, _keyframes)
 	var file := FileAccess.open(path, FileAccess.WRITE)
 	if file == null:
-		side_panel.set_status("Error: could not write file.")
+		side_panel.set_status("Cannot save %s: %s" % [path, error_string(FileAccess.get_open_error())])
 		return
 	file.store_string(content)
+	file.flush()
+	var write_error := file.get_error()
 	file.close()
+	if write_error != OK:
+		side_panel.set_status("Save failed: %s" % error_string(write_error))
+		return
 	side_panel.set_status("Saved: %s" % path)
 
 # ---------------------------------------------------------------------------
@@ -890,6 +1093,10 @@ func _euler_degrees_to_basis(v: Vector3) -> Basis:
 func _refresh_transform_panel() -> void:
 	var panel: VBoxContainer = side_panel.transform_panel
 	if not panel.visible or panel.any_field_focused():
+		return
+	if rig_controller.selected_components.size() > 1:
+		panel.set_position_fields(_translation_anchor())
+		panel.set_rotation_fields(_basis_to_euler_degrees(gizmo.target.basis))
 		return
 	var component_id: String = rig_controller.selected_component
 	if component_id == "":
@@ -913,12 +1120,17 @@ func _refresh_transform_panel() -> void:
 				panel.set_position_fields(root_dummy.global_position)
 		var node: Node3D = rig_controller.get_component_root_node(component_id)
 		if node != null:
-			if component_id in ATTACHMENT_COMPONENT_IDS:
+			if component_id != "pelvis":
 				panel.set_position_fields(node.global_position)
 			panel.set_rotation_fields(_basis_to_euler_degrees(node.basis))
 
 func _on_panel_position_changed(v: Vector3) -> void:
+	_push_undo_snapshot()
 	var component_id: String = rig_controller.selected_component
+	if rig_controller.selected_components.size() > 1 or (_active_ik_component == "" and component_id != "pelvis"):
+		_begin_selection_translation()
+		_translate_selection(v)
+		return
 	if component_id == "pelvis":
 		var root_dummy: Node3D = rig_controller.find_node("rootdummy")
 		if root_dummy != null:
@@ -937,25 +1149,33 @@ func _on_panel_position_changed(v: Vector3) -> void:
 			_target_handle.global_position = v
 
 func _on_panel_rotation_changed(v: Vector3) -> void:
-	var component_id: String = rig_controller.selected_component
-	if component_id == "":
-		return
-	var is_ik := false
-	for comp in RigComponents.definitions():
-		if comp.id == component_id:
-			is_ik = comp.is_ik
-			break
-	var basis := _euler_degrees_to_basis(v)
-	if is_ik:
-		var chain: Array[Node3D] = rig_controller.get_chain_nodes(component_id)
-		if chain.size() == 3:
-			chain[2].basis = basis
-	else:
-		var node: Node3D = rig_controller.get_component_root_node(component_id)
-		if node != null:
-			node.basis = basis
+	_push_undo_snapshot()
+	_rotate_selection(_euler_degrees_to_basis(v))
 
-func _on_open_file_requested(path: String) -> void:
+func _rotate_selection(value: Basis) -> void:
+	if gizmo.target == null: return
+	var delta: Basis = gizmo.target.basis.inverse() * value
+	if rig_controller.selected_components.size() > 1:
+		for node in rig_controller.selection_roots(): node.basis = node.basis * delta
+	else:
+		gizmo.target.basis = value
+	_resync_limb_targets_from_current_pose()
+
+func _on_open_file_requested(path: String, memory_slot: int = -1) -> void:
+	if memory_slot >= 0:
+		if mdl_bank != null and mdl_bank.recognizes(path):
+			mdl_bank.open_memory_bank(path, memory_slot)
+		else:
+			_import_pose_memory(path, memory_slot)
+		return
+	if mdl_bank == null or not mdl_bank.loading_clip:
+		_pose_memory_pending_slot = memory_slot
+	if mdl_bank != null and not mdl_bank.loading_clip:
+		if mdl_bank.recognizes(path):
+			mdl_bank.open_bank(path)
+			return
+		mdl_bank.active_clip = ""
+	if qol != null: qol.release_constraints()
 	_push_undo_snapshot()
 	var file := FileAccess.open(path, FileAccess.READ)
 	if file == null:
@@ -964,11 +1184,17 @@ func _on_open_file_requested(path: String) -> void:
 	var text := file.get_as_text()
 	file.close()
 
+	# Missing tracks use the model's rest pose, never an unrelated previous clip.
+	var previous_pose: Dictionary = MdlExporter.capture_pose($Rig)
+	for node in _rest_transforms:
+		if is_instance_valid(node): node.transform = _rest_transforms[node]
 	var result = MdlImporter.parse(text, $Rig)
 	if result == null:
+		_apply_transforms(previous_pose)
 		side_panel.set_status("Error: could not parse file (no 'newanim' found).")
 		return
 
+	side_panel.timeline.clear_selection()
 	_keyframes = result["keyframes"]
 	_anim_length = result["length"]
 	side_panel.set_anim_name(result["anim_name"])
@@ -977,6 +1203,12 @@ func _on_open_file_requested(path: String) -> void:
 	side_panel.timeline.set_current_time(0.0)
 	_apply_pose_at_time(0.0)
 	side_panel.set_status("Opened: %s" % path)
+	if _pose_memory_pending_slot >= 0:
+		var slot := _pose_memory_pending_slot
+		_pose_memory_pending_slot = -1
+		_on_pose_memory_save(slot)
+		_pose_memory_clips[slot] = {"keyframes": _keyframes.duplicate(true), "length": _anim_length}
+		side_panel.set_status("Animation saved to slot %d." % (slot + 1))
 
 
 
@@ -1038,7 +1270,7 @@ func _on_retarget_load_animation_requested(path: String) -> void:
 	# nothing and the overlay/bake would always read the bind pose.
 	var anim_player := Retargeter._find_animation_player(scene)
 	if anim_player != null:
-		var anim_names := anim_player.get_animation_list()
+		var anim_names := Retargeter.motion_animation_names(anim_player)
 		if not anim_names.is_empty():
 			anim_player.play(anim_names[0])
 			anim_player.seek(0.0, true)
@@ -1080,6 +1312,8 @@ func _bind_wizard_overlay(panel: Control, source: String) -> void:
 		_on_overlay_toggled(panel.visible))
 
 func _on_overlay_toggled(enabled: bool) -> void:
+	_nwn_skeleton.visible = enabled
+	if enabled: _update_nwn_skeleton()
 	match _overlay_source:
 		"ai":
 			green_visualizer.visible = enabled
@@ -1087,7 +1321,7 @@ func _on_overlay_toggled(enabled: bool) -> void:
 			_on_retarget_overlay_toggled(enabled)
 		_:
 			if enabled:
-				side_panel.set_status("Load a motion source first (Utility menu).")
+				side_panel.set_status("NWN skeleton overlay")
 
 ## Show/hide the red skeleton overlay (retarget source).
 func _on_retarget_overlay_toggled(enabled: bool) -> void:
@@ -1109,7 +1343,7 @@ func _sync_retarget_overlay(t: float) -> void:
 	var anim_player := Retargeter._find_animation_player(_retarget_anim_scene)
 	if anim_player == null:
 		return
-	var anim_names := anim_player.get_animation_list()
+	var anim_names := Retargeter.motion_animation_names(anim_player)
 	if anim_names.is_empty():
 		return
 	var length: float = anim_player.get_animation(anim_names[0]).length
@@ -1189,7 +1423,7 @@ func _on_retarget_bake_requested() -> void:
 	var anim_player: AnimationPlayer = Retargeter._find_animation_player(_retarget_anim_scene)
 	if skeleton == null or anim_player == null:
 		return
-	var anim_names := anim_player.get_animation_list()
+	var anim_names := Retargeter.motion_animation_names(anim_player)
 	if anim_names.is_empty():
 		return
 
@@ -1239,6 +1473,7 @@ func _on_retarget_bake_requested() -> void:
 		return
 
 	_push_undo_snapshot()
+	side_panel.timeline.clear_selection()
 	_keyframes = result["keyframes"]
 	_anim_length = result["length"]
 	side_panel.set_anim_name(result["anim_name"])
@@ -1277,7 +1512,14 @@ func _on_source_xform_changed(kind: String) -> void:
 	match kind:
 		"image", "video":
 			if kind == _ai_wizard:
-				green_visualizer.transform = side_panel.get_source_xform(kind)
+				if kind == "video" and _video_previewed:
+					_preview_video_frame()
+				elif kind == "video":
+					if not _video_overlay_params.is_empty():
+						_video_overlay_params.user_xform = side_panel.get_source_xform(kind)
+					_sync_video_pose_overlay(side_panel.timeline.current_time)
+				else:
+					_show_ai_landmark_overlay(_ai_pending_landmarks)
 		"glb":
 			_apply_glb_source_xform()
 
@@ -1290,11 +1532,39 @@ func _apply_glb_source_xform() -> void:
 	_retarget_anim_scene.position = side_panel.get_source_xform("glb").origin
 	_sync_retarget_overlay(side_panel.timeline.current_time)
 
-# Pose memory slots (3 session-only snapshots)
-var _pose_memory: Array = [null, null, null]  # each entry is a snapshot dict or null
+# Seven session-only slots: Save stores a pose; Open stores a complete animation.
+var _pose_memory: Array = [null, null, null, null, null, null, null]  # pose snapshots
+var _pose_memory_names: Array[String] = ["", "", "", "", "", "", ""]
+var _pose_memory_clips: Array = [null, null, null, null, null, null, null]
+var _pose_memory_pending_slot: int = -1
+
+func _on_pose_memory_open(slot: int) -> void:
+	qol.open_library(slot)
+
+func _import_pose_memory(path: String, slot: int) -> void:
+	var file := FileAccess.open(path, FileAccess.READ)
+	if file == null:
+		side_panel.set_status("Could not open animation for pose memory.")
+		return
+	# Parse against a separate rest rig, never reset the live scene.
+	var reference: Node3D = load(_current_model_path).instantiate()
+	var result = MdlImporter.parse(file.get_as_text(), reference)
+	reference.free()
+	if result == null or result.keyframes.is_empty():
+		side_panel.set_status("No valid animation found; pose memory unchanged.")
+		return
+	_pose_memory[slot] = result.keyframes[0].transforms.duplicate(true)
+	_pose_memory_names[slot] = result.anim_name
+	_pose_memory_clips[slot] = {"keyframes": result.keyframes.duplicate(true), "length": result.length}
+	side_panel.set_pose_memory_slot_name(slot, result.anim_name)
+	side_panel.set_pose_memory_slot_filled(slot, true)
+	side_panel.set_status("Stored %s in slot %d. Main animation unchanged." % [result.anim_name,slot+1])
 
 func _on_pose_memory_save(slot: int) -> void:
+	_pose_memory_clips[slot] = null
 	_pose_memory[slot] = MdlExporter.capture_pose($Rig)
+	_pose_memory_names[slot] = side_panel.get_anim_name() if not side_panel.get_anim_name().is_empty() else "Untitled pose"
+	side_panel.set_pose_memory_slot_name(slot, _pose_memory_names[slot])
 	side_panel.set_pose_memory_slot_filled(slot, true)
 	side_panel.set_status("Pose saved to slot %d." % (slot + 1))
 
@@ -1303,8 +1573,11 @@ func _on_pose_memory_load(slot: int) -> void:
 		return
 	var snap: Dictionary = _pose_memory[slot]
 	_push_undo_snapshot()
+	_on_play_toggled(false)
+	rig_controller.deselect()
+	if qol != null: qol.release_constraints()
 	_apply_transforms(snap)
-	side_panel.set_status("Pose loaded from slot %d." % (slot + 1))
+	side_panel.set_status("Pose loaded from slot %d. Press Set to save at the current time." % (slot + 1))
 
 # Bulk processing state
 var _bulk_queue: Array = []       # Array of file paths remaining
@@ -1346,6 +1619,8 @@ const MP_CONNECTIONS := [
 ]
 
 func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
+	if _ai_wizard == "image" and side_panel.image_pose_panel.get_node("Scroll/Body/SidePose").button_pressed:
+		world_landmarks = AIPoseApplier.side_image_landmarks(world_landmarks)
 	green_visualizer.clear()
 
 	if world_landmarks.is_empty():
@@ -1371,34 +1646,20 @@ func _show_ai_landmark_overlay(world_landmarks: Array) -> void:
 		elif left_hip_node != null:
 			rig_hip_center = left_hip_node.global_position
 
-		# Estimate scale: MediaPipe shoulder width in metres vs NWN shoulder width
-		var mp_left_shoulder := Vector3(-world_landmarks[11]["x"], -world_landmarks[11]["y"], world_landmarks[11]["z"])
-		var mp_right_shoulder := Vector3(-world_landmarks[12]["x"], -world_landmarks[12]["y"], world_landmarks[12]["z"])
-		var mp_shoulder_width: float = (mp_left_shoulder - mp_right_shoulder).length()
-
-		var nwn_left: Node3D = rig_controller.find_node("lbicep_g")
-		var nwn_right: Node3D = rig_controller.find_node("rbicep_g")
-		var nwn_shoulder_width: float = 0.3  # fallback
-		if nwn_left != null and nwn_right != null:
-			nwn_shoulder_width = (nwn_left.global_position - nwn_right.global_position).length()
-
-		_ai_scale_factor = nwn_shoulder_width / max(mp_shoulder_width, 0.001)
+		_ai_scale_factor = AIPoseApplier.estimate_scale(world_landmarks, $Rig)
 		_ai_origin = rig_hip_center
 		_ai_overlay_calibrated = true
 
-	# Convert landmarks to world positions
-	var positions: Array[Vector3] = []
-	for lm in world_landmarks:
-		var p := Vector3(-lm["x"], -lm["y"], lm["z"]) * _ai_scale_factor + _ai_origin
-		positions.append(p)
-
-	# Preview honesty: when "Ground to floor" is on, shift the overlay by the
-	# exact same amount the pose application will use, so what the user sees
-	# is what Apply pose produces.
-	if side_panel.is_ai_ground_enabled() and positions.size() >= 33:
-		var shift: float = AIPoseApplier.ground_shift(positions)
-		for i in range(positions.size()):
-			positions[i].y -= shift
+	green_visualizer.transform = Transform3D.IDENTITY
+	var positions: Array[Vector3]
+	if _ai_wizard == "video" and not _video_overlay_params.is_empty():
+		var p := _video_overlay_params
+		positions = AIPoseApplier.landmark_positions(world_landmarks, p.scale, p.origin,
+			p.pre_rotation, true, p.user_xform, p.foot_y)
+	else:
+		positions = AIPoseApplier.landmark_positions(world_landmarks, _ai_scale_factor, _ai_origin,
+			Quaternion.IDENTITY, _ai_wizard == "video" or side_panel.is_ai_ground_enabled(),
+			side_panel.get_source_xform(_ai_wizard))
 
 	# Build joint entries
 	var entries: Array = []
@@ -1444,9 +1705,14 @@ func _on_ai_apply_pose() -> void:
 		side_panel.set_status("No pose detected yet — load an image first.")
 		return
 	_push_undo_snapshot()
+	_on_play_toggled(false)
+	if qol != null: qol.release_constraints()
+	rig_controller.deselect()
 
-	var data := AIPoseApplier.compute(_ai_pending_landmarks, $Rig, _ai_scale_factor, _ai_origin,
-		Quaternion.IDENTITY, {}, side_panel.is_ai_ground_enabled(), side_panel.get_source_xform("image"))
+	var side_pose: bool = side_panel.image_pose_panel.get_node("Scroll/Body/SidePose").button_pressed
+	var image_landmarks := AIPoseApplier.side_image_landmarks(_ai_pending_landmarks) if side_pose else _ai_pending_landmarks
+	var data := AIPoseApplier.compute(image_landmarks, $Rig, _ai_scale_factor, _ai_origin,
+		Quaternion.IDENTITY, {}, side_panel.is_ai_ground_enabled(), side_panel.get_source_xform("image"), 0.25 if side_pose else 0.4)
 	if data.is_empty():
 		side_panel.set_status("Could not compute pose from landmarks.")
 		return
@@ -1458,10 +1724,10 @@ func _on_ai_apply_pose() -> void:
 			_limb_targets[comp_id]["target"] = ik_targets[comp_id]["target"]
 			_limb_targets[comp_id]["pole"]   = ik_targets[comp_id]["pole"]
 
-	# NOTE: end_world_bases is intentionally NOT applied here — without the
-	# first-frame calibration the raw MediaPipe convention basis would spin
-	# hands/feet arbitrarily. Single-image poses keep the rest orientation;
-	# only the video flow (which calibrates on frame 1) pins hand/foot bases.
+	# Apply actual image hand orientation through the same pins used by IK.
+	var hand_bases := AIPoseApplier.image_hand_bases(data)
+	for name in hand_bases:
+		_limb_targets[END_BONE_COMPONENT[name]].end_basis = hand_bases[name]
 
 	# Apply FK rotations (pelvis, torso, head) directly onto the bone nodes
 	var fk_rotations: Dictionary = data.get("fk_rotations", {})
@@ -1477,6 +1743,9 @@ func _on_ai_apply_pose() -> void:
 		if rootdummy != null:
 			rootdummy.global_position = root_pos
 
+	if side_panel.image_pose_panel.get_node("Scroll/Body/ImageTwoHandGrip").button_pressed:
+		_apply_image_two_hand_grip(hand_bases)
+
 	var sel: String = rig_controller.selected_component
 	if sel != "":
 		_on_component_selected(sel)
@@ -1486,7 +1755,36 @@ func _on_ai_apply_pose() -> void:
 	# reference to compare the applied pose against the detected landmarks.
 	var n_ik := ik_targets.size()
 	var n_fk := fk_rotations.size()
-	side_panel.set_status("AI pose applied (%d IK targets, %d FK bones)." % [n_ik, n_fk])
+	side_panel.set_ai_server_status("Applied: %d/4 limbs. %s" % [n_ik, "Side pose: verify hidden joints." if side_pose else "Enable Side pose if an occluded limb was skipped."])
+
+
+func _apply_image_two_hand_grip(bases: Dictionary) -> void:
+	if not bases.has("rhand_g") or not bases.has("lhand_g"): return
+	var right: Node3D = rig_controller.find_node("rhand_g")
+	var left: Node3D = rig_controller.find_node("lhand_g")
+	var rattach: Node3D = rig_controller.find_node("rhand")
+	var lattach: Node3D = rig_controller.find_node("lhand")
+	if right == null or left == null or rattach == null or lattach == null: return
+	var right_local: Transform3D = right.global_transform.affine_inverse() * rattach.global_transform
+	var left_local: Transform3D = left.global_transform.affine_inverse() * lattach.global_transform
+	var rb: Basis = bases.rhand_g
+	var lb: Basis = bases.lhand_g
+	var blade := (rb * right_local.basis * Vector3.FORWARD).normalized()
+	var left_blade := (lb * left_local.basis * Vector3.FORWARD).normalized()
+	lb = Basis(Quaternion(left_blade,blade)) * lb
+	var grip: Vector3 = _limb_targets.right_arm.target + rb * right_local.origin
+	# Keep the shared grip reachable by both arms, without changing bone lengths.
+	var offsets := {"right_arm": -(rb * right_local.origin), "left_arm": -blade * .11 - lb * left_local.origin}
+	for iteration in 12:
+		for id in ["right_arm", "left_arm"]:
+			var chain: Array = rig_controller.get_chain_nodes(id)
+			var reach: float = (chain[0].global_position.distance_to(chain[1].global_position) + chain[1].global_position.distance_to(chain[2].global_position)) * .97
+			var delta: Vector3 = grip + offsets[id] - chain[0].global_position
+			if delta.length() > reach: grip -= delta.normalized() * (delta.length()-reach)
+	_limb_targets.right_arm.target = grip + offsets.right_arm
+	_limb_targets.left_arm.target = grip + offsets.left_arm
+	_limb_targets.left_arm.end_basis = lb
+
 
 # Maps the AI applier's end-bone names onto the IK component whose end_basis
 # pin controls that bone's world orientation.
@@ -1626,6 +1924,29 @@ func _setup_video_pose_panel() -> void:
 	_video_client.extraction_failed.connect(_on_video_extraction_failed)
 
 	var panel := _video_panel
+	var body := panel.get_node("Scroll/Body")
+	var simplify := CheckBox.new()
+	simplify.name = "SimplifyPoses"
+	simplify.text = "Keep key poses only"
+	simplify.button_pressed = true
+	simplify.tooltip_text = "Bake fewer keys by keeping the largest changes in movement"
+	body.add_child(simplify)
+	body.move_child(simplify,body.get_node("ExtractButton").get_index())
+	var row := HBoxContainer.new()
+	row.name = "KeyPoseRow"
+	body.add_child(row)
+	body.move_child(row,simplify.get_index()+1)
+	var label := Label.new()
+	label.text = "Max key poses"
+	row.add_child(label)
+	var count := SpinBox.new()
+	count.name = "Count"
+	count.min_value = 2
+	count.max_value = 500
+	count.value = 12
+	row.add_child(count)
+	simplify.toggled.connect(func(enabled): count.editable = enabled)
+
 	panel.get_node("TitleRow/CloseButton").pressed.connect(func(): panel.visible = false)
 
 	var load_btn: Button = panel.get_node("Scroll/Body/VideoRow/LoadVideoButton")
@@ -1669,6 +1990,7 @@ func _on_video_extract_pressed() -> void:
 func _on_video_extraction_done(frames: Array, duration: float) -> void:
 	_video_extracted_frames = frames
 	_video_extracted_duration = duration
+	_video_overlay_params = {}
 	_ai_overlay_calibrated = false
 	_ai_wizard = "video"
 	_video_previewed = false
@@ -1709,25 +2031,13 @@ func _compute_video_bake_params() -> Dictionary:
 	if lthigh != null and rthigh != null:
 		rig_hip_center = (lthigh.global_position + rthigh.global_position) * 0.5
 
-	var nwn_left: Node3D = rig_controller.find_node("lbicep_g")
-	var nwn_right: Node3D = rig_controller.find_node("rbicep_g")
-	var nwn_shoulder_width := 0.3
-	if nwn_left != null and nwn_right != null:
-		nwn_shoulder_width = (nwn_left.global_position - nwn_right.global_position).length()
-
-	# Use the first frame with a good shoulder reading to fix the scale
-	var scale_factor := 1.0
+	# Median over several sampled frames also reduces first-frame detection noise.
+	var scales: Array[float] = []
+	for i in range(min(15, _video_extracted_frames.size())):
+		scales.append(AIPoseApplier.estimate_scale(_video_extracted_frames[i]["world_landmarks"], $Rig))
+	scales.sort()
+	var scale_factor: float = scales[scales.size() / 2] if not scales.is_empty() else 1.0
 	var origin := rig_hip_center
-	for frame_data in _video_extracted_frames:
-		var lms: Array = frame_data["world_landmarks"]
-		if lms.size() < 33:
-			continue
-		var mp_ls := Vector3(-lms[11]["x"], -lms[11]["y"], lms[11]["z"])
-		var mp_rs := Vector3(-lms[12]["x"], -lms[12]["y"], lms[12]["z"])
-		var mp_shoulder_width := (mp_ls - mp_rs).length()
-		if mp_shoulder_width > 0.001:
-			scale_factor = nwn_shoulder_width / mp_shoulder_width
-			break
 
 	# World tilt: auto-level on frame 1 (assumed grounded/standing).
 	var first_landmarks: Array = _video_extracted_frames[0]["world_landmarks"]
@@ -1824,6 +2134,7 @@ func _nearest_video_landmarks(t: float) -> Array:
 # corrections against exactly what the preview put on screen.
 var _video_previewed: bool = false
 var _video_preview_params: Dictionary = {}
+var _video_overlay_params: Dictionary = {}
 var _video_preview_data: Dictionary = {}
 
 ## Applies the auto-computed pose of the frame nearest the timeline cursor
@@ -1838,9 +2149,11 @@ func _preview_video_frame() -> void:
 	rig_controller.deselect()
 	var p: Dictionary = await _compute_video_bake_params()
 	var data: Dictionary = _apply_video_frame(_nearest_video_landmarks(side_panel.timeline.current_time), p)
+	_video_overlay_params = p.duplicate(true)
 	_video_preview_params = p
 	_video_preview_data = data
 	_video_previewed = not data.is_empty()
+	_show_ai_landmark_overlay(_nearest_video_landmarks(side_panel.timeline.current_time))
 	side_panel.set_status("Preview at %.2fs — adjust components by hand, then Bake." % side_panel.timeline.current_time)
 
 ## Measures the user's manual corrections on top of the previewed pose —
@@ -1899,6 +2212,7 @@ func _on_video_apply_to_timeline() -> void:
 	else:
 		p = await _compute_video_bake_params()
 
+	_video_overlay_params = p.duplicate(true)
 	# Deselect BEFORE the bake loop: _process copies the ACTIVE limb's pin
 	# from the node every frame, which would override the per-frame pose we
 	# set and silently discard the user's captured corrections.
@@ -1912,13 +2226,21 @@ func _on_video_apply_to_timeline() -> void:
 	_anim_length = _video_extracted_duration
 	side_panel.set_duration(_anim_length)
 
+	_on_play_toggled(false)
+	var baked_keys: Array = []
 	# Apply each frame as a keyframe
 	for frame_data in _video_extracted_frames:
 		_apply_video_frame(frame_data["world_landmarks"], p, extras)
 		# Let the IK solver run for one frame before capturing
 		await get_tree().process_frame
 		var snapshot := MdlExporter.capture_pose($Rig)
-		_upsert_keyframe(frame_data["time"], snapshot)
+		baked_keys.append({"time": frame_data["time"], "transforms": snapshot})
+
+	if _video_panel.get_node("Scroll/Body/SimplifyPoses").button_pressed:
+		baked_keys = preload("res://scripts/pose_reducer.gd").reduce_keys(baked_keys, int(_video_panel.get_node("Scroll/Body/KeyPoseRow/Count").value))
+	side_panel.timeline.clear_selection()
+	_keyframes = baked_keys
+	_refresh_timeline_markers()
 
 	_video_previewed = false
 	_video_preview_params = {}
@@ -1929,9 +2251,9 @@ func _on_video_apply_to_timeline() -> void:
 	# how the user dismisses the whole debug context.
 	var n_fix: int = extras["end"].size() + extras["fk"].size() + extras["target"].size()
 	if n_fix > 0:
-		side_panel.set_status("Baked %d keyframes with %d manual corrections (%.1fs)." % [_video_extracted_frames.size(), n_fix, _video_extracted_duration])
+		side_panel.set_status("Baked %d keyframes with %d manual corrections (%.1fs)." % [_keyframes.size(), n_fix, _video_extracted_duration])
 	else:
-		side_panel.set_status("Baked %d keyframes from video (%.1fs)." % [_video_extracted_frames.size(), _video_extracted_duration])
+		side_panel.set_status("Baked %d keyframes from video (%.1fs)." % [_keyframes.size(), _video_extracted_duration])
 	green_visualizer.visible = true
 	_sync_video_pose_overlay(0.0)
 
@@ -1950,3 +2272,43 @@ func _save_retarget_config_to(path: String) -> void:
 	_retarget_config["bone_map"] = bone_map
 	side_panel.set_status("Config saved to %s" % path)
 	side_panel.bone_config_panel.set_status("Config saved to %s" % path)
+
+func _move_single_key(old_time: float, new_time: float) -> void:
+	for key in _keyframes:
+		if absf(key.time - new_time) < .001 and absf(key.time - old_time) > .001: return
+	for key in _keyframes:
+		if absf(key.time - old_time) < .001:
+			key.time = new_time
+			break
+	_keyframes.sort_custom(func(a,b): return a.time < b.time)
+	_refresh_timeline_markers()
+	side_panel.timeline.set_current_time(new_time)
+	_apply_pose_at_time(new_time)
+
+func _update_nwn_skeleton() -> void:
+	_nwn_skeleton_mesh.clear_surfaces()
+	_nwn_skeleton_mesh.surface_begin(Mesh.PRIMITIVE_LINES)
+	for entry in MdlExporter.flatten_skeleton_tree():
+		var node: Node3D = rig_controller.find_node(entry.name)
+		if node == null: continue
+		var p := _nwn_skeleton.to_local(node.global_position)
+		var parent: Node3D = rig_controller.find_node(entry.parent) if entry.parent != "" else null
+		if parent != null:
+			_nwn_skeleton_mesh.surface_add_vertex(p)
+			_nwn_skeleton_mesh.surface_add_vertex(_nwn_skeleton.to_local(parent.global_position))
+		for axis in [Vector3.RIGHT, Vector3.UP, Vector3.BACK]:
+			_nwn_skeleton_mesh.surface_add_vertex(p - axis * .012)
+			_nwn_skeleton_mesh.surface_add_vertex(p + axis * .012)
+	_nwn_skeleton_mesh.surface_end()
+
+func _nudge_selection(event: InputEventKey) -> bool:
+	if get_viewport().gui_get_focus_owner() != null or event.is_command_or_control_pressed() or event.alt_pressed: return false
+	if not _can_translate_selection(): return false
+	var directions := {KEY_LEFT:Vector3.LEFT, KEY_RIGHT:Vector3.RIGHT, KEY_UP:Vector3.FORWARD, KEY_DOWN:Vector3.BACK, KEY_PAGEUP:Vector3.UP, KEY_PAGEDOWN:Vector3.DOWN}
+	if not directions.has(event.keycode): return false
+	if _playing: _on_play_toggled(false)
+	var origin := _translation_anchor()
+	if _active_ik_component != "": origin = _limb_targets[_active_ik_component]["target"]
+	elif rig_controller.selected_components.size() == 1 and rig_controller.selected_component == "pelvis": origin = rig_controller.find_node("rootdummy").global_position
+	_on_panel_position_changed(origin + directions[event.keycode] * .01)
+	return true

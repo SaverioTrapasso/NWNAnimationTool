@@ -5,6 +5,7 @@ extends Node3D
 ## (matching how NWN orientationkeys are stored as parent-relative rotations).
 
 signal drag_started()
+signal rotation_requested(value: Basis)
 
 ## Kept clearly outside TranslationGizmo's arrow reach (~0.13 with current
 ## constants), so there's a real gap between the move arrows and the
@@ -92,6 +93,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			if event.shift_pressed: return
 			var axis := _pick_axis(event.position)
 			if axis != "":
 				_dragging_axis = axis
@@ -107,7 +109,7 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventMouseMotion and _dragging_axis != "":
 		var current_angle := _mouse_angle_on_axis_plane(_dragging_axis, event.position)
 		var delta_angle := current_angle - _drag_start_mouse_angle
-		target.basis = _drag_start_basis * Basis(_dragging_local_axis, delta_angle)
+		rotation_requested.emit(_drag_start_basis * Basis(_dragging_local_axis, delta_angle))
 		# Spin the rings live by the same delta for immediate visual feedback;
 		# self.global_basis (the measurement frame above) stays untouched.
 		_visual_root.basis = Basis(_dragging_local_axis, delta_angle)

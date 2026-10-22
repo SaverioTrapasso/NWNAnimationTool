@@ -20,8 +20,17 @@ signal retarget_bake_requested()
 ## green (AI) visualizer depending on which motion source is active.
 signal overlay_toggled(enabled: bool)
 signal gender_selected(model_path: String)
+signal save_pose_requested(path: String, anim_name: String)
+
+var _export_current_pose := false
+var _double_staff := false
+var _firearm := ""
+var _left_weapon_model := ""
+var _show_hilt := true
+
 signal pose_memory_save_requested(slot: int)
 signal pose_memory_load_requested(slot: int)
+signal pose_memory_open_requested(slot: int)
 signal ai_pose_image_selected(path: String)
 signal ai_pose_apply_requested()
 signal ai_ground_toggled(enabled: bool)
@@ -103,6 +112,7 @@ const FILE_ID_OPEN := 1
 const FILE_ID_SAVE := 2
 const FILE_ID_UNDO := 3
 const FILE_ID_FOCUS := 4
+const FILE_ID_POSE := 5
 
 const UTIL_ID_IMAGE := 0
 const UTIL_ID_VIDEO := 1
@@ -110,10 +120,14 @@ const UTIL_ID_GLB := 2
 const UTIL_ID_BULK := 3
 
 func _ready() -> void:
+	# Keep numeric transforms above memory slots and prevent sideways scrolling.
+	_sidebar.move_child(transform_panel, _sidebar.get_node("PoseMemory").get_index())
+	$Sidebar/Scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	var fm: PopupMenu = file_menu.get_popup()
 	fm.add_item("New", FILE_ID_NEW)
 	fm.add_item("Open...", FILE_ID_OPEN)
-	fm.add_item("Save...", FILE_ID_SAVE)
+	fm.add_item("Save animation...", FILE_ID_SAVE)
+	fm.add_item("Export current pose...", FILE_ID_POSE)
 	fm.add_separator()
 	fm.add_item("Undo", FILE_ID_UNDO, KEY_MASK_CTRL | KEY_Z)
 	fm.add_item("Focus selection", FILE_ID_FOCUS, KEY_F)
@@ -140,9 +154,48 @@ func _ready() -> void:
 	cloak_button.toggled.connect(_on_cloak_toggled)
 	viewport_toolbar.get_node("View3DButton").pressed.connect(func(): view_mode_requested.emit("3d"))
 	viewport_toolbar.get_node("ViewFrontButton").pressed.connect(func(): view_mode_requested.emit("front"))
-	viewport_toolbar.get_node("ViewSideButton").pressed.connect(func(): view_mode_requested.emit("side"))
+	viewport_toolbar.get_node("ViewSideButton").pressed.connect(func(): view_mode_requested.emit("side_left"))
+	viewport_toolbar.get_node("ViewSideRightButton").pressed.connect(func(): view_mode_requested.emit("side_right"))
+	viewport_toolbar.get_node("ViewBackButton").pressed.connect(func(): view_mode_requested.emit("back"))
 	male_button.pressed.connect(func(): _on_gender_button_pressed(MALE_MODEL_PATH))
 	female_button.pressed.connect(func(): _on_gender_button_pressed(FEMALE_MODEL_PATH))
+	var firearm := OptionButton.new()
+	firearm.name = "FirearmPreview"
+	firearm.fit_to_longest_item = false
+	firearm.custom_minimum_size.x = 100
+	firearm.clip_text = true
+	for label in ["Saber", "Rifle", "Pistol", "Staff", "Spear", "Katar", "Shield", "Training Saber 151", "Training Saber 152", "Training Saber 153", "Training Staff 071", "Training Staff 072", "Training Pike 073", "Vibroknife", "2H Sword", "DoubleStaff"]: firearm.add_item(label)
+	firearm.tooltip_text = "Game weapon preview; Shield attaches to the left forearm"
+	viewport_toolbar.add_child(firearm)
+	viewport_toolbar.move_child(firearm, right_hand_weapon_button.get_index()+1)
+	firearm.item_selected.connect(func(index: int):
+		if index == 6:
+			left_shield_button.set_pressed_no_signal(true)
+			_add_weapon("lforearm", "shield", Color(.5,1.0,.3))
+			return
+		_firearm = ["", "rifle", "pistol", "staff", "spear", "katar", "shield", "wswglsbr_b_151", "wswglsbr_b_152", "wswglsbr_b_153", "wdblsbr_b_071", "wdblsbr_b_072", "wdblsbr_b_073", "vibroknife", "greatsword", "doublestaff"][index]
+		_double_staff = _firearm == "doublestaff"
+		right_hand_weapon_button.set_pressed_no_signal(true)
+		_add_weapon("rhand", "right_weapon", Color(.2,.9,1.0)))
+	var left_picker := OptionButton.new()
+	left_picker.name = "LeftWeaponPreview"
+	left_picker.fit_to_longest_item = false
+	left_picker.custom_minimum_size.x = 100
+	left_picker.clip_text = true
+	for label in ["Saber", "Rifle", "Pistol", "Staff", "Spear", "Katar", "Shield", "Training Saber 151", "Training Saber 152", "Training Saber 153", "Training Staff 071", "Training Staff 072", "Training Pike 073", "Vibroknife", "2H Sword", "DoubleStaff"]: left_picker.add_item(label)
+	left_picker.tooltip_text = "Left-hand model (independent of the right hand); Shield uses the left forearm"
+	viewport_toolbar.add_child(left_picker)
+	viewport_toolbar.move_child(left_picker, left_hand_weapon_button.get_index()+1)
+	left_picker.item_selected.connect(func(index: int):
+		if index == 6:
+			left_hand_weapon_button.button_pressed = false
+			left_shield_button.set_pressed_no_signal(true)
+			_add_weapon("lforearm", "shield", Color(.5,1.0,.3))
+			return
+		_left_weapon_model = ["", "rifle", "pistol", "staff", "spear", "katar", "shield", "wswglsbr_b_151", "wswglsbr_b_152", "wswglsbr_b_153", "wdblsbr_b_071", "wdblsbr_b_072", "wdblsbr_b_073", "vibroknife", "greatsword", "doublestaff"][index]
+		left_shield_button.button_pressed = false
+		left_hand_weapon_button.set_pressed_no_signal(true)
+		_add_weapon("lhand", "left_weapon", Color(1.0,.2,.2)))
 	right_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("rhand", "right_weapon", Color(0.2, 0.9, 1.0)))
 	left_hand_weapon_button.toggled.connect(_on_weapon_toggled.bind("lhand", "left_weapon", Color(1.0, 0.2, 0.2)))
 	left_shield_button.toggled.connect(_on_weapon_toggled.bind("lforearm", "shield", Color(0.5, 1.0, 0.3)))
@@ -156,13 +209,24 @@ func _ready() -> void:
 		bone_config_panel.visible = true)
 	bake_button.pressed.connect(func(): retarget_bake_requested.emit())
 
-	for i in 3:
+	for i in range(3, 7):
+		var extra := _sidebar.get_node("PoseMemory/Slot3").duplicate()
+		extra.name = "Slot%d" % (i + 1)
+		extra.get_node("Label").text = "%d. Empty" % (i + 1)
+		_sidebar.get_node("PoseMemory").add_child(extra)
+	for i in 7:
 		var slot_name := "Slot%d" % (i + 1)
-		var save_btn: Button = _sidebar.get_node("PoseMemory/%s/SaveButton" % slot_name)
-		var load_btn: Button = _sidebar.get_node("PoseMemory/%s/LoadButton" % slot_name)
+		var save_btn: Button = _sidebar.get_node("PoseMemory/%s/Actions/SaveButton" % slot_name)
+		var load_btn: Button = _sidebar.get_node("PoseMemory/%s/Actions/LoadButton" % slot_name)
 		_pose_memory_load_buttons.append(load_btn)
 		save_btn.pressed.connect(pose_memory_save_requested.emit.bind(i))
 		load_btn.pressed.connect(pose_memory_load_requested.emit.bind(i))
+		var open_btn := Button.new()
+		open_btn.name = "OpenButton"
+		open_btn.text = "Open..."
+		open_btn.tooltip_text = "Store an animation from Pose Library without replacing the scene. Load applies its first pose."
+		_sidebar.get_node("PoseMemory/%s" % slot_name).add_child(open_btn)
+		open_btn.pressed.connect(pose_memory_open_requested.emit.bind(i))
 
 	image_pose_panel.get_node("TitleRow/CloseButton").pressed.connect(func(): set_image_panel_open(false))
 	image_pose_panel.get_node("Scroll/Body/BulkButton").pressed.connect(func(): ai_bulk_input_dialog.popup_centered_ratio(0.6))
@@ -170,6 +234,21 @@ func _ready() -> void:
 	ai_image_dialog.file_selected.connect(_on_ai_image_selected)
 	ai_apply_pose_button.pressed.connect(func(): ai_pose_apply_requested.emit())
 	ai_ground_check.toggled.connect(func(v): ai_ground_toggled.emit(v))
+	var side_pose := CheckBox.new()
+	side_pose.name = "SidePose"
+	side_pose.text = "Side pose / image outline"
+	side_pose.tooltip_text = "Match joint positions to the image outline and include partly hidden limbs. Depth remains estimated. Side camera only changes the view."
+	image_pose_panel.get_node("Scroll/Body").add_child(side_pose)
+	image_pose_panel.get_node("Scroll/Body").move_child(side_pose, ai_ground_check.get_index()+1)
+	side_pose.toggled.connect(func(_v): source_xform_changed.emit("image"))
+	var grip := CheckBox.new()
+	grip.name = "ImageTwoHandGrip"
+	grip.text = "Two-handed grip"
+	grip.tooltip_text = "Place the left hand on the right-hand weapon grip when applying an image pose"
+	image_pose_panel.get_node("Scroll/Body").add_child(grip)
+	image_pose_panel.get_node("Scroll/Body").move_child(grip,side_pose.get_index()+1)
+
+
 
 	# SOURCE TRANSFORM spins: same node names in every wizard, one wiring loop.
 	for kind in ["image", "video", "glb"]:
@@ -200,6 +279,11 @@ func set_pose_memory_slot_filled(slot: int, filled: bool) -> void:
 	if slot >= 0 and slot < _pose_memory_load_buttons.size():
 		_pose_memory_load_buttons[slot].disabled = not filled
 
+func set_pose_memory_slot_name(slot: int, animation_name: String) -> void:
+	var label: Label = _sidebar.get_node("PoseMemory/Slot%d/Label" % (slot + 1))
+	label.text = "%d. %s" % [slot + 1, animation_name]
+	label.tooltip_text = animation_name
+
 func set_status(text: String) -> void:
 	status_label.text = text
 
@@ -220,6 +304,7 @@ func _on_file_menu_pressed(id: int) -> void:
 		FILE_ID_NEW: new_confirm_dialog.popup_centered()
 		FILE_ID_OPEN: _on_open_pressed()
 		FILE_ID_SAVE: _on_save_pressed()
+		FILE_ID_POSE: _on_save_pose_pressed()
 		FILE_ID_UNDO: undo_requested.emit()
 		FILE_ID_FOCUS: focus_requested.emit()
 
@@ -249,14 +334,26 @@ func set_duration(value: float) -> void:
 	timeline.set_length(value)
 
 func _on_save_pressed() -> void:
+	_export_current_pose = false
+	save_dialog.title = "Save animation"
 	save_dialog.current_file = "%s.txt" % (_anim_name if _anim_name != "" else "animation")
 	save_dialog.popup_centered_ratio(0.6)
 
 ## The animation name IS the chosen filename (without extension): one thing
 ## to type, and the header always reflects what will be exported.
+func _on_save_pose_pressed() -> void:
+	_on_save_pressed()
+	_export_current_pose = true
+	save_dialog.title = "Export current pose"
+	save_dialog.current_file = (_anim_name if _anim_name != "" else "pose") + "_pose.txt"
+
 func _on_save_file_selected(path: String) -> void:
+	if path.get_extension().is_empty():path += ".txt"
 	set_anim_name(path.get_file().get_basename())
-	save_file_requested.emit(path, get_anim_name())
+	if _export_current_pose:
+		save_pose_requested.emit(path, path.get_file().get_basename())
+	else:
+		save_file_requested.emit(path, get_anim_name())
 
 func _on_open_pressed() -> void:
 	open_dialog.popup_centered_ratio(0.6)
@@ -330,9 +427,33 @@ func _on_weapon_toggled(pressed: bool, attach_node_name: String, component_id: S
 			rig_controller.reset_component_pick(component_id, attach_node_name)
 
 func _add_weapon(hand_node_name: String, component_id: String, color: Color) -> void:
+	if _weapon_meshes.has(hand_node_name) and is_instance_valid(_weapon_meshes[hand_node_name]):
+		_weapon_meshes[hand_node_name].queue_free()
 	var hand := _find(rig_root, hand_node_name)
 	if hand == null:
 		return
+	if component_id in ["right_weapon", "left_weapon", "shield"]:
+		var builder = preload("res://scripts/game_staff_preview.gd")
+		var actual: MeshInstance3D
+		var model_id: String = _left_weapon_model if component_id == "left_weapon" else _firearm
+		if component_id == "shield":
+			actual = builder.build_file("user://shield/shield.json")
+		elif model_id == "doublestaff":
+			actual = builder.build(true)
+		elif not model_id.is_empty():
+			actual = builder.build_file("user://" + model_id + "/" + model_id + ".json")
+			if actual == null:
+				_weapon_meshes.erase(hand_node_name)
+				set_status("Missing local game model: " + model_id)
+				return
+		else:
+			actual = builder.build(component_id == "right_weapon" and _double_staff)
+		if actual != null:
+			hand.add_child(actual)
+			_weapon_meshes[hand_node_name] = actual
+			if rig_controller != null: rig_controller.set_component_pick_mesh(component_id,hand_node_name,actual)
+			set_status("Game weapon: " + str(actual.get_meta("game_resource")) + " (original scale and attachment)")
+			return
 	var mesh := CylinderMesh.new()
 	var mi := MeshInstance3D.new()
 
@@ -358,6 +479,21 @@ func _add_weapon(hand_node_name: String, component_id: String, color: Color) -> 
 		# the wrist joint into the fist, where it visually belongs.
 		mi.position = Vector3(0, -0.06, -mesh.height * 0.5)
 
+	if component_id == "right_weapon" and _double_staff:
+		mesh.height = 1.6
+		mi.position = Vector3(0, -0.06, -0.18)
+		# Opaque handle covers the middle 40 cm; a blade remains at each end.
+		var handle := MeshInstance3D.new()
+		var grip := CylinderMesh.new()
+		grip.top_radius = .027
+		grip.bottom_radius = .027
+		grip.height = .4
+		handle.mesh = grip
+		var grip_material := StandardMaterial3D.new()
+		grip_material.albedo_color = Color(.22,.24,.27)
+		handle.material_override = grip_material
+		handle.visible = not _show_hilt
+		mi.add_child(handle)
 	var mat := StandardMaterial3D.new()
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	mat.albedo_color = color
@@ -366,8 +502,12 @@ func _add_weapon(hand_node_name: String, component_id: String, color: Color) -> 
 	mat.emission_energy_multiplier = 1.5
 
 	mi.mesh = mesh
+	if component_id == "right_weapon" and _show_hilt:
+		_attach_hilt(mi, _double_staff)
 	mi.material_override = mat
 	hand.add_child(mi)
+	if component_id != "shield":
+		align_weapon_grip(mi, hand, component_id == "right_weapon" and _double_staff, component_id == "right_weapon")
 	_weapon_meshes[hand_node_name] = mi
 	if rig_controller != null:
 		rig_controller.set_component_pick_mesh(component_id, hand_node_name, mi)
@@ -402,6 +542,17 @@ func _on_ai_image_selected(path: String) -> void:
 
 func set_ai_server_status(text: String) -> void:
 	status_label.text = text
+	var body := image_pose_panel.get_node("Scroll/Body")
+	var message := body.get_node_or_null("DetectionStatus") as Label
+	if message == null:
+		message = Label.new()
+		message.name = "DetectionStatus"
+		message.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		message.custom_minimum_size.x = 160
+		body.add_child(message)
+		body.move_child(message, ai_apply_pose_button.get_index())
+	message.text = text
+
 
 func set_ai_apply_enabled(enabled: bool) -> void:
 	ai_apply_pose_button.disabled = not enabled
@@ -483,3 +634,52 @@ func _find(node: Node, target_name: String) -> Node3D:
 		if found != null:
 			return found
 	return null
+
+func _on_double_staff_toggled(enabled: bool) -> void:
+	_firearm = ""
+	viewport_toolbar.get_node("FirearmPreview").select(0)
+	_double_staff = enabled
+	right_hand_weapon_button.set_pressed_no_signal(true)
+	_add_weapon("rhand", "right_weapon", Color(.2,.9,1.0))
+
+func _on_hilt_toggled(enabled: bool) -> void:
+	_show_hilt = enabled
+	if right_hand_weapon_button.button_pressed:
+		_add_weapon("rhand", "right_weapon", Color(.2,.9,1.0))
+
+func align_weapon_grip(blade: MeshInstance3D, attachment: Node3D, double_staff: bool, has_hilt: bool = true) -> void:
+	var palm := attachment.get_parent() as MeshInstance3D
+	if palm == null or palm.mesh == null: return
+	var palm_center: Vector3 = attachment.to_local(palm.to_global(palm.mesh.get_aabb().get_center()))
+	var grip_center: float = -.18 if double_staff else -blade.mesh.height * .5 - (.09 if has_hilt else 0.0)
+	# Move only the preview mesh. The animated attachment and hand stay intact.
+	blade.position = palm_center - blade.basis * Vector3(0, grip_center, 0)
+
+func _attach_hilt(blade: MeshInstance3D, double_staff: bool) -> void:
+	# The single blade starts at local -height/2. The hilt extends behind it.
+	var center: float = 0.0 if double_staff else -blade.mesh.height * .5 - .09
+	var length: float = .4 if double_staff else .18
+	var grip := MeshInstance3D.new()
+	grip.name = "LightsaberHilt"
+	var cylinder := CylinderMesh.new()
+	cylinder.top_radius = .027
+	cylinder.bottom_radius = .027
+	cylinder.height = length
+	grip.mesh = cylinder
+	grip.position.y = center
+	var metal := StandardMaterial3D.new()
+	metal.albedo_color = Color(.4,.43,.48)
+	metal.metallic = .7
+	metal.roughness = .3
+	grip.material_override = metal
+	blade.add_child(grip)
+	for offset in [-length*.46, -length*.2, length*.2, length*.46]:
+		var ring := MeshInstance3D.new()
+		var shape := CylinderMesh.new()
+		shape.top_radius = .033
+		shape.bottom_radius = .033
+		shape.height = .015
+		ring.mesh = shape
+		ring.position.y = offset
+		ring.material_override = metal
+		grip.add_child(ring)

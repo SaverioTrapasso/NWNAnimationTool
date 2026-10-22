@@ -47,41 +47,13 @@ const MP_RIGHT_FOOT_INDEX := 32
 #   root_position: Vector3 (world) or null
 # ---------------------------------------------------------------------------
 
-static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY, calibration: Dictionary = {}, ground: bool = true, user_xform: Transform3D = Transform3D.IDENTITY) -> Dictionary:
+static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: float, origin: Vector3, pre_rotation: Quaternion = Quaternion.IDENTITY, calibration: Dictionary = {}, ground: bool = true, user_xform: Transform3D = Transform3D.IDENTITY, limb_visibility: float = 0.4) -> Dictionary:
 	if world_landmarks.size() < 33:
 		return {}
 
-	# Convert all 33 landmarks to world-space Vector3 using the same
-	# coordinate transform as the overlay (180° Y: negate X, keep Z).
-	# pre_rotation levels out MediaPipe's estimated-world tilt (computed
-	# once from the first frame via compute_ground_alignment).
-	var pre_basis := Basis(pre_rotation)
-	var pts: Array[Vector3] = []
-	for lm in world_landmarks:
-		var p := pre_basis * Vector3(-lm["x"], -lm["y"], lm["z"]) * scale_factor + origin
-		pts.append(p)
-
+	var pts := landmark_positions(world_landmarks, scale_factor, origin, pre_rotation, ground, user_xform)
 	var vis: Array = []
-	for lm in world_landmarks:
-		vis.append(lm.get("visibility", 1.0))
-
-	# Ground the entire skeleton (optional): shift all pts down so the
-	# lowest foot CONTACT point (heel or toe — not the ankle, which sits
-	# above the sole) rests at Y=0. Done here before anything else so every
-	# derived point (IK targets, midpoints, FK bases) inherits the
-	# correction. When ground is false the pose lands exactly where the
-	# markers are, even if that leaves it floating or sunken.
-	if ground:
-		var min_foot_y: float = ground_shift(pts)
-		for i in range(pts.size()):
-			pts[i].y -= min_foot_y
-
-	# User-authored SOURCE TRANSFORM (rotate/offset from the wizard panel),
-	# applied last so it matches the preview exactly: the green visualizer
-	# shows T * p with the same T on its node transform.
-	if user_xform != Transform3D.IDENTITY:
-		for i in range(pts.size()):
-			pts[i] = user_xform * pts[i]
+	for lm in world_landmarks: vis.append(lm.get("visibility", 1.0))
 
 	var result := {
 		"ik_targets": {},
@@ -89,6 +61,8 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		"end_world_bases": {},
 		"root_position": null,
 	}
+
+	var desired_bases: Dictionary = {}
 
 	# ------------------------------------------------------------------
 	# IK targets: right arm, left arm, right leg, left leg
@@ -98,25 +72,25 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 	# the distance — pole = 2*mid_joint - midpoint(root, tip).
 	# This guarantees the pole is always on the correct side and at a
 	# safe distance regardless of how extreme the pose is.
-	if vis[MP_RIGHT_SHOULDER] >= 0.4 and vis[MP_RIGHT_WRIST] >= 0.4 and vis[MP_RIGHT_ELBOW] >= 0.4:
+	if vis[MP_RIGHT_SHOULDER] >= limb_visibility and vis[MP_RIGHT_WRIST] >= limb_visibility and vis[MP_RIGHT_ELBOW] >= limb_visibility:
 		var mid := (pts[MP_RIGHT_SHOULDER] + pts[MP_RIGHT_WRIST]) * 0.5
 		result["ik_targets"]["right_arm"] = {
 			"target": pts[MP_RIGHT_WRIST],
 			"pole":   pts[MP_RIGHT_ELBOW] * 2.0 - mid,
 		}
-	if vis[MP_LEFT_SHOULDER] >= 0.4 and vis[MP_LEFT_WRIST] >= 0.4 and vis[MP_LEFT_ELBOW] >= 0.4:
+	if vis[MP_LEFT_SHOULDER] >= limb_visibility and vis[MP_LEFT_WRIST] >= limb_visibility and vis[MP_LEFT_ELBOW] >= limb_visibility:
 		var mid := (pts[MP_LEFT_SHOULDER] + pts[MP_LEFT_WRIST]) * 0.5
 		result["ik_targets"]["left_arm"] = {
 			"target": pts[MP_LEFT_WRIST],
 			"pole":   pts[MP_LEFT_ELBOW] * 2.0 - mid,
 		}
-	if vis[MP_RIGHT_HIP] >= 0.4 and vis[MP_RIGHT_ANKLE] >= 0.4 and vis[MP_RIGHT_KNEE] >= 0.4:
+	if vis[MP_RIGHT_HIP] >= limb_visibility and vis[MP_RIGHT_ANKLE] >= limb_visibility and vis[MP_RIGHT_KNEE] >= limb_visibility:
 		var mid := (pts[MP_RIGHT_HIP] + pts[MP_RIGHT_ANKLE]) * 0.5
 		result["ik_targets"]["right_leg"] = {
 			"target": pts[MP_RIGHT_ANKLE],
 			"pole":   pts[MP_RIGHT_KNEE] * 2.0 - mid,
 		}
-	if vis[MP_LEFT_HIP] >= 0.4 and vis[MP_LEFT_ANKLE] >= 0.4 and vis[MP_LEFT_KNEE] >= 0.4:
+	if vis[MP_LEFT_HIP] >= limb_visibility and vis[MP_LEFT_ANKLE] >= limb_visibility and vis[MP_LEFT_KNEE] >= limb_visibility:
 		var mid := (pts[MP_LEFT_HIP] + pts[MP_LEFT_ANKLE]) * 0.5
 		result["ik_targets"]["left_leg"] = {
 			"target": pts[MP_LEFT_ANKLE],
@@ -151,19 +125,14 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		var axis_z := axis_x.cross(axis_y).normalized()
 		var target_basis := Basis(axis_x, axis_y, axis_z)
 
-		# --- Pelvis ---
-		var pelvis_node: Node3D = _find(rig_root, "pelvis_g")
-		if pelvis_node != null:
-			var parent_node := pelvis_node.get_parent()
-			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
-			result["fk_rotations"]["pelvis_g"] = Quaternion(parent_global_basis.inverse() * target_basis)
-
-		# --- Torso ---
-		var torso_node: Node3D = _find(rig_root, "torso_g")
-		if torso_node != null:
-			var parent_node := torso_node.get_parent()
-			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
-			result["fk_rotations"]["torso_g"] = Quaternion(parent_global_basis.inverse() * target_basis)
+		if _valid_basis(target_basis):
+			desired_bases["pelvis_g"] = target_basis
+		# Shoulders may twist independently of the hip line.
+		var shoulder_x := (pts[MP_RIGHT_SHOULDER] - pts[MP_LEFT_SHOULDER]).normalized()
+		shoulder_x = (shoulder_x - axis_y * axis_y.dot(shoulder_x)).normalized()
+		var torso_basis := Basis(shoulder_x, axis_y, shoulder_x.cross(axis_y).normalized())
+		if _valid_basis(torso_basis):
+			desired_bases["torso_g"] = torso_basis
 
 		# --- Rootdummy position ---
 		var rootdummy: Node3D = _find(rig_root, "rootdummy")
@@ -211,11 +180,15 @@ static func compute(world_landmarks: Array, rig_root: Node3D, scale_factor: floa
 		h_axis_x = (h_axis_x - h_axis_y * h_axis_y.dot(h_axis_x)).normalized()
 		var h_axis_z := h_axis_x.cross(h_axis_y).normalized()
 		var target_head_basis := Basis(h_axis_x, h_axis_y, h_axis_z)
-		var head_node: Node3D = _find(rig_root, "head_g")
-		if head_node != null:
-			var parent_node := head_node.get_parent()
-			var parent_global_basis: Basis = parent_node.global_basis if parent_node is Node3D else Basis.IDENTITY
-			result["fk_rotations"]["head_g"] = Quaternion(parent_global_basis.inverse() * target_head_basis)
+		if _valid_basis(target_head_basis):
+			desired_bases["head_g"] = target_head_basis
+
+	# Convert against the parent's NEW orientation, including intermediate nodes.
+	for bone_name in desired_bases:
+		var bone := _find(rig_root, bone_name)
+		if bone != null:
+			var parent_basis := _predicted_basis(bone.get_parent(), desired_bases)
+			result.fk_rotations[bone_name] = (parent_basis.inverse() * desired_bases[bone_name]).get_rotation_quaternion()
 
 	return result
 
@@ -243,7 +216,8 @@ static func _hand_conv_basis(pts: Array, vis: Array,
 	# Gram-Schmidt: orthogonalise across vs fingers
 	var axis_x: Vector3 = (across - axis_z * axis_z.dot(across)).normalized()
 	var axis_y: Vector3 = axis_z.cross(axis_x).normalized()
-	return Basis(axis_x, axis_y, axis_z)
+	var basis := Basis(axis_x, axis_y, axis_z)
+	return basis if _valid_basis(basis) else null
 
 
 static func _foot_conv_basis(pts: Array, vis: Array,
@@ -260,8 +234,9 @@ static func _foot_conv_basis(pts: Array, vis: Array,
 	# Lateral axis: perpendicular to both forward and shin, then orthogonalised
 	var axis_x: Vector3 = axis_z.cross(shin_ref).normalized()
 	axis_x = (axis_x - axis_z * axis_z.dot(axis_x)).normalized()
-	var axis_y: Vector3 = axis_x.cross(axis_z).normalized()
-	return Basis(axis_x, axis_y, axis_z)
+	var axis_y: Vector3 = axis_z.cross(axis_x).normalized()
+	var basis := Basis(axis_x, axis_y, axis_z)
+	return basis if _valid_basis(basis) else null
 
 
 ## Converts a convention basis into the end bone's desired WORLD-space
@@ -358,7 +333,7 @@ static func compute_rest_calibration(world_landmarks: Array, rig_root: Node3D,
 		if bone == null:
 			continue
 		# offset such that: conv(frame 1) * offset == bone's rest WORLD basis
-		calibration[bone_name] = Quaternion((conv as Basis).inverse() * bone.global_basis)
+		calibration[bone_name] = ((conv as Basis).inverse() * bone.global_basis).get_rotation_quaternion()
 	return calibration
 
 
@@ -380,3 +355,87 @@ static func _find(node: Node, target: String) -> Node3D:
 		if found != null:
 			return found
 	return null
+
+static func _valid_basis(value: Basis) -> bool:
+	return value.is_finite() and value.determinant() > 0.99
+
+static func _predicted_basis(node: Node, desired: Dictionary) -> Basis:
+	if not node is Node3D: return Basis.IDENTITY
+	if desired.has(str(node.name)): return desired[str(node.name)]
+	return _predicted_basis(node.get_parent(), desired) * node.basis.orthonormalized()
+
+## Median of visible limb-segment ratios avoids scaling the entire body from
+## a single noisy/occluded shoulder width. Shared by image overlay and video.
+static func estimate_scale(landmarks: Array, rig: Node3D) -> float:
+	if landmarks.size() < 33: return 1.0
+	var ratios: Array[float] = []
+	var segments := [
+		[11,13,"lbicep_g","lforearm_g"], [13,15,"lforearm_g","lhand_g"],
+		[12,14,"rbicep_g","rforearm_g"], [14,16,"rforearm_g","rhand_g"],
+		[23,25,"lthigh_g","lshin_g"], [25,27,"lshin_g","lfoot_g"],
+		[24,26,"rthigh_g","rshin_g"], [26,28,"rshin_g","rfoot_g"]]
+	for segment in segments:
+		var a: Dictionary = landmarks[segment[0]]
+		var b: Dictionary = landmarks[segment[1]]
+		if min(a.get("visibility",1.0), b.get("visibility",1.0)) < 0.6: continue
+		var first := _find(rig,segment[2])
+		var second := _find(rig,segment[3])
+		if first == null or second == null: continue
+		var length := Vector3(a.x,a.y,a.z).distance_to(Vector3(b.x,b.y,b.z))
+		if length > .01:
+			ratios.append(first.global_position.distance_to(second.global_position) / length)
+	if ratios.is_empty(): return 1.0
+	ratios.sort()
+	var mid := ratios.size() / 2
+	return (ratios[mid-1] + ratios[mid]) * .5 if ratios.size() % 2 == 0 else ratios[mid]
+
+## Shared coordinates for the detected skeleton and the IK input.
+static func landmark_positions(landmarks: Array, scale_factor: float, origin: Vector3,
+		pre_rotation: Quaternion = Quaternion.IDENTITY, ground: bool = true,
+		user_xform: Transform3D = Transform3D.IDENTITY, foot_y: float = 0.0) -> Array[Vector3]:
+	var points: Array[Vector3] = []
+	for lm in landmarks:
+		points.append(Basis(pre_rotation) * Vector3(-lm.x, -lm.y, lm.z) * scale_factor + origin)
+	if points.size() < 33: return points
+	var shift := ground_shift(points) if ground else 0.0
+	for i in points.size():
+		points[i].y -= shift
+		points[i] = user_xform * points[i]
+	# Feet offset is applied in world space by the IK pipeline as well.
+	for i in [27,28,29,30,31,32]: points[i].y += foot_y
+	return points
+
+## Keep the silhouette measured in the image; retain estimated depth for
+## overlapping near/far limbs. Image X is aspect-corrected by the detector.
+static func side_image_landmarks(landmarks: Array) -> Array:
+	if landmarks.size() < 33 or not landmarks[0].has("image_x"): return landmarks
+	var result := landmarks.duplicate(true)
+	var hip := Vector2.ZERO
+	var shoulder := Vector2.ZERO
+	var hip3 := Vector3.ZERO
+	var shoulder3 := Vector3.ZERO
+	for i in [23,24]:
+		hip += Vector2(landmarks[i].image_x,landmarks[i].image_y)*.5
+		hip3 += Vector3(landmarks[i].x,landmarks[i].y,landmarks[i].z)*.5
+	for i in [11,12]:
+		shoulder += Vector2(landmarks[i].image_x,landmarks[i].image_y)*.5
+		shoulder3 += Vector3(landmarks[i].x,landmarks[i].y,landmarks[i].z)*.5
+	var span := shoulder.distance_to(hip)
+	if span < .02: return landmarks
+	var scale := shoulder3.distance_to(hip3)/span
+	for i in result.size():
+		result[i].x = (landmarks[i].image_x-hip.x)*scale + hip3.x
+		result[i].y = (landmarks[i].image_y-hip.y)*scale + hip3.y
+	return result
+
+static func image_hand_bases(data: Dictionary) -> Dictionary:
+	var result := {}
+	for name in ["rhand_g", "lhand_g"]:
+		if not data.end_world_bases.has(name): continue
+		# NWN hand: -Y along fingers; weapon attachment points along -Z.
+		# MediaPipe convention mirrors the across-knuckle axis on the left.
+		var across := Vector3.FORWARD if name == "rhand_g" else Vector3.BACK
+		var fingers := Vector3.DOWN
+		var convention := Basis(across, fingers.cross(across), fingers)
+		result[name] = data.end_world_bases[name] * convention.inverse()
+	return result

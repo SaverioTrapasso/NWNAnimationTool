@@ -202,8 +202,20 @@ text = "Front"
 [node name="ViewSideButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=2000000003]
 custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
-tooltip_text = "Orthographic side view"
-text = "Side"
+tooltip_text = "Orthographic view from the character's left"
+text = "Side Left"
+
+[node name="ViewSideRightButton" type="Button" parent="SidePanel/ViewportToolbar"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Orthographic view from the character's right"
+text = "Side Right"
+
+[node name="ViewBackButton" type="Button" parent="SidePanel/ViewportToolbar"]
+custom_minimum_size = Vector2(28, 28)
+layout_mode = 2
+tooltip_text = "Orthographic back view"
+text = "Back"
 
 [node name="VSeparator0" type="VSeparator" parent="SidePanel/ViewportToolbar" unique_id=2000000004]
 layout_mode = 2
@@ -226,7 +238,7 @@ text = "Poles"
 [node name="SkeletonOverlayButton" type="Button" parent="SidePanel/ViewportToolbar" unique_id=926298020]
 custom_minimum_size = Vector2(28, 28)
 layout_mode = 2
-tooltip_text = "Show the source-motion reference skeleton (red = glb animation, green = AI pose), synced to the timeline"
+tooltip_text = "Show the NWN mannequin skeleton and any loaded source skeleton, synced to the pose"
 theme_override_colors/font_pressed_color = Color(0.85, 0.45, 0.13, 1)
 toggle_mode = true
 text = "Skel"
@@ -371,69 +383,84 @@ theme_override_colors/font_color = Color(0.32, 0.46, 0.6, 1)
 theme_override_font_sizes/font_size = 9
 text = "POSE MEMORY"
 
-[node name="Slot1" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000010]
+[node name="Slot1" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000010]
 layout_mode = 2
 theme_override_constants/separation = 3
 
 [node name="Label" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1" unique_id=1222000011]
-layout_mode = 2
 custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
 theme_override_font_sizes/font_size = 10
-text = "1"
+text = "1. Empty"
+autowrap_mode = 3
 
-[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1" unique_id=1222000012]
+[node name="Actions" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1/Actions" unique_id=1222000012]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Save current pose to slot 1"
 text = "Save"
 
-[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1" unique_id=1222000013]
+[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot1/Actions" unique_id=1222000013]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Recall pose from slot 1"
 disabled = true
 text = "Load"
 
-[node name="Slot2" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000020]
+[node name="Slot2" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000020]
 layout_mode = 2
 theme_override_constants/separation = 3
 
 [node name="Label" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2" unique_id=1222000021]
-layout_mode = 2
 custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
 theme_override_font_sizes/font_size = 10
-text = "2"
+text = "2. Empty"
+autowrap_mode = 3
 
-[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2" unique_id=1222000022]
+[node name="Actions" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2/Actions" unique_id=1222000022]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Save current pose to slot 2"
 text = "Save"
 
-[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2" unique_id=1222000023]
+[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot2/Actions" unique_id=1222000023]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Recall pose from slot 2"
 disabled = true
 text = "Load"
 
-[node name="Slot3" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000030]
+[node name="Slot3" type="VBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory" unique_id=1222000030]
 layout_mode = 2
 theme_override_constants/separation = 3
 
 [node name="Label" type="Label" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3" unique_id=1222000031]
-layout_mode = 2
 custom_minimum_size = Vector2(14, 0)
+layout_mode = 2
 theme_override_font_sizes/font_size = 10
-text = "3"
+text = "3. Empty"
+autowrap_mode = 3
 
-[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3" unique_id=1222000032]
+[node name="Actions" type="HBoxContainer" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3"]
+layout_mode = 2
+theme_override_constants/separation = 3
+
+[node name="SaveButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3/Actions" unique_id=1222000032]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Save current pose to slot 3"
 text = "Save"
 
-[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3" unique_id=1222000033]
+[node name="LoadButton" type="Button" parent="SidePanel/Sidebar/Scroll/Margin/Sections/PoseMemory/Slot3/Actions" unique_id=1222000033]
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "Recall pose from slot 3"
@@ -625,7 +652,7 @@ initial_position = 1
 size = Vector2i(600, 400)
 ok_button_text = "Save"
 access = 2
-filters = PackedStringArray("*.txt ; Text Files")
+filters = PackedStringArray("*.txt,*.mdl ; NWN ASCII animation")
 theme = ExtResource("9")
 
 [node name="OpenDialog" type="FileDialog" parent="SidePanel" unique_id=1485209523]
@@ -635,7 +662,7 @@ size = Vector2i(600, 400)
 ok_button_text = "Open"
 file_mode = 0
 access = 2
-filters = PackedStringArray("*.txt ; Text Files")
+filters = PackedStringArray("*.txt,*.mdl ; NWN ASCII animation")
 theme = ExtResource("9")
 
 [node name="LoadAnimationDialog" type="FileDialog" parent="SidePanel" unique_id=815214300]
@@ -1178,7 +1205,7 @@ size = Vector2i(700, 450)
 ok_button_text = "Load"
 file_mode = 0
 access = 2
-filters = PackedStringArray("*.mp4,*.mov,*.avi,*.mkv,*.webm ; Video Files")
+filters = PackedStringArray("*.mp4,*.mov,*.avi,*.mkv,*.webm,*.gif ; Video and animated GIF")
 theme = ExtResource("9")
 
 [node name="ImagePosePanel" type="Panel" parent="SidePanel" unique_id=1777000001]

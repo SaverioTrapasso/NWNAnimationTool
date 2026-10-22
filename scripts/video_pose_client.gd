@@ -37,7 +37,7 @@ func _run_in_thread(video_path: String, script_abs: String, sample_fps: float, s
 		return
 
 	var output: Array = []
-	OS.execute(python, [script_abs, video_path, str(sample_fps), str(smooth_window)], output, true, true)
+	OS.execute(python, [script_abs, video_path, str(sample_fps), str(smooth_window)], output, true, false)
 
 	var stdout := ""
 	for line in output:

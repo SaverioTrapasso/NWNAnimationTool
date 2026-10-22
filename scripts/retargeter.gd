@@ -23,6 +23,17 @@
 ## constraints would cascade in Maya.
 class_name Retargeter
 
+## Ignore reset tracks and prefer the longest clip over short reference poses.
+## Preview, locking and Bake must all use the same source clip.
+static func motion_animation_names(player: AnimationPlayer) -> Array[String]:
+	var names: Array[String] = []
+	for name in player.get_animation_list():
+		if String(name).get_slice("/", String(name).get_slice_count("/") - 1).to_upper() == "RESET": continue
+		var clip := player.get_animation(name)
+		if clip.length > 0.0 and clip.get_track_count() > 0: names.append(name)
+	names.sort_custom(func(a, b): return player.get_animation(a).length > player.get_animation(b).length)
+	return names
+
 static func _load_glb(path: String) -> Node3D:
 	var doc := GLTFDocument.new()
 	var state := GLTFState.new()
@@ -185,7 +196,7 @@ static func bake(parent: Node, anim_glb_path: String, bone_map: Dictionary, nwn_
 		anim_scene.queue_free()
 		return {"error": "The animation source needs both a Skeleton3D and an AnimationPlayer."}
 
-	var anim_names := anim_player.get_animation_list()
+	var anim_names := Retargeter.motion_animation_names(anim_player)
 	if anim_names.is_empty():
 		anim_scene.queue_free()
 		return {"error": "No animations found in the imported file."}

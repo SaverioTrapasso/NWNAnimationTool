@@ -92,6 +92,7 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if event.pressed:
+			if event.shift_pressed: return
 			var mode := _pick_mode(event.position)
 			if mode != "":
 				_dragging_mode = mode

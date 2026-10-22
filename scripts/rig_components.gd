@@ -33,6 +33,11 @@ static func definitions() -> Array[ComponentDef]:
 	# "lforearm" is NWN's shield-attachment dummy (no mesh of its own),
 	# parented under lforearm_g -- same idea as rhand/lhand above.
 	list.append(ComponentDef.new("shield", ["lforearm"], false))
+	# Individual FK joints override limb picking; Alt-click retains whole-limb IK.
+	for side in ["right", "left"]:
+		var prefix := "r" if side == "right" else "l"
+		for part in [["upper_arm", "bicep_g"], ["forearm", "forearm_g"], ["hand", "hand_g"], ["thigh", "thigh_g"], ["calf", "shin_g"], ["foot", "foot_g"]]:
+			list.append(ComponentDef.new(side + "_" + part[0], [prefix + part[1]], false))
 	return list
 
 ## Maps every node name in every component chain to its component id.

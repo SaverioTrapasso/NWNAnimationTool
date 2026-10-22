@@ -25,6 +25,8 @@ var _updating: bool = false
 
 func _ready() -> void:
 	visible = false
+	component_label.clip_text = true
+	component_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	for sb in [pos_x, pos_y, pos_z]:
 		sb.value_changed.connect(_on_position_field_changed)
 	for sb in [rot_x, rot_y, rot_z]:
@@ -50,6 +52,7 @@ func _on_rotation_field_changed(_value: float) -> void:
 
 func set_label(text: String) -> void:
 	component_label.text = text
+	component_label.tooltip_text = text
 
 func set_position_fields(v: Vector3) -> void:
 	_updating = true

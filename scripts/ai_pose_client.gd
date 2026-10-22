@@ -5,6 +5,7 @@ extends Node
 
 signal pose_received(world_landmarks: Array)
 signal pose_failed(error: String)
+signal pose_notice(message: String)
 
 const SCRIPT_PATH := "res://ai_pose/detect_pose.py"
 
@@ -20,8 +21,6 @@ func _exit_tree() -> void:
 ## exported build the file lives INSIDE the .pck where no external process
 ## can reach it, so it gets copied to user:// (writable, real path) first.
 static func extract_to_disk(res_path: String) -> String:
-	if OS.has_feature("editor"):
-		return ProjectSettings.globalize_path(res_path)
 	var bytes := FileAccess.get_file_as_bytes(res_path)
 	if bytes.is_empty():
 		return ""
@@ -36,14 +35,18 @@ static func extract_to_disk(res_path: String) -> String:
 ## Find a working Python executable on this machine.
 ## Tries common names in PATH, then the Windows launcher.
 static func _find_python() -> String:
-	var candidates := [
+	var config := ConfigFile.new()
+	config.load("user://workshop-settings.cfg")
+	var configured := str(config.get_value("paths", "pose_python", config.get_value("paths", "python", "")))
+	var candidates := [configured, str(config.get_value("paths", "python", "")),
 		"python",
 		"python3",
 		"py",
 	]
 	for candidate in candidates:
+		if candidate.is_empty(): continue
 		var output: Array = []
-		var code := OS.execute(candidate, ["--version"], output, true, true)
+		var code := OS.execute(candidate, ["--version"], output, true, false)
 		if code == 0:
 			return candidate
 	return ""
@@ -71,7 +74,7 @@ func _run_in_thread(image_path: String, script_abs: String) -> void:
 		return
 
 	var output: Array = []
-	var code := OS.execute(python, [script_abs, image_path], output, true, true)
+	var code := OS.execute(python, [script_abs, image_path], output, true, false)
 
 	var stdout: String = ""
 	for line in output:
@@ -112,4 +115,6 @@ func _on_thread_done() -> void:
 			pose_failed.emit("No pose detected in image")
 		else:
 			pose_received.emit(wl)
+			if not str(_result.get("warning", "")).is_empty():
+				pose_notice.emit(str(_result.warning))
 	_result = {}

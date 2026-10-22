@@ -107,7 +107,7 @@ static func _emit_subtree(rig_root: Node3D, node_name: String, children: Diction
 	lines.append("    node %s %s" % [node_type, node_name])
 	lines.append("        parent %s" % parent_name)
 
-	if is_root_dummy:
+	if is_root_dummy or node_name in ["rhand", "lhand", "lforearm"]:
 		lines.append("        positionkey")
 		for kf in keyframes:
 			var transform: Transform3D = kf["transforms"].get(node_name, Transform3D.IDENTITY)

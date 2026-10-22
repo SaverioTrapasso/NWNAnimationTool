@@ -25,7 +25,7 @@ func focus_on(pos: Vector3) -> void:
 	target = pos
 	_update_transform()
 
-## View presets. "3d" = classic perspective orbit; "front"/"side" snap to an
+## View presets. "3d" = classic perspective orbit; front, back and side views snap to an
 ## orthographic view straight at the character. Orbiting or zooming still
 ## works in ortho — pressing 3D brings the perspective back.
 func set_view_mode(mode: String) -> void:
@@ -36,7 +36,15 @@ func set_view_mode(mode: String) -> void:
 			yaw = PI # camera on the character's front axis
 			pitch = 0.0
 			projection = PROJECTION_ORTHOGONAL
-		"side":
+		"back":
+			yaw = 0.0
+			pitch = 0.0
+			projection = PROJECTION_ORTHOGONAL
+		"side_right":
+			yaw = -PI * 0.5
+			pitch = 0.0
+			projection = PROJECTION_ORTHOGONAL
+		"side", "side_left":
 			yaw = PI * 0.5 # camera on +X, looking at the character's side
 			pitch = 0.0
 			projection = PROJECTION_ORTHOGONAL

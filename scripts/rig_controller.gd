@@ -16,6 +16,7 @@ var _component_meshes: Dictionary # component_id -> Array[MeshInstance3D]
 var _component_bodies: Dictionary # component_id -> Array[StaticBody3D]
 var _highlight_materials: Dictionary # MeshInstance3D -> original material (or null)
 var selected_component: String = ""
+var selected_components: Array[String] = []
 
 func _ready() -> void:
 	_node_to_component = RigComponents.node_to_component_map()
@@ -140,9 +141,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		# transform panel's live refresh (it skips updates while a field has
 		# focus, to avoid fighting the user's typing).
 		get_viewport().gui_release_focus()
-		_try_pick(event.position)
+		_try_pick(event.position, event.shift_pressed, event.alt_pressed)
 
-func _try_pick(screen_pos: Vector2) -> void:
+func _try_pick(screen_pos: Vector2, additive: bool = false, whole_limb: bool = false) -> void:
 	if camera == null:
 		return
 	var space_state := camera.get_world_3d().direct_space_state
@@ -153,22 +154,55 @@ func _try_pick(screen_pos: Vector2) -> void:
 	query.collision_mask = RigComponents.PICK_LAYER
 	var result := space_state.intersect_ray(query)
 	if result.is_empty():
-		_deselect()
+		if not additive: _deselect()
 		return
 	var body: Node = result.collider
 	var component_id: String = body.get_meta("component_id", "")
 	if component_id == "":
 		_deselect()
 		return
-	select_component(component_id)
+	if whole_limb:
+		for comp in RigComponents.definitions():
+			if comp.is_ik and get_component_chain(component_id)[0] in comp.chain:
+				component_id = comp.id
+				break
+	select_component(component_id, additive)
 
-func select_component(component_id: String) -> void:
-	if component_id == selected_component:
-		return
+
+func select_component(component_id: String, additive: bool = false) -> void:
+	if get_component_chain(component_id).is_empty(): return
 	_clear_highlight()
-	selected_component = component_id
-	_apply_highlight(component_id)
-	component_selected.emit(component_id)
+	if not additive: selected_components.clear()
+	if additive and component_id in selected_components:
+		selected_components.erase(component_id)
+	else:
+		selected_components.append(component_id)
+	selected_component = selected_components[-1] if not selected_components.is_empty() else ""
+	for id in selected_components: _apply_highlight(id)
+	if selected_component.is_empty(): component_deselected.emit()
+	else: component_selected.emit(selected_component)
+
+func selection_roots() -> Array[Node3D]:
+	if all_body_selected(): return [find_node("rootdummy")]
+	var nodes: Array[Node3D] = []
+	for id in selected_components:
+		var node := get_component_root_node(id)
+		if node != null and node not in nodes: nodes.append(node)
+	var roots: Array[Node3D] = []
+	for node in nodes:
+		var covered := false
+		for other in nodes:
+			if other != node and other.is_ancestor_of(node): covered = true
+		if not covered: roots.append(node)
+	return roots
+
+func has_fk_selection_in(chain: Array[String]) -> bool:
+	for id in selected_components:
+		var selected := get_component_chain(id)
+		if selected.size() == 1 or selected_components.size() > 1:
+			for name in selected:
+				if name in chain: return true
+	return false
 
 func deselect() -> void:
 	_deselect()
@@ -178,10 +212,12 @@ func _deselect() -> void:
 		return
 	_clear_highlight()
 	selected_component = ""
+	selected_components.clear()
 	component_deselected.emit()
 
 func _apply_highlight(component_id: String) -> void:
-	for mesh_node in _component_meshes.get(component_id, []):
+	for mesh_node in _selection_meshes(component_id):
+		if _highlight_materials.has(mesh_node): continue
 		var mat := StandardMaterial3D.new()
 		var base_mat: Material = mesh_node.get_active_material(0)
 		if base_mat is BaseMaterial3D:
@@ -226,3 +262,29 @@ func get_chain_nodes(component_id: String) -> Array[Node3D]:
 		if found is Node3D:
 			nodes.append(found)
 	return nodes
+
+func _selection_meshes(id: String) -> Array:
+	var meshes: Array = []
+	for name in get_component_chain(id):
+		var part: String = _node_to_component.get(name, id)
+		for mesh in _component_meshes.get(part, []):
+			if mesh not in meshes: meshes.append(mesh)
+	return meshes
+
+func body_component_ids() -> Array[String]:
+	var ids: Array[String] = []
+	for comp in RigComponents.definitions():
+		if not comp.is_ik and comp.id not in ["right_weapon", "left_weapon", "shield"]: ids.append(comp.id)
+	return ids
+
+func all_body_selected() -> bool:
+	for id in body_component_ids():
+		if id not in selected_components: return false
+	return true
+
+func select_all_body() -> void:
+	_clear_highlight()
+	selected_components = body_component_ids()
+	selected_component = "pelvis"
+	for id in selected_components: _apply_highlight(id)
+	component_selected.emit(selected_component)
